@@ -129,14 +129,16 @@ local function Report(match)
         local entityName = string.sub(v.Entity, index)
 
         canAdd = true
+        nameTags = ""
 
         if not (match == "") then
             canAdd = false
             local matchParts = csplit(match, "|")
             for i, p in pairs(matchParts) do
-
-                if (string.match(string.lower(v.Entity), string.lower(p))) then canAdd = true end
-
+                if (string.match(string.lower(v.Entity), string.lower(p))) then
+                    canAdd = true
+                    entityName = "(" .. string.upper(p) .. ") " .. entityName
+                end
             end
 
         end

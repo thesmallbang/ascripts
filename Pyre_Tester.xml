@@ -86,7 +86,7 @@ local requiredFiles = {
         Url = "https://raw.githubusercontent.com/thesmallbang/ascripts/master/pyre_updater.xml",
         Found = -1,
         OnDownloaded = function(retval, page, status, headers, full_status, request_url)
-            print("Downloaded pyre_tester.xml")
+            print("Downloaded pyre_updater.xml")
             async_xml_download_complete(
                 retval,
                 page,
@@ -103,7 +103,7 @@ local requiredFiles = {
         Url = "https://raw.githubusercontent.com/thesmallbang/ascripts/master/pyre_helper.xml",
         Found = -1,
         OnDownloaded = function(retval, page, status, headers, full_status, request_url)
-            print("Downloaded pyre_tester.xml")
+            print("Downloaded pyre_helper.xml")
             async_xml_download_complete(
                 retval,
                 page,

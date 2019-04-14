@@ -70,7 +70,9 @@ function OnGMCP(text)
         assert(loadstring(luastmt or ""))()
         Core.Status.Room = gmcpval("room.info.map.name")
         print(gmcpval("info.map.name"))
-        gmcpval("map.name")
+        print(gmcpval("map.name"))
+        print(gmcpval("name"))
+
         Core.Log("room " .. Core.Status.Room, Core.LogLevel.DEBUG)
     end
 end

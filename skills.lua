@@ -241,6 +241,7 @@ ClanSkills[3] = { -- SANCTUARY
     Cast = function(skill)
 
         -- we dont actually want to cast sanc but just listen for it
+        CheckSkillDuration(skill)
 
     end,
 
@@ -280,7 +281,7 @@ ClanSkills[3] = { -- SANCTUARY
 
             [0] = function() setting = "off" end,
 
-            [1] = function() setting = "on" end,
+            [1] = function() setting = "reporting" end,
 
             default = function(x) setting = "invalid" end,
 
@@ -386,47 +387,49 @@ function CheckSkillExpirations()
 
         )
 
-        if (skill.Expiration == nil) then return false end
+        if not (skill.Expiration == nil) then
 
-        local expiringSeconds = os.difftime(skill.Expiration, os.time())
+            local expiringSeconds = os.difftime(skill.Expiration, os.time())
 
-        if expiringSeconds > 0 and (skill.DidWarn == 0 and expiringSeconds < Core.Settings.SkillExpirationWarn) then
+            if expiringSeconds > 0 and (skill.DidWarn == 0 and expiringSeconds < Core.Settings.SkillExpirationWarn) then
 
-            Core.CleanLog(
+                Core.CleanLog(
 
-                skill.Name .. " will expire in [" .. expiringSeconds .. "] seconds",
+                    skill.Name .. " will expire in [" .. expiringSeconds .. "] seconds",
 
-                "white",
+                    "white",
 
-                "white",
+                    "white",
 
-                Core.LogLevel.ERROR
+                    Core.LogLevel.ERROR
 
-            )
+                )
 
-            skill.DidWarn = 1
+                skill.DidWarn = 1
 
-            return
+                return
 
-        end
+            end
 
-        if expiringSeconds > 0 and (skill.DidWarn == 1 and expiringSeconds < (Core.Settings.SkillExpirationWarn / 2)) then
+            if expiringSeconds > 0 and (skill.DidWarn == 1 and expiringSeconds < (Core.Settings.SkillExpirationWarn / 2)) then
 
-            Core.CleanLog(
+                Core.CleanLog(
 
-                skill.Name .. " will expire in [" .. expiringSeconds .. "] seconds",
+                    skill.Name .. " will expire in [" .. expiringSeconds .. "] seconds",
 
-                "white",
+                    "white",
 
-                "white",
+                    "white",
 
-                Core.LogLevel.ERROR
+                    Core.LogLevel.ERROR
 
-            )
+                )
 
-            skill.DidWarn = 2
+                skill.DidWarn = 2
 
-            return
+                return
+
+            end
 
         end
 

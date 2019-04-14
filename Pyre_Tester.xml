@@ -39,7 +39,7 @@ local requiredFiles = {
         Found = -1,
         OnDownloaded = function(retval, page, status, headers, full_status, request_url)
             print("Downloaded core.lua")
-            async_xml_download_complete(
+            async_lua_download_complete(
                 retval,
                 page,
                 status,
@@ -55,7 +55,7 @@ local requiredFiles = {
         Found = -1,
         OnDownloaded = function(retval, page, status, headers, full_status, request_url)
             print("Downloaded skills.lua")
-            async_xml_download_complete(
+            async_lua_download_complete(
                 retval,
                 page,
                 status,
@@ -71,6 +71,22 @@ local requiredFiles = {
         Found = -1,
         OnDownloaded = function(retval, page, status, headers, full_status, request_url)
             print("Downloaded helper.lua")
+            async_lua_download_complete(
+                retval,
+                page,
+                status,
+                headers,
+                full_status,
+                request_url
+            )
+        end
+    },
+    [4] = {
+        Name = "pyre_tester.xml",
+        Url = "https://raw.githubusercontent.com/thesmallbang/ascripts/master/pyre_tester.xml",
+        Found = -1,
+        OnDownloaded = function(retval, page, status, headers, full_status, request_url)
+            print("Downloaded pyre_tester.xml")
             async_xml_download_complete(
                 retval,
                 page,
@@ -96,6 +112,20 @@ function csplit(inputstr, sep)
 end
 
 function async_xml_download_complete(retval, page, status, headers, full_status, request_url)
+    if status == 200 then
+        os.execute(command)
+        local fileParts = csplit(request_url, "/")
+        local fileName = fileParts[table.getn(fileParts)]
+        local file = io.open("worlds/plugins/" .. fileName, "w")
+        file:write(page)
+        file:flush()
+        file:close()
+        loadRequiredComponents()
+    else
+        print("error downloading")
+    end
+end
+function async_lua_download_complete(retval, page, status, headers, full_status, request_url)
     if status == 200 then
         command = "mkdir lua\\pyre"
         os.execute(command)

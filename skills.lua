@@ -460,6 +460,8 @@ end
 
 function CheckSkillDuration(skill)
 
+    if (Core.Settings.SkillExpirationWarn <= 0) then return end
+
     Core.Log(
 
         "CheckSkillDuration " .. skill.Name,

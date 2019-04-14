@@ -68,11 +68,7 @@ function OnGMCP(text)
         res, gmcparg = CallPlugin("3e7dedbe37e44942dd46d264", "gmcpval", "char")
         luastmt = "gmcpdata = " .. gmcparg
         assert(loadstring(luastmt or ""))()
-        Core.Status.Room = gmcpval("room.info.map.name")
-        print(gmcpval("info.map.name"))
-        print(gmcpval("map.name"))
-        print(gmcpval("name"))
-
+        Core.Status.Room = gmcpval("name")
         Core.Log("room " .. Core.Status.Room, Core.LogLevel.DEBUG)
     end
 end

@@ -379,15 +379,15 @@ function CheckSkillExpirations()
 
     for _, skill in ipairs(ClanSkills) do
 
-        Core.Log(
-
-            "CheckSkillExpirations: " .. skill.Name,
-
-            Core.LogLevel.VERBOSE
-
-        )
-
         if not (skill.Expiration == nil) then
+
+            Core.Log(
+
+                "CheckSkillExpiration: " .. skill.Name,
+
+                Core.LogLevel.DEBUG
+
+            )
 
             local expiringSeconds = os.difftime(skill.Expiration, os.time())
 
@@ -401,7 +401,7 @@ function CheckSkillExpirations()
 
                     "white",
 
-                    Core.LogLevel.ERROR
+                    Core.LogLevel.INFO
 
                 )
 
@@ -421,7 +421,7 @@ function CheckSkillExpirations()
 
                     "white",
 
-                    Core.LogLevel.ERROR
+                    Core.LogLevel.INFO
 
                 )
 

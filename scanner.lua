@@ -24,31 +24,11 @@ function OnPyreScanTimer()
     -- callback from timer if scanner is on
     Core.Log("OnPyreScanTimer", Core.LogLevel.DEBUG)
 
-    -- enable some triggers
-    AddTriggerEx(
-        "ph_scanner_location",
-        "^(\\d?\\w*.*?).\\w* here you see:$",
-        "",
-        trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
-        custom_colour.Custom15,
-        1,
-        "",
-        "OnLocationLine",
-        0
-    )
-    AddTriggerEx(
-        "ph_scanner_entity",
-        "^     - (.*)$",
-        "",
-        trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
-        custom_colour.Custom15,
-        1,
-        "",
-        "OnEntityLine",
-        0
-    )
+    EnableTrigger("ph_scanner_location", true)
+    EnableTrigger("ph_scanner_entity", true)
 
-    Execute("scan")
+    DoAfter(1, "scan")
+
     -- enable our timer to disable the scan since there is no end line
     EnableTimer("ph_scanner_disable", true)
 end
@@ -126,6 +106,31 @@ local function Setup()
         "",
         alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
         "OnScanAlias"
+    )
+
+    -- enable some triggers
+    AddTriggerEx(
+        "ph_scanner_location",
+        "^(\\d?\\w*.*?).\\w* here you see:$",
+        "",
+        trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
+        custom_colour.Custom15,
+        1,
+        "",
+        "OnLocationLine",
+        0
+    )
+
+    AddTriggerEx(
+        "ph_scanner_entity",
+        "^     - (.*)$",
+        "",
+        trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
+        custom_colour.Custom15,
+        1,
+        "",
+        "OnEntityLine",
+        0
     )
 
     AddTimer(

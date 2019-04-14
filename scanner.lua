@@ -103,12 +103,14 @@ local function Report(match)
     Execute(Core.Settings.Channel .. " " .. "Scan Report For [RoomNameHereSomeDay] [" .. string.upper(match) .. "]")
     local lastLocation = ""
     local names = ""
+    local nameCount = 0
+    local totalCount = 0
 
     for k, v in pairs(Scanner.ScanEntities) do
 
         if not (lastLocation == v.Location) then
             if (not (lastLocation == "") and not (names == "")) then
-                Execute(Core.Settings.Channel .. " " .. lastLocation .. ": " .. names)
+                Execute(Core.Settings.Channel .. " " .. lastLocation .. " [" .. nameCount .. "]: " .. names)
             end
             names = ""
             lastLocation = v.Location
@@ -123,17 +125,23 @@ local function Report(match)
         local entityName = string.sub(v.Entity, index)
 
         if ((match == "" or string.match(string.lower(v.Entity), string.lower(match))) and not (entityName == nil)) then
+            totalCount = totalCount + 1
             if (names == "") then
                 names = entityName
+                nameCount = 1
             else
                 names = names .. ", " .. entityName
+                nameCount = nameCount + 1
             end
         end
 
     end
 
     if not (names == "") then
-        Execute(Core.Settings.Channel .. " " .. lastLocation .. ": " .. names)
+        Execute(Core.Settings.Channel .. " " .. lastLocation .. " [" .. nameCount .. "]: " .. names)
+    end
+    if not (totalCount == 0) then
+        Execute(Core.Settings.Channel .. " Total matched " .. totalCount)
     end
 
 end

@@ -277,7 +277,7 @@ ClanSkills[3] = { -- SANCTUARY
 
             [0] = function() setting = "off" end,
 
-            [1] = function() setting = "reporting" end,
+            [1] = function() setting = "on" end,
 
             default = function(x) setting = "invalid" end,
 

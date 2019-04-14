@@ -86,7 +86,7 @@ local requiredFiles = {
         Url = "https://raw.githubusercontent.com/thesmallbang/ascripts/master/Pyre_Updater.xml",
         Found = -1,
         OnDownloaded = function(retval, page, status, headers, full_status, request_url)
-            print("Downloaded pyre_updater.xml")
+            print("Downloaded pyre_updater.xml. You will need to reload this plugin manually before you can pyre update")
             async_xml_download_complete(
                 retval,
                 page,

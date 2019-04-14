@@ -36,7 +36,7 @@ function OnPyreScanTimer()
     EnableTrigger("ph_scanner_entity", true)
 
     Scanner.ScanEntities = {}
-    Execute("scan")
+    SendNoEcho("scan")
 
     -- enable our timer to disable the scan since there is no end line
     EnableTimer("ph_scanner_disable", true)

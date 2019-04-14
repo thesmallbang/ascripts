@@ -40,7 +40,7 @@ ClanSkills[1] = { -- APATHY
 
         end
 
-        Execute(skill.Name)
+        SendNoEcho(skill.Name)
 
         skill.LastAttempt = os.time()
 
@@ -140,7 +140,7 @@ ClanSkills[2] = { -- GLOOM
 
     Cast = function(skill)
 
-        Execute(skill.Name)
+        SendNoEcho(skill.Name)
 
         skill.LastAttempt = os.time()
 
@@ -460,7 +460,7 @@ function CheckSkillDuration(skill)
 
     EnableTrigger("ph_sd" .. skill.Name, true)
 
-    Execute("saf " .. skill.Name)
+    SendNoEcho("saf " .. skill.Name)
 
 end
 

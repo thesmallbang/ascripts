@@ -133,7 +133,11 @@ local function Report(match)
         if not (match == "") then
             canAdd = false
             local matchParts = csplit(match, "|")
-            for i, p in pairs(matchParts) do print("in match for " .. p) end
+            for i, p in pairs(matchParts) do
+
+                if (string.match(string.lower(v.Entity), string.lower(p))) then canAdd = true end
+
+            end
 
         end
 

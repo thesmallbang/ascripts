@@ -172,7 +172,7 @@ local function Setup()
         "",
         trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary,
         custom_colour.Custom15,
-        1,
+        "",
         "",
         "OnLocationLine",
         0
@@ -184,7 +184,7 @@ local function Setup()
         "",
         trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary,
         custom_colour.Custom15,
-        1,
+        "",
         "",
         "OnEntityLine",
         0

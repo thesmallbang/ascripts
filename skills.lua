@@ -541,7 +541,7 @@ function AddSkillTriggers()
             "",
             trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
             custom_colour.Custom15,
-            1,
+            "",
             "",
             "OnSkillFail",
             0
@@ -553,7 +553,7 @@ function AddSkillTriggers()
             "",
             trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
             custom_colour.Custom15,
-            1,
+            "",
             "",
             "OnSkillSuccess",
             0
@@ -565,7 +565,7 @@ function AddSkillTriggers()
             "",
             trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary,
             custom_colour.Custom15,
-            4,
+            "",
             "",
             "OnSkillDuration",
             0

@@ -100,7 +100,7 @@ local function Report(match)
     Core.Log("Scanner Report", Core.LogLevel.DEBUG)
 
     if match == nil then match = "" end
-    Execute(Core.Settings.Channel .. " " .. "Scan Report For [" .. Core.Status.RoomId .. " - " .. Core.Status.Room .. "] [" .. string.upper(match) .. "]")
+    Execute(Core.Settings.Channel .. " " .. "Scan Report For [" .. Core.Status.Room .. "] [" .. string.upper(match) .. "]")
     local lastLocation = ""
     local names = ""
     local nameCount = 0

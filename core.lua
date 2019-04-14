@@ -148,7 +148,7 @@ end
 
 function SaveSettings()
 
-    SetVariable("Channel", Core.Settings.Channel or "")
+    SetVariable("Channel", Core.Settings.Channel or "echo")
 
     SetVariable(
 
@@ -180,7 +180,7 @@ function ChangeSetting(setting, settingValue)
 
     if (string.lower(setting) == "channel") then
 
-        Core.Settings.Channel = settingValue or ""
+        Core.Settings.Channel = settingValue or "echo"
 
         Core.Log("channel : " .. Core.Settings.Channel)
 
@@ -250,7 +250,7 @@ Core.Switch = Switch
 
 Core.Settings = {
 
-    Channel = GetVariable("Channel") or "",
+    Channel = GetVariable("Channel") or "echo",
 
     AlignmentBuffer = tonumber(GetVariable("AlignmentBuffer")) or 300,
 

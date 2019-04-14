@@ -29,7 +29,6 @@ function OnStart()
     )
 
     Setup()
-    Scanner.Start()
     ProcessSkillQueue()
 
 end
@@ -37,7 +36,6 @@ end
 function OnStop()
 
     Core.Log("OnStop", Core.LogLevel.DEBUG)
-    Scanner.Stop()
     Core.Status.Started = false
 
 end
@@ -151,6 +149,7 @@ function Setup()
 
     )
 
+    Scanner.Setup()
     AddSkillTriggers()
 
 end

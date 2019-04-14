@@ -68,7 +68,16 @@ local function Setup()
 
     AddAlias(
         "ph_scan",
-        "^pyre scan ([a-zA-Z]+).+?([a-zA-Z0-9]+)?$",
+        "^pyre scan ([a-zA-Z]+)?$",
+        "",
+        alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
+        "OnScanAlias"
+
+    )
+    -- can't seem to get the optional regex to work 
+    AddAlias(
+        "ph_scan_newb",
+        "^pyre scan ([a-zA-Z]+) ([a-zA-Z0-9]+)$",
         "",
         alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
         "OnScanAlias"

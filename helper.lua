@@ -46,6 +46,7 @@ function OnPluginBroadcast(msg, id, name, text)
     if (Core.Status.State == -1) then
         Core.Status.State = 0 -- sent request
         Send_GMCP_Packet("request char")
+        Send_GMCP_Packet("request room")
     end
     if (id == '3e7dedbe37e44942dd46d264') then OnGMCP(text) end
 end

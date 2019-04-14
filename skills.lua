@@ -515,105 +515,63 @@ function AddSkillTriggers()
     for _, skill in ipairs(ClanSkills) do
 
         Core.Log(
-
             "AddSkillTrigger: " .. skill.Name,
-
             Core.LogLevel.DEBUG
-
         )
 
         regexForFailures = ""
-
         regexForSuccess = ""
 
         for _, msg in ipairs(skill.Failures) do
-
             if not (regexForFailures == "") then regexForFailures = regexForFailures .. "|" end
-
             regexForFailures = regexForFailures .. "(" .. msg .. ")"
-
         end
 
         for _, msg in ipairs(skill.Success) do
-
             if not (regexForSuccess == "") then regexForSuccess = regexForSuccess .. "|" end
-
             regexForSuccess = regexForSuccess .. "(" .. msg .. ")"
-
         end
 
         regexForFailures = "^" .. regexForFailures .. "$"
-
         regexForSuccess = "^" .. regexForSuccess .. "$"
 
         AddTriggerEx(
-
             "ph_sf" .. skill.Name,
-
             regexForFailures,
-
             "",
-
             trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
-
             custom_colour.Custom15,
-
             1,
-
             "",
-
             "OnSkillFail",
-
             0
-
         )
 
         AddTriggerEx(
-
             "ph_ss" .. skill.Name,
-
             regexForSuccess,
-
             "",
-
             trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
-
             custom_colour.Custom15,
-
             1,
-
             "",
-
             "OnSkillSuccess",
-
             0
-
         )
 
         AddTriggerEx(
-
             "ph_sd" .. skill.Name,
-
             "^(Skill|Spell) *.: (.*) \\((.*):(.*)\\)*.$",
-
             "",
-
             trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary,
-
             custom_colour.Custom15,
-
             4,
-
             "",
-
             "OnSkillDuration",
-
             0
-
         )
 
         regexForFailures = ""
-
         regexForSuccess = ""
 
     end

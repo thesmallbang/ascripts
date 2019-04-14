@@ -51,6 +51,9 @@ function OnPluginBroadcast(msg, id, name, text)
 end
 
 function OnGMCP(text)
+
+    Core.Log("gmcp " .. text, Core.LogLevel.DEBUG)
+
     if (Core.Status.Started == false) then OnStart() end
     if (text == "char.status") then
         res, gmcparg = CallPlugin("3e7dedbe37e44942dd46d264", "gmcpval", "char")
@@ -59,8 +62,8 @@ function OnGMCP(text)
         Core.Status.State = tonumber(gmcpval("status.state"))
         Core.Status.RawAlignment = tonumber(gmcpval("status.align"))
     end
+
     if (text == "room.info") then
-        Core.Log("got room info gmcp", Core.LogLevel.DEBUG)
         res, gmcparg = CallPlugin("3e7dedbe37e44942dd46d264", "gmcpval", "char")
         luastmt = "gmcpdata = " .. gmcparg
         assert(loadstring(luastmt or ""))()

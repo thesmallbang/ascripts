@@ -35,7 +35,7 @@ end
 
 function Save()
     if (Core.Status.State <= 0) then return end
-    Core.Log("Saving", Core.LogLevel.INFO)
+    Core.Log("Saving", Core.LogLevel.DEBUG)
     Core.SaveSettings()
     SaveSkills()
 end

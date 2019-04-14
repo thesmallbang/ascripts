@@ -374,6 +374,8 @@ end
 
 function CheckSkillExpirations()
 
+    if (Core.Settings.SkillExpirationWarn <= 0) then return end
+
     for _, skill in ipairs(ClanSkills) do
 
         Core.Log(

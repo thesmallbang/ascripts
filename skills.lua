@@ -239,14 +239,13 @@ ClanSkills[3] = { -- SANCTUARY
     end,
 
     Cast = function(skill)
-
         -- we dont actually want to cast sanc but just listen for it
-        CheckSkillDuration(skill)
 
     end,
 
     OnSuccess = function(skill)
         if (skill.Setting == 0) then return end
+        Core.Log("OnSuccess_Sanc")
         skill.DidWarn = 0
         CheckSkillDuration(skill)
 
@@ -447,13 +446,9 @@ function OnSkillFail(name, line, wildcards)
 end
 
 function OnSkillSuccess(name, line, wildcards)
-
     Core.Log("OnSkillSuccess " .. name, Core.LogLevel.DEBUG)
-
     local skill = GetSkillByName(string.sub(name, 6))
-
     if skill == nil then return end
-
     skill.OnSuccess(skill)
 
 end
@@ -462,7 +457,7 @@ function CheckSkillDuration(skill)
 
     Core.Log(
 
-        "CheckSkillDuration " .. skill.Name,
+        "CheckSkillDuration " .. skill.Name .. " " .. Core.Settings.SkillExpirationWarn,
 
         Core.LogLevel.DEBUG
 

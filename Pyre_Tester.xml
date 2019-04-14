@@ -182,6 +182,7 @@ function OnPluginDisconnect() if Helper then Helper.OnStop() end end
 
 if not(IsPluginInstalled ("c74be251554149f1929c4d74")) then
     LoadPlugin ("worlds/plugins/pyre_updater.xml")
+    EnablePlugin("c74be251554149f1929c4d74", true)
 else
     ReloadPlugin("c74be251554149f1929c4d74")
 end

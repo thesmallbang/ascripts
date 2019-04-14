@@ -66,6 +66,22 @@ local requiredFiles = {
         end
     },
     [3] = {
+        Name = "scanner.lua",
+        Url = "https://raw.githubusercontent.com/thesmallbang/ascripts/master/scanner.lua",
+        Found = -1,
+        OnDownloaded = function(retval, page, status, headers, full_status, request_url)
+            print("Downloaded scanner.lua")
+            async_lua_download_complete(
+                retval,
+                page,
+                status,
+                headers,
+                full_status,
+                request_url
+            )
+        end
+    },
+    [4] = {
         Name = "helper.lua",
         Url = "https://raw.githubusercontent.com/thesmallbang/ascripts/master/helper.lua",
         Found = -1,
@@ -81,7 +97,7 @@ local requiredFiles = {
             )
         end
     },
-    [4] = {
+    [5] = {
         Name = "pyre_updater.xml",
         Url = "https://raw.githubusercontent.com/thesmallbang/ascripts/master/Pyre_Updater.xml",
         Found = -1,

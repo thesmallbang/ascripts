@@ -1,14 +1,14 @@
 require "gmcphelper"
 
 local Core = require("pyre.core")
-
 Core.Log("helper.lua loaded", Core.LogLevel.DEBUG)
 
+local Scanner = require("pyre.scanner")
 require("pyre.skills")
 
 local Helper = {}
 
-local Version = "1.0.1"
+local Version = "1.0.2"
 
 --------------------------------------------------------------------------------------
 
@@ -29,7 +29,7 @@ function OnStart()
     )
 
     Setup()
-
+    Scanner.Start()
     ProcessSkillQueue()
 
 end
@@ -37,7 +37,7 @@ end
 function OnStop()
 
     Core.Log("OnStop", Core.LogLevel.DEBUG)
-
+    Scanner.Stop()
     Core.Status.Started = false
 
 end
@@ -98,9 +98,9 @@ function OnHelp()
 
     Core.Log("pyre update", "orange")
     Core.Log("- This will update all components to the latest versions")
+    Scanner.ShowHelp()
     Core.Log("")
     Core.Log("pyre setting settingname value", "orange")
-
     Core.ShowSettings()
 
     ShowSkillSettings()

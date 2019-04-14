@@ -2,22 +2,29 @@ local Core = require("pyre.core")
 
 Core.Log("scanner.lua loaded", Core.LogLevel.DEBUG)
 
-Scanner = {Location = ""}
+Scanner = {Location = "", ScanEntities = {}}
 
 function OnLocationLine(name, line, wildcards)
-
     local location = wildcards[1]
     if (location == "Righ") then location = "Here" end
 
     Scanner.Location = location
-    Core.Log("ScannerSetLocation", Scanner.Location)
+    Core.Log(
+        "ScannerSetLocation" .. Scanner.Location,
+        Core.LogLevel.DEBUG
+    )
 
+    return false
 end
 
 function OnEntityLine(name, line, wildcards)
     local entity = wildcards[1]
-    Core.Log("ScannerAddEntity", entity)
-
+    Core.Log("ScannerAddEntity " .. entity, Core.LogLevel.DEBUG)
+    table.insert(
+        Scanner.ScanEntities,
+        {Location = Scanner.Location, Entity = entity}
+    )
+    return false
 end
 
 function OnPyreScanTimer()
@@ -46,6 +53,7 @@ function OnScanAlias(name, line, wildcards)
 end
 
 function OnPyreScanTimerDisable()
+    Core.Log("OnPyreScanTimerDisable", Core.LogLevel.DEBUG)
     EnableTimer("ph_scanner_disable", false)
     -- disable triggers scan read
     EnableTrigger("ph_scanner_location", false)

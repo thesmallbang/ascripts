@@ -229,7 +229,7 @@ end
 -- assign any functions to our return object
 
 Core.Log = Log
-
+Core.ColorLog = ColorLog
 Core.CleanLog = CleanLog
 
 Core.LogLevel = {OFF = 0, VERBOSE = 1, DEBUG = 2, INFO = 3, ERROR = 4}

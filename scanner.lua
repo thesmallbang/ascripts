@@ -145,7 +145,7 @@ local function Setup()
         "ph_scanner_disable",
         0,
         0,
-        4,
+        4.0,
         "",
         timer_flag.Replace + timer_flag.Temporary + timer_flag.AtTime,
         "OnPyreScanTimerDisable"

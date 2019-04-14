@@ -128,7 +128,17 @@ local function Report(match)
         end
         local entityName = string.sub(v.Entity, index)
 
-        if ((match == "" or string.match(string.lower(v.Entity), string.lower(match))) and not (entityName == nil)) then
+        canAdd = true
+
+        if not (match == "") then
+            canAdd = false
+            local matchParts = csplit(match, "|")
+            for i, p in pairs(matchParts) do print("in match for " .. p) end
+
+        end
+
+        if (canAdd and not (entityName == nil) and not (entityName == "")) then
+
             totalCount = totalCount + 1
             if (names == "") then
                 names = entityName
@@ -172,7 +182,7 @@ local function Setup()
     -- can't seem to get the optional regex to work 
     AddAlias(
         "ph_scan_newb",
-        "^pyre scan ([a-zA-Z]+) ([a-zA-Z0-9]+)$",
+        "^pyre scan ([a-zA-Z]+) (.+)$",
         "",
         alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
         "OnScanAlias"

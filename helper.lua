@@ -53,7 +53,7 @@ end
 
 function OnGMCP(text)
 
-    Core.Log("gmcp " .. text, Core.LogLevel.DEBUG)
+    Core.Log("gmcp " .. text, Core.LogLevel.VERBOSE)
 
     if (Core.Status.Started == false) then OnStart() end
     if (text == "char.status") then

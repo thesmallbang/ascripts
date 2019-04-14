@@ -233,20 +233,16 @@ ClanSkills[3] = { -- SANCTUARY
     LastAttempt = nil,
 
     CanCast = function(skill)
-
         return (skill.Queued == true and skill.Setting > 0 and Core.Status.State == 3 and (skill.LastAttempt == nil or os.difftime(os.time(), skill.LastAttempt) > 4))
-
     end,
-
     Cast = function(skill)
         -- we dont actually want to cast sanc but just listen for it
 
     end,
-
     OnSuccess = function(skill)
         if (skill.Setting == 0) then return end
-        Core.Log("OnSuccess_Sanc")
         skill.DidWarn = 0
+
         CheckSkillDuration(skill)
 
     end,
@@ -371,7 +367,7 @@ end
 
 function CheckSkillExpirations()
 
-    if (Core.Settings.SkillExpirationWarn <= 0) then return end
+    if (Core.Settings.SkillExpirationWarn < 1) then return end
 
     for _, skill in ipairs(ClanSkills) do
 
@@ -434,21 +430,18 @@ function CheckSkillExpirations()
 end
 
 function OnSkillFail(name, line, wildcards)
-
     Core.Log("OnSkillFail " .. name, Core.LogLevel.DEBUG)
-
     local skill = GetSkillByName(string.sub(name, 6))
-
     if skill == nil then return end
-
     skill.OnFailure(skill)
 
 end
 
 function OnSkillSuccess(name, line, wildcards)
     Core.Log("OnSkillSuccess " .. name, Core.LogLevel.DEBUG)
-    local skill = GetSkillByName(string.sub(name, 6))
-    if skill == nil then return end
+    local skillName = string.sub(name, 6)
+    local skill = GetSkillByName(skillName)
+    if (skill == nil) then return end
     skill.OnSuccess(skill)
 
 end
@@ -463,7 +456,7 @@ function CheckSkillDuration(skill)
 
     )
 
-    if (Core.Settings.SkillExpirationWarn <= 0) then return end
+    if (Core.Settings.SkillExpirationWarn < 1) then return end
 
     EnableTrigger("ph_sd" .. skill.Name, true)
 
@@ -500,9 +493,7 @@ end
 function GetSkillByName(name)
 
     for _, skill in ipairs(ClanSkills) do
-
         if string.lower(skill.Name) == string.lower(name) then return skill end
-
     end
 
     return nil
@@ -560,7 +551,7 @@ function AddSkillTriggers()
 
         AddTriggerEx(
             "ph_sd" .. skill.Name,
-            "^(Skill|Spell) *.: (.*) \\((.*):(.*)\\)*.$",
+            "^Skill|Spell? *.: (.*) \\((.*):(.*)\\)*.$",
             "",
             trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary,
             -1,

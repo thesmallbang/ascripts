@@ -35,7 +35,7 @@ local Helper
 local requiredFiles = {
     [1] = {
         Name = "core.lua",
-        Url = "https://pastebin.com/raw/u1NVsmQr/core.lua",
+        Url = "https://raw.githubusercontent.com/thesmallbang/ascripts/master/core.lua",
         Found = -1,
         OnDownloaded = function(retval, page, status, headers, full_status, request_url)
             print("Downloaded core.lua")
@@ -51,7 +51,7 @@ local requiredFiles = {
     },
     [2] = {
         Name = "skills.lua",
-        Url = "https://pastebin.com/raw/bUTYtYEg/skills.lua",
+        Url = "https://raw.githubusercontent.com/thesmallbang/ascripts/master/skills.lua",
         Found = -1,
         OnDownloaded = function(retval, page, status, headers, full_status, request_url)
             print("Downloaded skills.lua")
@@ -67,7 +67,7 @@ local requiredFiles = {
     },
     [3] = {
         Name = "helper.lua",
-        Url = "https://pastebin.com/raw/S4gqrnyC/helper.lua",
+        Url = "https://raw.githubusercontent.com/thesmallbang/ascripts/master/helper.lua",
         Found = -1,
         OnDownloaded = function(retval, page, status, headers, full_status, request_url)
             print("Downloaded helper.lua")

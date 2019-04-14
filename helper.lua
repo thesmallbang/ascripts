@@ -96,6 +96,9 @@ function OnHelp()
 
     Core.CleanLog("Pyre Helper by Tamon")
 
+    Core.Log("pyre update", "orange")
+    Core.Log("- This will update all components to the latest versions")
+    Core.Log("")
     Core.Log("pyre setting settingname value", "orange")
 
     Core.ShowSettings()
@@ -120,13 +123,6 @@ function OnSetting(name, line, wildcards)
 
 end
 
-function OnUpdate()
-    os.remove("lua/pyre/core.lua")
-    os.remove("lua/pyre/skills.lua")
-    os.remove("lua/pyre/helper.lua")
-    ReloadPlugin(GetPluginID())
-end
-
 function Setup()
 
     -- add help alias
@@ -137,14 +133,6 @@ function Setup()
         "",
         alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
         "OnHelp"
-    )
-
-    AddAlias(
-        "ph_update",
-        "^pyre update$",
-        "",
-        alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
-        "OnUpdate"
     )
 
     -- add settings alias

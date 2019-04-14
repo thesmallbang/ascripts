@@ -4,9 +4,26 @@ Core.Log("scanner.lua loaded", Core.LogLevel.DEBUG)
 
 Scanner = {}
 
-local function Start() Core.Log("Start scanner") end
+local function PyreScan() Core.Log("InPyreScan") end
 
-local function Stop() Core.Log("Stop scanner") end
+local function Start()
+
+    AddTimer(
+        "ph_scanner",
+        0,
+        0,
+        15,
+        "",
+        timer_flag.Enabled + timer_flag.Replace + timer_flag.Temporary,
+        "PyreScan"
+    )
+
+end
+
+local function Stop()
+    Core.Log("Stop scanner")
+    EnableTimer("ph_scanner", false)
+end
 
 local function Report() Core.Log("Scanner Report") end
 

@@ -18,13 +18,13 @@ function OnLocationLine(name, line, wildcards)
 end
 
 function OnEntityLine(name, line, wildcards)
-    local entity = wildcards[1]
+    local entity = wildcards[2]
+
     Core.Log("ScannerAddEntity " .. entity, Core.LogLevel.DEBUG)
     table.insert(
         Scanner.ScanEntities,
         {Location = Scanner.Location, Entity = entity}
     )
-
     return false
 end
 
@@ -68,7 +68,7 @@ local function Start(delay)
 
     if (delay == nil) then delay = 15 end
 
-    Core.Log("Pyre Scanner Started - " .. delay)
+    Core.Log("Pyre Scanner Started with interval: " .. delay)
     OnPyreScanTimer()
     AddTimer(
         "ph_scanner",
@@ -180,7 +180,7 @@ local function Setup()
         "ph_scanner_location",
         "^(\\d?\\w*.*?).\\w* here you see:$",
         "",
-        trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary + trigger_flag.OmitFromOutput,
+        trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary,
         -1,
         0,
         "",
@@ -190,14 +190,14 @@ local function Setup()
 
     AddTriggerEx(
         "ph_scanner_entity",
-        "^     - (.*)$",
+        "^(.*)-\\s*(.*)$",
         "",
         trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary + trigger_flag.OmitFromOutput,
         -1,
         0,
         "",
         "OnEntityLine",
-        0
+        1
     )
 
     AddTimer(

@@ -29,11 +29,13 @@
 
 function OnUpdate()
    os.execute('rd /s/q "'.."lua/pyre/"..'"')
+   os.remove('worlds/plugins/pyre_updater.xml')
    OnReload()
 end
 
 function OnReload()
    print("Reloading Pyre_Tester")
+   UnloadPlugin("Pyre_Updater")
    ReloadPlugin ("Pyre_Tester")
 end
      AddAlias(

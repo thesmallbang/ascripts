@@ -70,8 +70,6 @@ function OnGMCP(text)
         assert(loadstring(luastmt or ""))()
         Core.Status.Room = gmcpval("info.name")
         Core.Status.RoomId = gmcpval("info.num")
-
-        Core.Log("room: " .. Core.Status.Room, Core.LogLevel.DEBUG)
     end
 end
 

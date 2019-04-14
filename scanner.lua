@@ -24,6 +24,7 @@ function OnEntityLine(name, line, wildcards)
         Scanner.ScanEntities,
         {Location = Scanner.Location, Entity = entity}
     )
+
     return false
 end
 
@@ -34,10 +35,12 @@ function OnPyreScanTimer()
     EnableTrigger("ph_scanner_location", true)
     EnableTrigger("ph_scanner_entity", true)
 
-    DoAfter(1, "scan")
+    Scanner.ScanEntities = {}
+    Execute("scan")
 
     -- enable our timer to disable the scan since there is no end line
     EnableTimer("ph_scanner_disable", true)
+    ResetTimer("ph_scanner_disable")
 end
 
 function OnScanAlias(name, line, wildcards)
@@ -47,7 +50,7 @@ function OnScanAlias(name, line, wildcards)
     Switch(command){
         ["start"] = function() Scanner.Start(param1) end,
         ["stop"] = function() Scanner.Stop() end,
-        ["report"] = function() Scanner.Report() end,
+        ["report"] = function() Scanner.Report(param1) end,
         default = function() end,
     }
 end
@@ -84,9 +87,55 @@ local function Stop()
     EnableTimer("ph_scanner", false)
 end
 
-local function Report()
-    Core.Log("Scanner Report")
-    Execute(Core.Settings.Channel .. " " .. "some scan report")
+function findLast(haystack, needle)
+    local i = haystack:match(".*" .. needle .. "()")
+    if i == nil then
+        return nil
+    else
+        return i - 1
+    end
+end
+
+local function Report(match)
+    Core.Log("Scanner Report", Core.LogLevel.DEBUG)
+
+    if match == nil then match = "" end
+    Execute(Core.Settings.Channel .. " " .. "Scan Report For [RoomNameHereSomeDay] [" .. string.upper(match) .. "]")
+    local lastLocation = ""
+    local names = ""
+
+    for k, v in pairs(Scanner.ScanEntities) do
+
+        if not (lastLocation == v.Location) then
+            if (not (lastLocation == "") and not (names == "")) then
+                Execute(Core.Settings.Channel .. " " .. lastLocation .. ": " .. names)
+            end
+            names = ""
+            lastLocation = v.Location
+        end
+
+        local index = findLast(v.Entity, "%)")
+        if (index == -1 or index == nil) then
+            index = 1
+        else
+            index = index + 2
+        end
+        local entityName = string.sub(v.Entity, index)
+
+        if ((match == "" or string.match(string.lower(v.Entity), string.lower(match))) and not (entityName == nil)) then
+            if (names == "") then
+                names = entityName
+            else
+                names = names .. ", " .. entityName
+            end
+        end
+
+    end
+
+    if not (names == "") then
+        Execute(Core.Settings.Channel .. " " .. lastLocation .. ": " .. names)
+    end
+
 end
 
 local function ShowHelp()
@@ -121,7 +170,7 @@ local function Setup()
         "ph_scanner_location",
         "^(\\d?\\w*.*?).\\w* here you see:$",
         "",
-        trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
+        trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary,
         custom_colour.Custom15,
         1,
         "",
@@ -133,7 +182,7 @@ local function Setup()
         "ph_scanner_entity",
         "^     - (.*)$",
         "",
-        trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
+        trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary,
         custom_colour.Custom15,
         1,
         "",
@@ -145,11 +194,12 @@ local function Setup()
         "ph_scanner_disable",
         0,
         0,
-        4.0,
+        3.0,
         "",
-        timer_flag.Replace + timer_flag.Temporary + timer_flag.AtTime,
+        timer_flag.Enabled + timer_flag.Replace + timer_flag.Temporary,
         "OnPyreScanTimerDisable"
     )
+    EnableTimer("ph_scanner_disable", false)
 
 end
 

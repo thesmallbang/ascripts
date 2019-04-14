@@ -142,6 +142,8 @@ local function Report(match)
     end
     if not (totalCount == 0) then
         Execute(Core.Settings.Channel .. " Total matched " .. totalCount)
+    else
+        Execute(Core.Settings.Channel .. " No matches")
     end
 
 end

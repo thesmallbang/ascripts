@@ -48,6 +48,7 @@ function OnPyreScanTimer()
         0
     )
 
+    Execute("scan")
     -- enable our timer to disable the scan since there is no end line
     EnableTimer("ph_scanner_disable", true)
 end

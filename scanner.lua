@@ -57,7 +57,7 @@ end
 local function Report() Core.Log("Scanner Report") end
 
 local function ShowHelp()
-    Core.Log("pyre scan start duration")
+    Core.Log("pyre scan start optionalinterval")
     Core.Log("pyre scan stop")
     Core.Log("pyre scan report")
 end

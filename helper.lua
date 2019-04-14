@@ -63,7 +63,7 @@ end
 
 function OnHelp()
 
-    Core.CleanLog("Pyre Helper by Tamon", "white", "orange")
+    Core.CleanLog("Pyre Helper by Tamon")
 
     Core.Log("Reloader Plugin", "orange")
     Core.Log("pyre update|reload", "orange")
@@ -75,6 +75,7 @@ function OnHelp()
         "reload - reload the plugin and all related component code",
         "white"
     )
+    Core.Log("")
     Scanner.ShowHelp()
     Core.Log("")
     Core.Log(
@@ -82,7 +83,6 @@ function OnHelp()
         "orange"
     )
     Core.ShowSettings()
-
     ShowSkillSettings()
 
 end

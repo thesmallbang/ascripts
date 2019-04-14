@@ -162,7 +162,7 @@ local function Setup()
         "ph_scan",
         "^pyre scan ([a-zA-Z]+)?$",
         "",
-        alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
+        alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary + alias_flag.OmitFromOutput,
         "OnScanAlias"
 
     )
@@ -171,7 +171,7 @@ local function Setup()
         "ph_scan_newb",
         "^pyre scan ([a-zA-Z]+) ([a-zA-Z0-9]+)$",
         "",
-        alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
+        alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary + alias_flag.OmitFromOutput,
         "OnScanAlias"
     )
 
@@ -180,7 +180,7 @@ local function Setup()
         "ph_scanner_location",
         "^(\\d?\\w*.*?).\\w* here you see:$",
         "",
-        trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary,
+        trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary + trigger_flag.OmitFromOutput,
         -1,
         0,
         "",
@@ -192,7 +192,7 @@ local function Setup()
         "ph_scanner_entity",
         "^     - (.*)$",
         "",
-        trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary,
+        trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary + trigger_flag.OmitFromOutput,
         -1,
         0,
         "",

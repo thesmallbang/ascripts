@@ -124,7 +124,7 @@ local function Report(match)
         end
         local entityName = string.sub(v.Entity, index)
 
-        if ((match == "" or string.match(string.lower(entityName), string.lower(match))) and not (entityName == nil)) then
+        if ((match == "" or string.match(string.lower(v.Entity), string.lower(match))) and not (entityName == nil)) then
             totalCount = totalCount + 1
             if (names == "") then
                 names = entityName

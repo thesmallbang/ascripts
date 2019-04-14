@@ -380,7 +380,7 @@ function CheckSkillExpirations()
 
             "CheckSkillExpirations: " .. skill.Name,
 
-            Core.LogLevel.DEBUG
+            Core.LogLevel.VERBOSE
 
         )
 

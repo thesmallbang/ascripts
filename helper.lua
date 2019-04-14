@@ -120,22 +120,31 @@ function OnSetting(name, line, wildcards)
 
 end
 
+function OnUpdate()
+    os.remove("lua/pyre/core.lua")
+    os.remove("lua/pyre/skills.lua")
+    os.remove("lua/pyre/helper.lua")
+    ReloadPlugin(GetPluginID())
+end
+
 function Setup()
 
     -- add help alias
 
     AddAlias(
-
         "ph_help",
-
         "^pyre help$",
-
         "",
-
         alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
-
         "OnHelp"
+    )
 
+    AddAlias(
+        "ph_update",
+        "^pyre update$",
+        "",
+        alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
+        "OnUpdate"
     )
 
     -- add settings alias

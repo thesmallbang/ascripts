@@ -35,8 +35,8 @@ end
 
 function OnReload()
    print("Reloading Pyre_Tester")
-   UnloadPlugin("Pyre_Updater")
    ReloadPlugin ("Pyre_Tester")
+   UnloadPlugin("Pyre_Updater")
 end
      AddAlias(
         "ph_update",

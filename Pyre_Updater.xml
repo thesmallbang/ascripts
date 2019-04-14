@@ -32,13 +32,23 @@ function OnUpdate()
     print("Please reload the plugin Pyre_Helper manually")
 end
 
-
+function OnReload()
+   ReloadPlugin ("Pyre_Tester")
+end
      AddAlias(
         "ph_update",
         "^pyre update$",
         "",
         alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
         "OnUpdate"
+    )
+
+    AddAlias(
+        "ph_reload",
+        "^pyre reload$",
+        "",
+        alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
+        "OnReload"
     )
 
 ]]>

@@ -59,6 +59,13 @@ function OnGMCP(text)
         Core.Status.State = tonumber(gmcpval("status.state"))
         Core.Status.RawAlignment = tonumber(gmcpval("status.align"))
     end
+    if (text == "room.info") then
+        res, gmcparg = CallPlugin("3e7dedbe37e44942dd46d264", "gmcpval", "char")
+        luastmt = "gmcpdata = " .. gmcparg
+        assert(loadstring(luastmt or ""))()
+        Core.Status.Room = gmcpval("info.name")
+        Core.Status.RoomId = tonumber(gmcpval("info.num"))
+    end
 end
 
 function OnHelp()

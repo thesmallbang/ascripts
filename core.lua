@@ -244,7 +244,13 @@ Core.ShowSettings = ShowSettings
 
 Core.ChangeSetting = ChangeSetting
 
-Core.Status = {Started = false, State = -1, RawAlignment = 0}
+Core.Status = {
+    Started = false,
+    State = -1,
+    RawAlignment = 0,
+    Room = "",
+    RoomId = 0
+}
 
 Core.Switch = Switch
 

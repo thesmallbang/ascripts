@@ -141,7 +141,7 @@ end
 local function ShowHelp()
     Core.Log("pyre scan start optionalinterval")
     Core.Log("pyre scan stop")
-    Core.Log("pyre scan report")
+    Core.Log("pyre scan report optionaltext")
 end
 
 local function Setup()

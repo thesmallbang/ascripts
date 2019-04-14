@@ -8,7 +8,7 @@ require("pyre.skills")
 
 local Helper = {}
 
-local Version = "1.0.3"
+local Version = "1.0.4"
 
 --------------------------------------------------------------------------------------
 
@@ -17,15 +17,10 @@ local Version = "1.0.3"
 --------------------------------------------------------------------------------------
 
 function OnStart()
-
     Core.Status.Started = true
-
     Core.CleanLog(
-
         "Pyre Helper [" .. Version .. "] Loaded. (pyre help)",
-
         "white"
-
     )
 
     Setup()
@@ -34,71 +29,58 @@ function OnStart()
 end
 
 function OnStop()
-
     Core.Log("OnStop", Core.LogLevel.DEBUG)
     Core.Status.Started = false
-
 end
 
 function Save()
-
     if (Core.Status.State <= 0) then return end
-
     Core.Log("Saving", Core.LogLevel.INFO)
-
     Core.SaveSettings()
-
     SaveSkills()
-
 end
 
 function OnInstall() Core.Log("Installed", Core.LogLevel.DEBUG) end
 
 function OnPluginBroadcast(msg, id, name, text)
-
     if (Core.Status.State == -1) then
-
         Core.Status.State = 0 -- sent request
-
         Send_GMCP_Packet("request char")
-
     end
-
-    -- Look for GMCP handler.
-
     if (id == '3e7dedbe37e44942dd46d264') then OnGMCP(text) end
-
 end
 
 function OnGMCP(text)
-
     if (Core.Status.Started == false) then OnStart() end
-
     if (text == "char.status") then
-
         res, gmcparg = CallPlugin("3e7dedbe37e44942dd46d264", "gmcpval", "char")
-
         luastmt = "gmcpdata = " .. gmcparg
-
         assert(loadstring(luastmt or ""))()
-
         Core.Status.State = tonumber(gmcpval("status.state"))
-
         Core.Status.RawAlignment = tonumber(gmcpval("status.align"))
-
     end
-
 end
 
 function OnHelp()
 
-    Core.CleanLog("Pyre Helper by Tamon")
+    Core.CleanLog("Pyre Helper by Tamon", "white", "orange")
 
-    Core.Log("pyre update", "orange")
-    Core.Log("- This will update all components to the latest versions")
+    Core.Log("Reloader Plugin", "orange")
+    Core.Log("pyre update|reload", "orange")
+    Core.Log(
+        "update - download the latest versions of all components and reload the plugin",
+        "white"
+    )
+    Core.Log(
+        "reload - reload the plugin and all related component code",
+        "white"
+    )
     Scanner.ShowHelp()
     Core.Log("")
-    Core.Log("pyre setting settingname value", "orange")
+    Core.Log(
+        "pyre setting settingname 0|1|2|3|4|on|off|good|evil|neutral",
+        "orange"
+    )
     Core.ShowSettings()
 
     ShowSkillSettings()

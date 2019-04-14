@@ -30,6 +30,7 @@
 function OnUpdate()
     print("pyre helper updating.. please wait")
     os.execute('rd /s/q "'.."lua/pyre/"..'"')
+    os.remove("worlds/plugins/pyre_updater.xml")
     ReloadPlugin("c74be251554149f1929c4d73")
 end
 

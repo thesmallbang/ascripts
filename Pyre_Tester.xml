@@ -184,6 +184,10 @@ function OnPluginClose() if Helper then Helper.OnStop() end end
 
 function OnPluginDisconnect() if Helper then Helper.OnStop() end end
 
+if IsPluginInstalled ("c74be251554149f1929c4d74") then
+UnloadPlugin("Pyre_Helper")
+end
+
 
 loadRequiredComponents()
 

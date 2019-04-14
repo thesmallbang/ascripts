@@ -29,11 +29,11 @@
 
 function OnUpdate()
    os.execute('rd /s/q "'.."lua/pyre/"..'"')
-    OnReload()
+   OnReload()
 end
 
 function OnReload()
-    print("Reloading Pyre_Tester")
+   print("Reloading Pyre_Tester")
    ReloadPlugin ("Pyre_Tester")
 end
      AddAlias(

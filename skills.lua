@@ -246,11 +246,8 @@ ClanSkills[3] = { -- SANCTUARY
     end,
 
     OnSuccess = function(skill)
-
         if (skill.Setting == 0) then return end
-
         skill.DidWarn = 0
-
         CheckSkillDuration(skill)
 
     end,
@@ -463,8 +460,6 @@ end
 
 function CheckSkillDuration(skill)
 
-    if (Core.Settings.SkillExpirationWarn <= 0) then return end
-
     Core.Log(
 
         "CheckSkillDuration " .. skill.Name,
@@ -472,6 +467,8 @@ function CheckSkillDuration(skill)
         Core.LogLevel.DEBUG
 
     )
+
+    if (Core.Settings.SkillExpirationWarn <= 0) then return end
 
     EnableTrigger("ph_sd" .. skill.Name, true)
 

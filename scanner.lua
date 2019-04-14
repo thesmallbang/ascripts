@@ -13,7 +13,6 @@ function OnLocationLine(name, line, wildcards)
         "ScannerSetLocation" .. Scanner.Location,
         Core.LogLevel.DEBUG
     )
-
     return false
 end
 
@@ -25,14 +24,18 @@ function OnEntityLine(name, line, wildcards)
         Scanner.ScanEntities,
         {Location = Scanner.Location, Entity = entity}
     )
+    DeleteLines(1)
     return false
 end
+
+function OnDoorLine(name, line, wildcards) end
 
 function OnPyreScanTimer()
     -- callback from timer if scanner is on
     Core.Log("OnPyreScanTimer", Core.LogLevel.DEBUG)
 
     EnableTrigger("ph_scanner_location", true)
+    EnableTrigger("ph_scanner_door", true)
     EnableTrigger("ph_scanner_entity", true)
 
     Scanner.ScanEntities = {}
@@ -60,6 +63,7 @@ function OnPyreScanTimerDisable()
     EnableTimer("ph_scanner_disable", false)
     -- disable triggers scan read
     EnableTrigger("ph_scanner_location", false)
+    EnableTrigger("ph_scanner_door", false)
     EnableTrigger("ph_scanner_entity", false)
 
 end
@@ -164,7 +168,6 @@ local function Setup()
         "",
         alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
         "OnScanAlias"
-
     )
     -- can't seem to get the optional regex to work 
     AddAlias(
@@ -180,7 +183,7 @@ local function Setup()
         "ph_scanner_location",
         "^(\\d?\\w*.*?).\\w* here you see:$",
         "",
-        trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary,
+        trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary + trigger_flag.OmitFromOutput,
         -1,
         0,
         "",
@@ -189,10 +192,22 @@ local function Setup()
     )
 
     AddTriggerEx(
+        "ph_scanner_door",
+        "^You see a door (.*) you.$",
+        "",
+        trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary + trigger_flag.OmitFromOutput,
+        -1,
+        0,
+        "",
+        "OnDoorLine",
+        0
+    )
+
+    AddTriggerEx(
         "ph_scanner_entity",
         "^(.*)-\\s*(.*)$",
         "",
-        trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary + trigger_flag.OmitFromOutput,
+        trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary,
         -1,
         0,
         "",
@@ -204,7 +219,7 @@ local function Setup()
         "ph_scanner_disable",
         0,
         0,
-        3.0,
+        2.5,
         "",
         timer_flag.Enabled + timer_flag.Replace + timer_flag.Temporary,
         "OnPyreScanTimerDisable"

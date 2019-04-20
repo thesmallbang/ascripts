@@ -82,10 +82,7 @@ function OnGMCP(text)
         luastmt = "gmcpdata = " .. gmcparg
         assert(loadstring(luastmt or ""))()
         Core.Status.State = tonumber(gmcpval("status.state"))
-        if (Core.Status.Started == false and Core.Status.State == 3) then
-            print('onStart')
-            OnStart()
-        end
+        if (Core.Status.Started == false and Core.Status.State == 3) then OnStart() end
 
         Core.Status.RawAlignment = tonumber(gmcpval("status.align"))
         Core.Status.RawLevel = tonumber(gmcpval("status.level"))

@@ -3,7 +3,8 @@ local Core = require("pyre.core")
 Scanner = {Location = "", ScanEntities = {}}
 
 function FeatureStart() ScannerSetup() end
-function FeatureStop() print("feature stopping") end
+function FeatureStop() 
+ end
 function FeatureSettingHandle(settingName, potentialValue) end
 function FeatureTick() end
 function FeatureHelp()

@@ -307,7 +307,7 @@ ClanSkills[3] = { -- SANCTUARY
 }
 
 function FeatureStart() AddSkillTriggers() end
-function FeatureStop() print("feature stopping") end
+function FeatureStop() end
 function FeatureSettingHandle(settingName, potentialValue)
     for _, skill in ipairs(ClanSkills) do
         if (string.lower(skill.Name) == string.lower(settingName)) then

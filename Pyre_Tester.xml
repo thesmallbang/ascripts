@@ -133,17 +133,20 @@ end
 
 function async_xml_download_complete(retval, page, status, headers, full_status, request_url)
     if status == 200 then
-        local fileParts = csplit(request_url, "/")
-        local fileName = fileParts[table.getn(fileParts)]
+
         local file = io.open("worlds/plugins/" .. fileName, "w")
         file:write(page)
-        file:flush()
+           local fileParts = csplit(request_url, "/")
+        local fileName = fileParts[table.getn(fileParts)]     file:flush()
         file:close()
         loadRequiredComponents()
     else
         print("error downloading")
     end
 end
+
+
+
 function async_lua_download_complete(retval, page, status, headers, full_status, request_url)
     if status == 200 then
         command = "mkdir lua\\pyre"
@@ -194,7 +197,9 @@ function OnPluginBroadcast(msg, id, name, text)
     if Helper then Helper.OnPluginBroadcast(msg, id, name, text) end
 end
 
-function OnPluginPacketReceived(sText) if Helper then Helper.Tick() end end
+function OnPluginPacketReceived(sText)
+
+end
 
 function OnPluginClose() if Helper then Helper.OnStop() end end
 

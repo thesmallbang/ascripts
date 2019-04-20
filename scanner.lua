@@ -1,8 +1,87 @@
 local Core = require("pyre.core")
 
-Core.Log("scanner.lua loaded", Core.LogLevel.DEBUG)
-
 Scanner = {Location = "", ScanEntities = {}}
+
+function FeatureStart() ScannerSetup() end
+function FeatureStop() print("feature stopping") end
+function FeatureSettingHandle(settingName, potentialValue) end
+function FeatureTick() end
+function FeatureHelp()
+    Core.Log("pyre scan start optionalinterval")
+    Core.Log("pyre scan stop")
+    Core.Log("pyre scan report optionaltext")
+end
+function FeatureSave() end
+
+function ScannerSetup() -- add our alias / triggers
+    Core.Log("Scanner Setup", Core.LogLevel.DEBUG)
+
+    -- add settings alias
+    AddAlias(
+        "ph_scan",
+        "^pyre scan ([a-zA-Z]+)?$",
+        "",
+        alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
+        "OnScanAlias"
+    )
+    -- can't seem to get the optional regex to work 
+    AddAlias(
+        "ph_scan_newb",
+        "^pyre scan ([a-zA-Z]+) (.+)$",
+        "",
+        alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
+        "OnScanAlias"
+    )
+
+    -- enable some triggers
+    AddTriggerEx(
+        "ph_scanner_location",
+        "^(\\d?\\w*.*?).\\w* here you see:$",
+        "",
+        trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary + trigger_flag.OmitFromOutput,
+        -1,
+        0,
+        "",
+        "OnLocationLine",
+        0
+    )
+
+    AddTriggerEx(
+        "ph_scanner_door",
+        "^You see a door (.*) you.$",
+        "",
+        trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary + trigger_flag.OmitFromOutput,
+        -1,
+        0,
+        "",
+        "OnDoorLine",
+        0
+    )
+
+    AddTriggerEx(
+        "ph_scanner_entity",
+        "^(.*)-\\s*(.*)$",
+        "",
+        trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary,
+        -1,
+        0,
+        "",
+        "OnEntityLine",
+        1
+    )
+
+    AddTimer(
+        "ph_scanner_disable",
+        0,
+        0,
+        2.5,
+        "",
+        timer_flag.Enabled + timer_flag.Replace + timer_flag.Temporary,
+        "OnPyreScanTimerDisable"
+    )
+    EnableTimer("ph_scanner_disable", false)
+
+end
 
 function OnLocationLine(name, line, wildcards)
     local location = wildcards[1]
@@ -168,86 +247,11 @@ local function Report(match)
 
 end
 
-local function ShowHelp()
-    Core.Log("pyre scan start optionalinterval")
-    Core.Log("pyre scan stop")
-    Core.Log("pyre scan report optionaltext")
-end
-
-local function Setup()
-    Core.Log("Scanner Setup", Core.LogLevel.DEBUG)
-
-    -- add settings alias
-    AddAlias(
-        "ph_scan",
-        "^pyre scan ([a-zA-Z]+)?$",
-        "",
-        alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
-        "OnScanAlias"
-    )
-    -- can't seem to get the optional regex to work 
-    AddAlias(
-        "ph_scan_newb",
-        "^pyre scan ([a-zA-Z]+) (.+)$",
-        "",
-        alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
-        "OnScanAlias"
-    )
-
-    -- enable some triggers
-    AddTriggerEx(
-        "ph_scanner_location",
-        "^(\\d?\\w*.*?).\\w* here you see:$",
-        "",
-        trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary + trigger_flag.OmitFromOutput,
-        -1,
-        0,
-        "",
-        "OnLocationLine",
-        0
-    )
-
-    AddTriggerEx(
-        "ph_scanner_door",
-        "^You see a door (.*) you.$",
-        "",
-        trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary + trigger_flag.OmitFromOutput,
-        -1,
-        0,
-        "",
-        "OnDoorLine",
-        0
-    )
-
-    AddTriggerEx(
-        "ph_scanner_entity",
-        "^(.*)-\\s*(.*)$",
-        "",
-        trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary,
-        -1,
-        0,
-        "",
-        "OnEntityLine",
-        1
-    )
-
-    AddTimer(
-        "ph_scanner_disable",
-        0,
-        0,
-        2.5,
-        "",
-        timer_flag.Enabled + timer_flag.Replace + timer_flag.Temporary,
-        "OnPyreScanTimerDisable"
-    )
-    EnableTimer("ph_scanner_disable", false)
-
-end
-
-Scanner.Start = Start
-Scanner.Stop = Stop
-Scanner.Setup = Setup
-Scanner.Report = Report
-Scanner.ShowHelp = ShowHelp
+Scanner.FeatureStart = FeatureStart
+Scanner.FeatureStop = FeatureStop
+Scanner.FeatureSettingHandle = FeatureSettingHandle
+Scanner.FeatureTick = FeatureTick
+Scanner.FeatureHelp = FeatureHelp
+Scanner.FeatureSave = FeatureSave
 return Scanner
 

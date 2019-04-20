@@ -1,14 +1,29 @@
 require "gmcphelper"
 
 local Core = require("pyre.core")
-Core.Log("helper.lua loaded", Core.LogLevel.DEBUG)
 
-local Scanner = require("pyre.scanner")
-require("pyre.skills")
+Core.Log("helper.lua loaded", Core.LogLevel.DEBUG)
 
 local Helper = {}
 
-local Version = "1.0.15"
+local Version = "1.0.17"
+local Features = {
+    {Name = "skills", Feature = nil, Encapsulated = true},
+    {Name = "scanner", Feature = nil, Encapsulated = true}
+}
+
+function LoadFeatures()
+    for _, feat in ipairs(Features) do
+        if (feat.Encapsulated == true) then
+            Core.Log("Encap Feature " .. feat.Name)
+            feat.Feature = require("pyre." .. feat.Name)
+            feat.Feature.FeatureStart()
+        else
+            require("pyre." .. feat.Name)
+        end
+        Core.Log("Loaded Feature " .. feat.Name)
+    end
+end
 
 --------------------------------------------------------------------------------------
 
@@ -17,27 +32,35 @@ local Version = "1.0.15"
 --------------------------------------------------------------------------------------
 
 function OnStart()
-    Core.Status.Started = true
     Core.CleanLog(
         "Pyre Helper [" .. Version .. "] Loaded. (pyre help)",
         "white"
     )
-
-    Setup()
-    ProcessSkillQueue()
-
+    HelperSetup()
+    Core.Status.Started = true
 end
 
 function OnStop()
     Core.Log("OnStop", Core.LogLevel.DEBUG)
     Core.Status.Started = false
+    for _, feat in ipairs(Features) do
+        if (not (feat == nil) and not (feat.Feature == nil)) then
+            if (feat.Encapsulated == true) then feat.Feature.FeatureStop() end
+        end
+    end
 end
 
 function Save()
     if (Core.Status.State <= 0) then return end
     Core.Log("Saving", Core.LogLevel.DEBUG)
     Core.SaveSettings()
-    SaveSkills()
+    for _, feat in ipairs(Features) do
+        if (not (feat == nil) and not (feat.Feature == nil)) then
+            if (feat.Encapsulated == true) then feat.Feature.FeatureSave() end
+        end
+    end
+
+    -- SaveSkills()
 end
 
 function OnInstall() Core.Log("Installed", Core.LogLevel.DEBUG) end
@@ -52,18 +75,31 @@ function OnPluginBroadcast(msg, id, name, text)
 end
 
 function OnGMCP(text)
-
     Core.Log("gmcp " .. text, Core.LogLevel.VERBOSE)
-
-    if (Core.Status.Started == false) then OnStart() end
     if (text == "char.status") then
+
         res, gmcparg = CallPlugin("3e7dedbe37e44942dd46d264", "gmcpval", "char")
         luastmt = "gmcpdata = " .. gmcparg
         assert(loadstring(luastmt or ""))()
         Core.Status.State = tonumber(gmcpval("status.state"))
-        Core.Status.RawAlignment = tonumber(gmcpval("status.align"))
-    end
+        if (Core.Status.Started == false and Core.Status.State == 3) then
+            print('onStart')
+            OnStart()
+        end
 
+        Core.Status.RawAlignment = tonumber(gmcpval("status.align"))
+        Core.Status.RawLevel = tonumber(gmcpval("status.level"))
+        Core.Status.Level = Core.Status.RawLevel + (10 * Core.Status.Tier)
+    end
+    if (text == "char.base") then
+        res, gmcparg = CallPlugin("3e7dedbe37e44942dd46d264", "gmcpval", "char")
+        luastmt = "gmcpdata = " .. gmcparg
+        assert(loadstring(luastmt or ""))()
+        Core.Status.Tier = tonumber(gmcpval("base.tier"))
+        Core.Status.Subclass = gmcpval("base.subclass")
+        Core.Status.Clan = gmcpval("base.clan")
+        Core.Status.Level = Core.Status.RawLevel + (10 * Core.Status.Tier)
+    end
     if (text == "room.info") then
         res, gmcparg = CallPlugin("3e7dedbe37e44942dd46d264", "gmcpval", "room")
         luastmt = "gmcpdata = " .. gmcparg
@@ -87,15 +123,20 @@ function OnHelp()
         "reload - reload the plugin and all related component code",
         "white"
     )
-    Core.Log("")
-    Scanner.ShowHelp()
-    Core.Log("")
     Core.Log(
         "pyre setting settingname 0|1|2|3|4|on|off|good|evil|neutral",
         "orange"
     )
+
+    for _, feat in ipairs(Features) do
+        if (feat.Encapsulated == true) then
+            Core.Log("")
+            feat.Feature.FeatureHelp()
+            Core.Log("")
+        end
+    end
+
     Core.ShowSettings()
-    ShowSkillSettings()
 
 end
 
@@ -109,16 +150,30 @@ function OnSetting(name, line, wildcards)
 
     if (setting == nil or potentialValue == nil or setting == "" or potentialValue == "") then return end
 
-    Core.ChangeSetting(setting, potentialValue)
+    for _, feat in ipairs(Features) do
+        if (feat.Encapsulated == true) then
+            feat.Feature.FeatureSettingHandle(setting, potentialValue)
+        end
+    end
 
-    ChangeSkillSetting(setting, potentialValue)
+    Core.ChangeSetting(setting, potentialValue)
 
 end
 
-function Setup()
+function HelperSetup()
 
+    LoadFeatures()
+
+    AddTimer(
+        "ph_tick",
+        0,
+        0,
+        2.0,
+        "",
+        timer_flag.Enabled + timer_flag.Replace + timer_flag.Temporary,
+        "Tick"
+    )
     -- add help alias
-
     AddAlias(
         "ph_help",
         "^pyre help$",
@@ -126,9 +181,7 @@ function Setup()
         alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
         "OnHelp"
     )
-
     -- add settings alias
-
     AddAlias(
 
         "ph_setting",
@@ -143,25 +196,18 @@ function Setup()
 
     )
 
-    Scanner.Setup()
-    AddSkillTriggers()
-
 end
 
 function Tick()
-
     -- dont tick if we are not started
-
     if (Core.Status.Started == false) then return end
 
-    -- Check for skills that are expiring soon
-
-    CheckSkillExpirations()
-
-    -- Cast any pending skills
-
-    ProcessSkillQueue()
-
+    for _, feat in ipairs(Features) do
+        if (not (feat == nil) and not (feat.Feature == nil)) then
+            if (feat.Encapsulated == true) then feat.Feature.FeatureTick() end
+        end
+    end
+    ResetTimer("ph_tick")
 end
 
 --------------------------------------------------------------------------------------

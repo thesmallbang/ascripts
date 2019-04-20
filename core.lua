@@ -1,29 +1,17 @@
 local Core = {}
 
 function Switch(case)
-
     return function(codetable)
-
         local f
-
         f = codetable[case] or codetable.default
-
         if f then
-
             if type(f) == "function" then
-
                 return f(case)
-
             else
-
                 error("case " .. tostring(case) .. " not a function")
-
             end
-
         end
-
     end
-
 end
 
 function Log(msg, loglevel) ColorLog(msg, "white", "", loglevel) end
@@ -249,7 +237,12 @@ Core.Status = {
     State = -1,
     RawAlignment = 0,
     Room = "",
-    RoomId = 0
+    RoomId = 0,
+    Level = 0,
+    RawLevel = 0,
+    Tier = 0,
+    Subclass = "",
+    Clan = ""
 }
 
 Core.Switch = Switch
@@ -271,6 +264,25 @@ Core.Settings = {
 
     SkillExpirationWarn = tonumber(GetVariable("SkillExpirationWarn")) or 30,
 
+}
+
+Core.Classes = {
+    {
+        Name = "Blacksmith",
+        CombatInit = {{Name = "Hammerswing", Level = 51, AutoSend = true},},
+        CombatSkills = {
+            {Name = "Attack ", Level = 1, AutoSend = false},
+            {Name = "Bash", Level = 11, AutoSend = true},
+            {Name = "Sap", Level = 50, AutoSend = true},
+            {Name = "Scalp", Level = 60, AutoSend = true},
+            {Name = "Assault", Level = 88, AutoSend = true},
+            {Name = "Uppercut", Level = 101, AutoSend = true},
+            {Name = "Stomp", Level = 137, AutoSend = true},
+            {Name = "Bodycheck", Level = 151, AutoSend = true},
+            {Name = "Cleave", Level = 165, AutoSend = true},
+            {Name = "Hammering", Level = 178, AutoSend = true}
+        }
+    }
 }
 
 return Core

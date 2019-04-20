@@ -2,6 +2,7 @@ local Core = require("pyre.core")
 
 Core.Log("skills.lua loaded", Core.LogLevel.DEBUG)
 
+Skills = {}
 ClanSkills = {}
 
 local adjustingAlignment = false
@@ -305,58 +306,37 @@ ClanSkills[3] = { -- SANCTUARY
 
 }
 
-function SaveSkills()
-
-    for _, skill in ipairs(ClanSkills) do SetVariable("Skill_" .. skill.Name, skill.Setting) end
-
-end
-
-function ChangeSkillSetting(skillName, skillValue)
-
+function FeatureStart() AddSkillTriggers() end
+function FeatureStop() print("feature stopping") end
+function FeatureSettingHandle(settingName, potentialValue)
     for _, skill in ipairs(ClanSkills) do
-
-        if (string.lower(skill.Name) == string.lower(skillName)) then
-
+        if (string.lower(skill.Name) == string.lower(settingName)) then
             skill.Setting = skill.ParseSetting(skillValue)
-
             Core.Log(skill.Name .. " : " .. skill.DisplayValue(skill.Setting))
-
         end
-
     end
-
 end
 
-function ShowSkillSettings()
-
-    for _, skill in ipairs(ClanSkills) do
-
-        Core.Log(skill.Name .. " : " .. skill.DisplayValue(skill.Setting))
-
-    end
-
+function FeatureTick()
+    CheckSkillExpirations()
+    ProcessSkillQueue()
+end
+function FeatureHelp() Core.Log("~ pyre skills ~") end
+function FeatureSave()
+    for _, skill in ipairs(ClanSkills) do SetVariable("Skill_" .. skill.Name, skill.Setting) end
 end
 
 function ProcessSkillQueue()
-
     for _, skill in ipairs(ClanSkills) do
-
         Core.Log(
-
             "ProcessQueue: " .. skill.Name,
-
             Core.LogLevel.VERBOSE
-
         )
 
         local canCast = skill.CanCast(skill)
-
         Core.Log(
-
             "canCast: " .. tostring(canCast),
-
             Core.LogLevel.VERBOSE
-
         )
 
         if (canCast == true) then skill.Cast(skill) end
@@ -382,28 +362,8 @@ function CheckSkillExpirations()
             )
 
             local expiringSeconds = os.difftime(skill.Expiration, os.time())
-
-            if expiringSeconds > 0 and (skill.DidWarn == 0 and expiringSeconds < Core.Settings.SkillExpirationWarn) then
-
-                Core.CleanLog(
-
-                    skill.Name .. " will expire in [" .. expiringSeconds .. "] seconds",
-
-                    "white",
-
-                    "white",
-
-                    Core.LogLevel.INFO
-
-                )
-
-                skill.DidWarn = 1
-
-                return
-
-            end
-
-            if expiringSeconds > 0 and (skill.DidWarn == 1 and expiringSeconds < (Core.Settings.SkillExpirationWarn / 2)) then
+            local divider = skill.DidWarn + 1
+            if expiringSeconds > 0 and (skill.DidWarn < 2 and expiringSeconds < (Core.Settings.SkillExpirationWarn / divider)) then
 
                 Core.CleanLog(
 
@@ -417,7 +377,7 @@ function CheckSkillExpirations()
 
                 )
 
-                skill.DidWarn = 2
+                skill.DidWarn = skill.DidWarn + 1
 
                 return
 
@@ -551,7 +511,7 @@ function AddSkillTriggers()
 
         AddTriggerEx(
             "ph_sd" .. skill.Name,
-            "^Skill|Spell? *.: (.*) \\((.*):(.*)\\)*.$",
+            "^(Skill|Spell)? *.: (.*) \\((.*):(.*)\\)*.$",
             "",
             trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary,
             -1,
@@ -567,3 +527,12 @@ function AddSkillTriggers()
     end
 
 end
+
+Skills.FeatureStart = FeatureStart
+Skills.FeatureStop = FeatureStop
+Skills.FeatureSettingHandle = FeatureSettingHandle
+Skills.FeatureTick = FeatureTick
+Skills.FeatureHelp = FeatureHelp
+Skills.FeatureSave = FeatureSave
+return Skills
+

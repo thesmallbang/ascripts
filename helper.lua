@@ -38,6 +38,7 @@ function OnStart()
     )
     HelperSetup()
     Core.Status.Started = true
+
 end
 
 function OnStop()
@@ -110,30 +111,35 @@ function OnHelp()
 
     Core.CleanLog("Pyre Helper by Tamon")
 
-    Core.Log("Reloader Plugin", "orange")
-    Core.Log("pyre update|reload", "orange")
-    Core.Log(
+    Core.ColorLog("Reloader", "orange")
+    Core.Log("pyre update|reload")
+    Core.ColorLog(
         "update - download the latest versions of all components and reload the plugin",
-        "white"
+        ""
     )
-    Core.Log(
+    Core.ColorLog(
         "reload - reload the plugin and all related component code",
-        "white"
+        ""
     )
-    Core.Log(
+    Core.Log("")
+    Core.Log("")
+
+    Core.ColorLog(
         "pyre setting settingname 0|1|2|3|4|on|off|good|evil|neutral",
         "orange"
     )
+
+    Core.Log("")
+    Core.ColorLog("Core", "orange")
+
+    Core.ShowSettings()
 
     for _, feat in ipairs(Features) do
         if (feat.Encapsulated == true) then
             Core.Log("")
             feat.Feature.FeatureHelp()
-            Core.Log("")
         end
     end
-
-    Core.ShowSettings()
 
 end
 

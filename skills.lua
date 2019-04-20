@@ -306,8 +306,10 @@ ClanSkills[3] = { -- SANCTUARY
 
 }
 
-function FeatureStart() AddSkillTriggers() end
+function FeatureStart() SkillsSetup() end
+
 function FeatureStop() end
+
 function FeatureSettingHandle(settingName, potentialValue)
     for _, skill in ipairs(ClanSkills) do
         if (string.lower(skill.Name) == string.lower(settingName)) then
@@ -321,7 +323,19 @@ function FeatureTick()
     CheckSkillExpirations()
     ProcessSkillQueue()
 end
-function FeatureHelp() Core.Log("~ pyre skills ~") end
+
+function FeatureHelp()
+    Core.ColorLog("Skills", "orange")
+    Core.ColorLog(
+        "pyre attack - hammerswing or level appropriate bash skill",
+        ""
+    )
+
+    for _, skill in ipairs(ClanSkills) do
+        Core.Log(skill.Name .. ": " .. skill.DisplayValue(skill.Setting))
+    end
+end
+
 function FeatureSave()
     for _, skill in ipairs(ClanSkills) do SetVariable("Skill_" .. skill.Name, skill.Setting) end
 end
@@ -460,7 +474,60 @@ function GetSkillByName(name)
 
 end
 
-function AddSkillTriggers()
+function GetClassSkillByLevel(subclass, level, initiator)
+
+    local foundSkill = nil
+    if (initiator == nil) then initiator = false end
+
+    for _, subclass in ipairs(Core.Classes) do
+        if string.lower(subclass.Name) == string.lower(Core.Status.Subclass) then
+            local skillTable
+            if (initiator) then
+                skillTable = subclass.CombatInit
+            else
+                skillTable = subclass.CombatSkills
+            end
+
+            for _, skill in ipairs(skillTable) do
+                if ((skill.Level <= Core.Status.Level) and (foundSkill == nil or foundSkill.Level < skill.Level)) then foundSkill = skill end
+            end
+
+        end
+    end
+    return foundSkill
+
+end
+
+function OnSkillAttack()
+
+    local subclass = Core.Status.Subclass
+    local inCombat = (Core.Status.State == 8)
+
+    local bestSkill = GetClassSkillByLevel(
+        Core.Status.Subclass,
+        Core.Status.Level,
+        not (inCombat)
+    )
+
+    if not (bestSkill == nil) then
+        if (bestSkill.AutoSend) then
+            Execute(bestSkill.Name)
+        else
+            SetCommand(bestSkill.Name .. " ")
+        end
+    end
+
+end
+
+function SkillsSetup()
+
+    AddAlias(
+        "ph_skills_attack",
+        "^pyre attack$",
+        "",
+        alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
+        "OnSkillAttack"
+    )
 
     for _, skill in ipairs(ClanSkills) do
 

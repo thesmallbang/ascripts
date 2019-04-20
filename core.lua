@@ -269,9 +269,11 @@ Core.Settings = {
 Core.Classes = {
     {
         Name = "Blacksmith",
-        CombatInit = {{Name = "Hammerswing", Level = 51, AutoSend = true},},
-        CombatSkills = {
+        CombatInit = {
             {Name = "Attack ", Level = 1, AutoSend = false},
+            {Name = "Hammerswing", Level = 51, AutoSend = true}
+        },
+        CombatSkills = {
             {Name = "Bash", Level = 11, AutoSend = true},
             {Name = "Sap", Level = 50, AutoSend = true},
             {Name = "Scalp", Level = 60, AutoSend = true},

@@ -3,14 +3,14 @@ local Core = require("pyre.core")
 Scanner = {Location = "", ScanEntities = {}}
 
 function FeatureStart() ScannerSetup() end
-function FeatureStop() 
- end
+function FeatureStop() end
 function FeatureSettingHandle(settingName, potentialValue) end
 function FeatureTick() end
 function FeatureHelp()
-    Core.Log("pyre scan start optionalinterval")
-    Core.Log("pyre scan stop")
-    Core.Log("pyre scan report optionaltext")
+    Core.ColorLog("Scanner", "orange")
+    Core.ColorLog("pyre scan start optionalinterval")
+    Core.ColorLog("pyre scan stop")
+    Core.ColorLog("pyre scan report optionaltext")
 end
 function FeatureSave() end
 

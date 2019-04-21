@@ -6,7 +6,7 @@ Core.Log("helper.lua loaded", Core.LogLevel.DEBUG)
 
 local Helper = {}
 
-local Version = "1.0.17"
+local Version = "1.0.18"
 local Features = {
     {Name = "skills", Feature = nil, Encapsulated = true},
     {Name = "scanner", Feature = nil, Encapsulated = true},

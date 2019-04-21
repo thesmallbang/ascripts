@@ -113,7 +113,7 @@ local requiredFiles = {
             )
         end
     },
-    [5] = {
+    [6] = {
         Name = "pyre_updater.xml",
         Url = "https://raw.githubusercontent.com/thesmallbang/ascripts/master/Pyre_Updater.xml",
         Found = -1,

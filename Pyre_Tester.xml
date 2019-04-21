@@ -81,7 +81,23 @@ local requiredFiles = {
             )
         end
     },
-    [4] = {
+     [4] = {
+        Name = "items.lua",
+        Url = "https://raw.githubusercontent.com/thesmallbang/ascripts/master/items.lua",
+        Found = -1,
+        OnDownloaded = function(retval, page, status, headers, full_status, request_url)
+            print("Downloaded items.lua")
+            async_lua_download_complete(
+                retval,
+                page,
+                status,
+                headers,
+                full_status,
+                request_url
+            )
+        end
+    },
+    [5] = {
         Name = "helper.lua",
         Url = "https://raw.githubusercontent.com/thesmallbang/ascripts/master/helper.lua",
         Found = -1,

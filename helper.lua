@@ -9,7 +9,8 @@ local Helper = {}
 local Version = "1.0.17"
 local Features = {
     {Name = "skills", Feature = nil, Encapsulated = true},
-    {Name = "scanner", Feature = nil, Encapsulated = true}
+    {Name = "scanner", Feature = nil, Encapsulated = true},
+    {Name = "items", Feature = nil, Encapsulated = true},
 }
 
 function LoadFeatures()

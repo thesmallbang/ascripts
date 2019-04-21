@@ -16,13 +16,12 @@ local Features = {
 function LoadFeatures()
     for _, feat in ipairs(Features) do
         if (feat.Encapsulated == true) then
-            Core.Log("Encap Feature " .. feat.Name)
             feat.Feature = require("pyre." .. feat.Name)
             feat.Feature.FeatureStart()
         else
             require("pyre." .. feat.Name)
         end
-        Core.Log("Loaded Feature " .. feat.Name)
+        Core.Log("Loaded Feature " .. feat.Name, Core.LogLevel.DEBUG)
     end
 end
 

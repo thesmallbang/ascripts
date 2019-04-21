@@ -131,9 +131,9 @@ function OnScanAlias(name, line, wildcards)
     local param1 = wildcards[2]
 
     Switch(command){
-        ["start"] = function() Scanner.Start(param1) end,
-        ["stop"] = function() Scanner.Stop() end,
-        ["report"] = function() Scanner.Report(param1) end,
+        ["start"] = function() Start(param1) end,
+        ["stop"] = function() Stop() end,
+        ["report"] = function() Report(param1) end,
         default = function() end,
     }
 end
@@ -148,7 +148,7 @@ function OnPyreScanTimerDisable()
 
 end
 
-local function Start(delay)
+function Start(delay)
 
     if (delay == nil) then delay = 15 end
 
@@ -166,7 +166,7 @@ local function Start(delay)
 
 end
 
-local function Stop()
+function Stop()
     Core.Log("Pyre Scanner Stopped")
     EnableTimer("ph_scanner", false)
 end
@@ -180,7 +180,7 @@ function findLast(haystack, needle)
     end
 end
 
-local function Report(match)
+function Report(match)
     Core.Log("Scanner Report", Core.LogLevel.DEBUG)
 
     if match == nil then match = "" end

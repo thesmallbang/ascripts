@@ -151,7 +151,7 @@ function async_xml_download_complete(retval, page, status, headers, full_status,
     if status == 200 then
  local fileParts = csplit(request_url, "/")
         local fileName = fileParts[table.getn(fileParts)]
-        local file = io.open("lua/pyre/" .. fileName, "w")
+        local file = io.open("worlds/plugins/" .. fileName, "w")
         file:write(page)
         file:flush()
         file:close()

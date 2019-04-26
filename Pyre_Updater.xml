@@ -28,7 +28,7 @@
 <![CDATA[
 
 function OnUpdate()
-   os.execute('rd /s/q "'.."lua/pyre*"..'"')
+         os.execute('del /S pyre*.lua')
    os.remove('worlds/plugins/pyre_updater.xml')
    OnReload()
 end

@@ -167,7 +167,7 @@ function loadRequiredComponents()
     local anyMissing = false
 
     for _, file in ipairs(requiredFiles) do
-        if (file_exists("lua/pyre/" .. file.Name) or file_exists("worlds/plugins/" .. file.Name)) then
+        if (file_exists("lua/" .. file.Name) or file_exists("worlds/plugins/" .. file.Name)) then
             file.FoundState = 1
         else
             hadToDownload = true

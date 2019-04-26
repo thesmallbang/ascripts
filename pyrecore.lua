@@ -141,25 +141,22 @@ end
 function core_module.ChangeSetting(setting, settingValue)
     if (string.lower(setting) == 'channel') then
         core_module.Settings.Channel = settingValue or 'echo'
-
-        core_module.Log('channel : ' .. core_module.Settings.Channel)
+        core_module.Log('Channel : ' .. core_module.Settings.Channel)
     end
 
     if (string.lower(setting) == 'alignmentbuffer') then
         core_module.Settings.AlignmentBuffer = tonumber(settingValue) or 300
-
-        core_module.Log('alignmentbuffer : ' .. core_module.Settings.AlignmentBuffer)
+        core_module.Log('AlignmentBuffer : ' .. core_module.Settings.AlignmentBuffer)
     end
 
     if (string.lower(setting) == 'loglevel') then
         core_module.Settings.LogLevel = tonumber(settingValue) or core_module.LogLevel.INFO
-
-        core_module.Log('loglevel : ' .. core_module.Settings.LogLevel)
+        core_module.Log('LogLevel : ' .. core_module.Settings.LogLevel)
     end
 
     if (string.lower(setting) == 'skillexpirationwarn') then
         core_module.Settings.SkillExpirationWarn = tonumber(settingValue) or 30
-        core_module.Log('skillexpirationwarn : ' .. core_module.Settings.SkillExpirationWarn)
+        core_module.Log('SkillExpirationWarn : ' .. core_module.Settings.SkillExpirationWarn)
     end
 
     if (string.lower(setting) == 'onlyleaderinitiate') then
@@ -188,7 +185,9 @@ function core_module.SetState(state)
 
     core_module.Status.PreviousState = core_module.Status.State
     core_module.Status.PreviousStateTime = os.time()
+    local oldstate = core_module.Status.State
     core_module.Status.State = state
+    core_module.ShareEvent(core_module.Event.StateChanged, {new = state, old = oldstate})
     core_module.Log(
         'State Changed ' .. core_module.Status.PreviousState .. ' to ' .. state,
         core_module.LogLevel.VERBOSE
@@ -233,6 +232,7 @@ core_module.Status = {
 }
 
 core_module.Event = {
+    StateChanged = 10,
     NewEnemy = 100
 }
 
@@ -248,7 +248,8 @@ function core_module.Split(inputstr, sep)
 end
 
 core_module.Events = {
-    [core_module.Event.NewEnemy] = {}
+    [core_module.Event.NewEnemy] = {},
+    [core_module.Event.StateChanged] = {}
 }
 
 core_module.Settings = {

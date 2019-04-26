@@ -475,8 +475,14 @@ function OnNewEnemy(enemyObject)
     SkillFeature.LastSkill = nil
 end
 
+function OnStateChange(stateObject)
+    -- dont have a use for it yet but was planning ahead / testing
+end
+
 function SkillsSetup()
+    -- subscribe to some core events
     table.insert(Pyre.Events[Pyre.Event.NewEnemy], OnNewEnemy)
+    table.insert(Pyre.Events[Pyre.Event.StateChanged], OnStateChange)
 
     AddAlias(
         'ph_skills_attack',

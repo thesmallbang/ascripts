@@ -137,6 +137,7 @@ function core_module.SaveSettings()
     SetVariable('SkillExpirationWarn', core_module.Settings.SkillExpirationWarn or 30)
     SetVariable('OnlyLeaderInitiate', core_module.Settings.OnlyLeaderInitiate or 0)
     SetVariable('AttackDelay', core_module.Settings.AttackDelay or 0)
+    SetVariable('AttackMaxQueue', core_module.Settings.AttackMaxQueue or 2)
 end
 
 function core_module.ChangeSetting(setting, settingValue)
@@ -169,6 +170,11 @@ function core_module.ChangeSetting(setting, settingValue)
         core_module.Settings.AttackDelay = tonumber(settingValue) or 0
         core_module.Log('AttackDelay : ' .. core_module.Settings.AttackDelay)
     end
+
+    if (string.lower(setting) == 'attackmaxqueue') then
+        core_module.Settings.AttackMaxQueue = tonumber(settingValue) or 2
+        core_module.Log('AttackMaxQueue : ' .. core_module.Settings.AttackMaxQueue)
+    end
 end
 
 function core_module.ShowSettings()
@@ -183,6 +189,15 @@ function core_module.ShowSettings()
     -- probably need to move these to skills settings
     core_module.Log('OnlyLeaderInitiate : ' .. core_module.Settings.OnlyLeaderInitiate)
     core_module.Log('AttackDelay : ' .. core_module.Settings.AttackDelay)
+    core_module.Log('AttackMaxQueue : ' .. core_module.Settings.AttackMaxQueue)
+end
+
+function core_module.TableLength(T)
+    local count = 0
+    for _ in pairs(T) do
+        count = count + 1
+    end
+    return count
 end
 
 function core_module.SetState(state)
@@ -265,26 +280,87 @@ core_module.Settings = {
     LogLevel = tonumber(GetVariable('LogLevel')) or core_module.LogLevel.INFO,
     SkillExpirationWarn = tonumber(GetVariable('SkillExpirationWarn')) or 10,
     OnlyLeaderInitiate = tonumber(GetVariable('OnlyLeaderInitiate')) or 1,
-    AttackDelay = tonumber(GetVariable('AttackDelay')) or 0
+    AttackDelay = tonumber(GetVariable('AttackDelay')) or 0,
+    AttackMaxQueue = tonumber(GetVariable('AttackMaxQueue')) or 2
 }
 
 core_module.Classes = {
     {
         Name = 'Blacksmith',
         CombatInit = {
-            {Name = 'Attack ', Level = 1, AutoSend = false, Alias = '~'},
-            {Name = 'Hammerswing', Level = 51, AutoSend = true, Alias = 'swing'}
+            {Name = 'Attack ', Level = 1, AutoSend = false, Alias = '~', Attempts = {'Who are you trying to attack?'}},
+            {
+                Name = 'Hammerswing',
+                Level = 51,
+                AutoSend = true,
+                Alias = 'swing',
+                Attempts = {'You swing your hammer wildly but find nobody to hit', 'You are not using a hammer.'}
+            }
         },
         CombatSkills = {
-            {Name = 'Bash', Level = 11, AutoSend = true, Alias = 'bash'},
-            {Name = 'Sap', Level = 50, AutoSend = true, Alias = 'sap'},
-            {Name = 'Scalp', Level = 60, AutoSend = true, Alias = 'scalp'},
-            {Name = 'Assault', Level = 88, AutoSend = true, Alias = 'mighty assault'},
-            {Name = 'Uppercut', Level = 101, AutoSend = true, Alias = 'uppercut'},
-            {Name = 'Stomp', Level = 137, AutoSend = true, Alias = 'stomp'},
-            {Name = 'Bodycheck', Level = 151, AutoSend = true, Alias = 'bodycheck'},
-            {Name = 'Cleave', Level = 165, AutoSend = true, Alias = 'cleave'},
-            {Name = 'Hammering', Level = 178, AutoSend = true, Alias = 'hammering blow'}
+            {
+                Name = 'Bash',
+                Level = 11,
+                AutoSend = true,
+                Alias = 'bash',
+                Attempts = {'Bash whom?', "You don't know how to bash someone."}
+            },
+            {
+                Name = 'Sap',
+                Level = 50,
+                AutoSend = true,
+                Alias = 'sap',
+                Attempts = {'Sap whom?', "You don't know how to sap someone."}
+            },
+            {
+                Name = 'Scalp',
+                Level = 60,
+                AutoSend = true,
+                Alias = 'scalp',
+                Attempts = {'Scalp whom?', "You don't know how to scalp someone."}
+            },
+            {
+                Name = 'Assault',
+                Level = 88,
+                AutoSend = true,
+                Alias = 'mighty assault',
+                Attempts = {'Assault whom?', "You don't know how to assault someone."}
+            },
+            {
+                Name = 'Uppercut',
+                Level = 101,
+                AutoSend = true,
+                Alias = 'uppercut',
+                Attempts = {'Uppercut whom?', "You don't know how to uppercut someone."}
+            },
+            {
+                Name = 'Stomp',
+                Level = 137,
+                AutoSend = true,
+                Alias = 'stomp',
+                Attempts = {'Stomp whom?', "You don't know how to stomp someone."}
+            },
+            {
+                Name = 'Bodycheck',
+                Level = 151,
+                AutoSend = true,
+                Alias = 'bodycheck',
+                Attempts = {'Bodycheck whom?', "You don't know how to bodycheck someone."}
+            },
+            {
+                Name = 'Cleave',
+                Level = 165,
+                AutoSend = true,
+                Alias = 'cleave',
+                Attempts = {'Cleave whom?', "You don't know how to cleave."}
+            },
+            {
+                Name = 'Hammering',
+                Level = 178,
+                AutoSend = true,
+                Alias = 'hammering blow',
+                Attempts = {'Hammering Blow whom?', "You sit down and sing 'If I had a hammer!'."}
+            }
         }
     }
 }
@@ -297,6 +373,26 @@ end
 
 function core_module.GetClassSkillByName(skillName)
     local matchSkill = nil
+
+    for _, subclass in ipairs(core_module.Classes) do
+        if string.lower(subclass.Name) == string.lower(core_module.Status.Subclass) then
+            local skillTable = subclass.CombatInit
+
+            for _, skill in ipairs(skillTable) do
+                if
+                    (string.match(string.lower(skillName), string.lower(skill.Name)) or
+                        (string.match(string.lower(skillName), string.lower(skill.Alias))))
+                 then
+                    matchSkill = skill
+                end
+            end
+        end
+    end
+
+    if not (matchSkill == nil) then
+        return matchSkill
+    end
+
     for _, subclass in ipairs(core_module.Classes) do
         if string.lower(subclass.Name) == string.lower(core_module.Status.Subclass) then
             local skillTable = subclass.CombatSkills

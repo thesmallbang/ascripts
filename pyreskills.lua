@@ -5,7 +5,9 @@ Pyre.Log('skills.lua loaded', Pyre.LogLevel.DEBUG)
 SkillFeature = {
     SkillFail = nil,
     LastSkill = nil,
-    LastAttack = 0
+    LastAttack = 0,
+    AttackQueue = {},
+    LastUnqueue = 0
 }
 
 ClanSkills = {}
@@ -367,6 +369,16 @@ function CheckSkillDuration(skill)
     SendNoEcho('saf ' .. skill.Name)
 end
 
+function OnQueueAttempted(name, line, wildcards)
+    Pyre.Log('OnQueueAttempted ' .. name, Pyre.LogLevel.DEBUG)
+    local skillName = string.sub(name, 6)
+    local skill = Pyre.GetClassSkillByName(skillName)
+    if (skill == nil) then
+        return
+    end
+    SkillFeature.AttackDequeue(skill)
+end
+
 function OnSkillDuration(name, line, wildcards)
     Pyre.Log('OnSkillDuration ' .. name, Pyre.LogLevel.DEBUG)
 
@@ -388,6 +400,7 @@ function OnSkillDuration(name, line, wildcards)
 end
 
 function OnSkillUnaffected(name, line, wildcards)
+    Pyre.Log('OnSkillUnaffected', Pyre.LogLevel.VERBOSE)
     local enemyName = wildcards[1]
 
     -- verify the enemy is even correct
@@ -399,6 +412,37 @@ function OnSkillUnaffected(name, line, wildcards)
 
     if (not (skill == nil) and (not (SkillFeature.LastSkill == nil) and (skill.Name == SkillFeature.LastSkill.Name))) then
         SkillFeature.SkillFail = skill
+        SkillFeature.AttackDequeue(skill)
+    end
+end
+
+function OnSkillUsed(name, line, wildcards)
+    -- verify the enemy is even correct
+    if (not (string.lower(wildcards[3]) == string.lower(Pyre.Status.Enemy))) then
+        return
+    end
+
+    local skill = Pyre.GetClassSkillByName(wildcards[1])
+    if (skill == nil) then
+        return
+    end
+    SkillFeature.AttackDequeue(skill)
+end
+
+function SkillFeature.AttackDequeue(skill)
+    local difftime = os.difftime(os.time(), SkillFeature.LastUnqueue)
+    if (tonumber(difftime) < 1) then
+        return
+    end
+
+    for i, queued in pairs(SkillFeature.AttackQueue) do
+        if (queued.Skill.Name == skill.Name) then
+            table.remove(SkillFeature.AttackQueue, i)
+            SkillFeature.LastUnqueue = os.time()
+            Pyre.Log('Skill Dequeued ' .. skill.Name, Pyre.LogLevel.DEBUG)
+            -- if there are no more skills with that name we need to disable the dequeue trigger
+            return
+        end
     end
 end
 
@@ -455,24 +499,52 @@ function OnSkillAttack()
     end
 
     if (not (Pyre.Status.IsLeader == true) and Pyre.Settings.OnlyLeaderInitiate == 1) then
-        Pyre.Log('Initiation blocked. You are not the group leader', Pyre.LogLevel.INFO)
+        Pyre.Log('Initiation blocked. You are not the group leader', Pyre.LogLevel.DEBUG)
         return
     end
 
     local difftime = os.difftime(os.time(), SkillFeature.LastAttack)
-
     if (tonumber(difftime) < tonumber(Pyre.Settings.AttackDelay)) then
         Pyre.Log('Attack delay not met', Pyre.LogLevel.DEBUG)
         return
     end
 
+    if (Pyre.TableLength(SkillFeature.AttackQueue) >= Pyre.Settings.AttackMaxQueue) then
+        Pyre.Log('Attack Queue is full', Pyre.LogLevel.DEBUG)
+        return
+    end
+
     if not (bestSkill == nil) then
         if (bestSkill.AutoSend) then
+            local regexForAttempt = ''
+
+            for _, attempt in pairs(bestSkill.Attempts) do
+                if not (regexForAttempt == '') then
+                    regexForAttempt = regexForAttempt .. '|'
+                end
+                regexForAttempt = regexForAttempt .. '(' .. attempt .. ')'
+            end
+
+            local triggerName = 'ph_sa' .. bestSkill.Name
+            AddTriggerEx(
+                triggerName,
+                '^' .. regexForAttempt .. '$',
+                '',
+                trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
+                -1,
+                0,
+                '',
+                'OnQueueAttempted',
+                0
+            )
+
             Execute(bestSkill.Name)
         else
             SetCommand(bestSkill.Name .. ' ')
+            return
         end
         SkillFeature.LastSkill = bestSkill
+        table.insert(SkillFeature.AttackQueue, {Skill = bestSkill})
         SkillFeature.LastAttack = os.time()
     else
         Pyre.Log('This enemy is unaffected by your available skills.', Pyre.LogLevel.INFO)
@@ -485,7 +557,9 @@ function OnNewEnemy(enemyObject)
 end
 
 function OnStateChange(stateObject)
-    -- dont have a use for it yet but was planning ahead / testing
+    if (stateObject.new == Pyre.States.IDLE) then
+        SkillFeature.AttackQueue = {}
+    end
 end
 
 function SkillsSetup()
@@ -502,7 +576,19 @@ function SkillsSetup()
     )
 
     AddTriggerEx(
-        'ph_su',
+        'ph_skillused',
+        '^Your (\\w*) <(.*)> (.*)! \\[(.*)\\]$',
+        '',
+        trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
+        -1,
+        0,
+        '',
+        'OnSkillUsed',
+        0
+    )
+
+    AddTriggerEx(
+        'ph_skillunaffected',
         '^(.*) is unaffected by your (.*)!$',
         '',
         trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,

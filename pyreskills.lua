@@ -290,10 +290,6 @@ function SkillFeature.FeatureSave()
 end
 
 function SkillFeature.OnBroadCast(msgId, pluginId, pluginName, msg)
-    print('broadcast before id check ' .. pluginName)
-    if (pluginId == GetPluginID()) then
-        print('there was a broadcast: ' .. tostring(msgId) .. ' : ' .. tostring(msg))
-    end
 end
 
 function ProcessSkillQueue()
@@ -398,7 +394,6 @@ function OnSkillUnaffected(name, line, wildcards)
         return
     end
 
-    print(wildcards[2])
     local skill = Pyre.GetClassSkillByName(wildcards[2])
 
     if (not (skill == nil) and (not (SkillFeature.LastSkill == nil) and (skill.Name == SkillFeature.LastSkill.Name))) then

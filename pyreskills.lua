@@ -4,7 +4,8 @@ Pyre.Log('skills.lua loaded', Pyre.LogLevel.DEBUG)
 
 SkillFeature = {
     SkillFail = nil,
-    LastSkill = nil
+    LastSkill = nil,
+    LastAttack = 0
 }
 
 ClanSkills = {}
@@ -449,12 +450,19 @@ function OnSkillAttack()
     local bestSkill = SkillFeature.GetClassSkillByLevel(Pyre.Status.Subclass, Pyre.Status.Level, not (inCombat))
 
     if (not (Pyre.Status.State == Pyre.States.COMBAT) and not (Pyre.Status.State == Pyre.States.IDLE)) then
-        Pyre.Log('Invalid State for attacking')
+        Pyre.Log('Invalid State for attacking', Pyre.LogLevel.DEBUG)
         return
     end
 
     if (not (Pyre.Status.IsLeader == true) and Pyre.Settings.OnlyLeaderInitiate == 1) then
-        Pyre.Log('Initiation blocked. You are not the group leader')
+        Pyre.Log('Initiation blocked. You are not the group leader', Pyre.LogLevel.INFO)
+        return
+    end
+
+    local difftime = os.difftime(os.time(), SkillFeature.LastAttack)
+
+    if (tonumber(difftime) < tonumber(Pyre.Settings.AttackDelay)) then
+        Pyre.Log('Attack delay not met', Pyre.LogLevel.DEBUG)
         return
     end
 
@@ -465,6 +473,7 @@ function OnSkillAttack()
             SetCommand(bestSkill.Name .. ' ')
         end
         SkillFeature.LastSkill = bestSkill
+        SkillFeature.LastAttack = os.time()
     else
         Pyre.Log('This enemy is unaffected by your available skills.', Pyre.LogLevel.INFO)
     end

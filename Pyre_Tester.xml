@@ -34,7 +34,7 @@ local hadToDownload = false
 local Helper
 local requiredFiles = {
     [1] = {
-        Name = "core.lua",
+        Name = "pyrecore.lua",
         Url = "https://raw.githubusercontent.com/thesmallbang/ascripts/master/pyrecore.lua",
         Found = -1,
         OnDownloaded = function(retval, page, status, headers, full_status, request_url)
@@ -50,7 +50,7 @@ local requiredFiles = {
         end
     },
     [2] = {
-        Name = "skills.lua",
+        Name = "pyreskills.lua",
         Url = "https://raw.githubusercontent.com/thesmallbang/ascripts/master/pyreskills.lua",
         Found = -1,
         OnDownloaded = function(retval, page, status, headers, full_status, request_url)
@@ -66,7 +66,7 @@ local requiredFiles = {
         end
     },
     [3] = {
-        Name = "scanner.lua",
+        Name = "pyrescanner.lua",
         Url = "https://raw.githubusercontent.com/thesmallbang/ascripts/master/pyrescanner.lua",
         Found = -1,
         OnDownloaded = function(retval, page, status, headers, full_status, request_url)
@@ -82,7 +82,7 @@ local requiredFiles = {
         end
     },
     [4] = {
-        Name = "helper.lua",
+        Name = "pyrehelper.lua",
         Url = "https://raw.githubusercontent.com/thesmallbang/ascripts/master/pyrehelper.lua",
         Found = -1,
         OnDownloaded = function(retval, page, status, headers, full_status, request_url)

@@ -451,8 +451,17 @@ end
 
 function OnSkillAttack()
     local inCombat = (Pyre.Status.State == Pyre.States.COMBAT)
-
     local bestSkill = SkillFeature.GetClassSkillByLevel(Pyre.Status.Subclass, Pyre.Status.Level, not (inCombat))
+
+    if (not (Pyre.Status.State == Pyre.States.COMBAT) and not (Pyre.Status.State == Pyre.States.IDLE)) then
+        Pyre.Log('Invalid State for attacking')
+        return
+    end
+
+    if (not (Pyre.Status.IsLeader == true) and Pyre.Settings.OnlyLeaderInitiate == 1) then
+        Pyre.Log('Initiation blocked. You are not the group leader')
+        return
+    end
 
     if not (bestSkill == nil) then
         if (bestSkill.AutoSend) then
@@ -467,7 +476,6 @@ function OnSkillAttack()
 end
 
 function OnNewEnemy(enemyObject)
-    print(tostring(enemyObject.new))
     SkillFeature.SkillFail = nil
     SkillFeature.LastSkill = nil
 end

@@ -135,6 +135,7 @@ function core_module.SaveSettings()
     SetVariable('LogLevel', core_module.Settings.LogLevel or core_module.LogLevel.INFO)
 
     SetVariable('SkillExpirationWarn', core_module.Settings.SkillExpirationWarn or 30)
+    SetVariable('OnlyLeaderInitiate', core_module.Settings.OnlyLeaderInitiate or 0)
 end
 
 function core_module.ChangeSetting(setting, settingValue)
@@ -160,6 +161,11 @@ function core_module.ChangeSetting(setting, settingValue)
         core_module.Settings.SkillExpirationWarn = tonumber(settingValue) or 30
         core_module.Log('skillexpirationwarn : ' .. core_module.Settings.SkillExpirationWarn)
     end
+
+    if (string.lower(setting) == 'onlyleaderinitiate') then
+        core_module.Settings.OnlyLeaderInitiate = tonumber(settingValue) or 0
+        core_module.Log('OnlyLeaderInitiate : ' .. core_module.Settings.OnlyLeaderInitiate)
+    end
 end
 
 function core_module.ShowSettings()
@@ -172,7 +178,7 @@ function core_module.ShowSettings()
     core_module.Log('SkillExpirationWarn : ' .. core_module.Settings.SkillExpirationWarn)
 
     -- probably need to move initiate delay to skills settings
-    core_module.Log('CombatInitiateDelay : ' .. core_module.Settings.CombatInitiateDelay)
+    core_module.Log('OnlyLeaderInitiate : ' .. core_module.Settings.OnlyLeaderInitiate)
 end
 
 function core_module.SetState(state)
@@ -250,7 +256,7 @@ core_module.Settings = {
     AlignmentBuffer = tonumber(GetVariable('AlignmentBuffer')) or 300,
     LogLevel = tonumber(GetVariable('LogLevel')) or core_module.LogLevel.INFO,
     SkillExpirationWarn = tonumber(GetVariable('SkillExpirationWarn')) or 10,
-    CombatInitiateDelay = tonumber(GetVariable('CombatInitiateDelay')) or 1
+    OnlyLeaderInitiate = tonumber(GetVariable('OnlyLeaderInitiate')) or 1
 }
 
 core_module.Classes = {

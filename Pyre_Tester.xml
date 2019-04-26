@@ -35,7 +35,7 @@ local Helper
 local requiredFiles = {
     [1] = {
         Name = "core.lua",
-        Url = "https://raw.githubusercontent.com/thesmallbang/ascripts/master/core.lua",
+        Url = "https://raw.githubusercontent.com/thesmallbang/ascripts/master/pyrecore.lua",
         Found = -1,
         OnDownloaded = function(retval, page, status, headers, full_status, request_url)
             print("Downloaded core.lua")
@@ -51,7 +51,7 @@ local requiredFiles = {
     },
     [2] = {
         Name = "skills.lua",
-        Url = "https://raw.githubusercontent.com/thesmallbang/ascripts/master/skills.lua",
+        Url = "https://raw.githubusercontent.com/thesmallbang/ascripts/master/pyreskills.lua",
         Found = -1,
         OnDownloaded = function(retval, page, status, headers, full_status, request_url)
             print("Downloaded skills.lua")
@@ -67,7 +67,7 @@ local requiredFiles = {
     },
     [3] = {
         Name = "scanner.lua",
-        Url = "https://raw.githubusercontent.com/thesmallbang/ascripts/master/scanner.lua",
+        Url = "https://raw.githubusercontent.com/thesmallbang/ascripts/master/pyrescanner.lua",
         Found = -1,
         OnDownloaded = function(retval, page, status, headers, full_status, request_url)
             print("Downloaded scanner.lua")
@@ -81,25 +81,9 @@ local requiredFiles = {
             )
         end
     },
-     [4] = {
-        Name = "items.lua",
-        Url = "https://raw.githubusercontent.com/thesmallbang/ascripts/master/items.lua",
-        Found = -1,
-        OnDownloaded = function(retval, page, status, headers, full_status, request_url)
-            print("Downloaded items.lua")
-            async_lua_download_complete(
-                retval,
-                page,
-                status,
-                headers,
-                full_status,
-                request_url
-            )
-        end
-    },
-    [5] = {
+    [4] = {
         Name = "helper.lua",
-        Url = "https://raw.githubusercontent.com/thesmallbang/ascripts/master/helper.lua",
+        Url = "https://raw.githubusercontent.com/thesmallbang/ascripts/master/pyrehelper.lua",
         Found = -1,
         OnDownloaded = function(retval, page, status, headers, full_status, request_url)
             print("Downloaded helper.lua")
@@ -113,7 +97,7 @@ local requiredFiles = {
             )
         end
     },
-    [6] = {
+    [5] = {
         Name = "pyre_updater.xml",
         Url = "https://raw.githubusercontent.com/thesmallbang/ascripts/master/Pyre_Updater.xml",
         Found = -1,
@@ -165,11 +149,11 @@ end
 
 function async_lua_download_complete(retval, page, status, headers, full_status, request_url)
     if status == 200 then
-        command = "mkdir lua\\pyre"
+        command = "mkdir lua\\"
         os.execute(command)
         local fileParts = csplit(request_url, "/")
         local fileName = fileParts[table.getn(fileParts)]
-        local file = io.open("lua/pyre/" .. fileName, "w")
+        local file = io.open("lua/" .. fileName, "w")
         file:write(page)
         file:flush()
         file:close()
@@ -197,9 +181,9 @@ function loadRequiredComponents()
     if anyMissing == false then
         if hadToDownload then
             print("Required components have been downloaded.")
-            Helper = require("pyre.helper")
+            Helper = require("pyrehelper")
         else
-            Helper = require("pyre.helper")
+            Helper = require("pyrehelper")
         end
     end
 

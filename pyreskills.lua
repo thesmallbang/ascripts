@@ -509,7 +509,7 @@ function OnSkillAttack()
         return
     end
 
-    if (Pyre.TableLength(SkillFeature.AttackQueue) >= Pyre.Settings.AttackMaxQueue) then
+    if (Pyre.Settings.AttackMaxQueue > 0 and Pyre.TableLength(SkillFeature.AttackQueue) >= Pyre.Settings.AttackMaxQueue) then
         Pyre.Log('Attack Queue is full', Pyre.LogLevel.DEBUG)
         return
     end

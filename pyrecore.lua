@@ -51,14 +51,17 @@ function core_module.ColorLog(msg, color, backcolor, loglevel)
     local skipLog = false
 
     core_module.Switch(loglevel) {
-        [core_module.LogLevel.DEBUG] = function()
-            ColourTell('#4D5057', '#FFFFFF', 'PYRE')
+        [core_module.LogLevel.ERROR] = function()
+            ColourTell('#FF0000', '#000000', 'PYREERR')
         end,
         [core_module.LogLevel.INFO] = function()
-            ColourTell('#320A28', '#E0D68A', 'PYRE')
+            ColourTell('#1D5057', '#000000', 'PYRE   ')
         end,
-        [core_module.LogLevel.ERROR] = function()
-            ColourTell('#EFA00B', '#591F0A', 'PYRE')
+        [core_module.LogLevel.DEBUG] = function()
+            ColourTell('#4D5057', '#FFFFFF', 'PYREDBG')
+        end,
+        [core_module.LogLevel.VERBOSE] = function()
+            ColourTell('#320A28', '#E0D68A', 'PYREVRB')
         end,
         default = function()
             skipLog = true

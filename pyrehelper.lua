@@ -6,7 +6,7 @@ Pyre.Log('helper.lua loaded', Pyre.LogLevel.DEBUG)
 
 local Helper = {}
 
-local Version = '1.0.18'
+local Version = '1.1.0'
 local Features = {
     {Name = 'skills', Feature = nil, Encapsulated = true},
     {Name = 'scanner', Feature = nil, Encapsulated = true}
@@ -31,7 +31,7 @@ end
 --------------------------------------------------------------------------------------
 
 function Helper.OnStart()
-    Pyre.CleanLog('Pyre Helper [' .. Version .. '] Loaded. (pyre help)', 'white', 'white', Pyre.LogLevel.ERROR)
+    Pyre.CleanLog('[' .. Version .. '] Loaded. (pyre help)', nil, nil, Pyre.LogLevel.INFO)
     Helper.Setup()
     Pyre.Status.Started = true
 end

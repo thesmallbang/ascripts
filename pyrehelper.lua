@@ -268,12 +268,10 @@ function Helper.Setup()
         'OnSetting'
     )
 
-    local diedRegex = '^(.+)(DEAD!|it!!)$'
-
     -- enemy died trigger
     AddTriggerEx(
         'ph_enemydied',
-        '^(.+)(DEAD!|it!!|him!!|her!!)$',
+        '^(.+)(DEAD!|it!!|him!!|her!!|.+is slain by.+!!)$',
         '',
         trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
         -1,

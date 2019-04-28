@@ -14,6 +14,7 @@ SkillFeature = {
     LastAttack = 0,
     AttackQueue = {},
     LastUnqueue = 0,
+    LastSkillExecute = 0,
     LastSkillUniqueId = 0,
     LastQuaff = 0
 }
@@ -715,6 +716,19 @@ function ProcessAttackQueue()
         return
     end
 
+    -- check that we are not execeting too quickly for combat types
+    local waitTime = 2
+    if (item.Skill.SkillType == Pyre.SkillType.CombatInitiate) then
+        waitTime = waitTime + 1
+    end
+    if
+        (((item.Skill.SkillType == Pyre.SkillType.CombatInitiate) or (item.Skill.SkillType == Pyre.SkillType.CombatMove)) and
+            ((socket.gettime() - SkillFeature.LastSkillExecute) < waitTime))
+     then
+        Pyre.Log('Queue Wait ' .. Pyre.TableLength(SkillFeature.AttackQueue), Pyre.LogLevel.DEBUG)
+        return
+    end
+
     -- this may be silly but i wasn't sure how objects were handled and if 2 identical commands would equal the same object
     -- and just did it in case
     local newUniqueId = math.random(1, 1000000)
@@ -725,6 +739,7 @@ function ProcessAttackQueue()
         Pyre.LogLevel.VERBOSE
     )
     SkillFeature.LastSkillUniqueId = item.uid
+    SkillFeature.LastSkillExecute = socket.gettime()
 end
 
 function CheckSkillExpirations()

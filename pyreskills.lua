@@ -1170,9 +1170,8 @@ function OnStateChange(stateObject)
             Pyre.Except(
             SkillFeature.AttackQueue,
             function(v)
-                return ((v.Skill.SkillType == Pyre.SkillType.QuaffHeal) or
-                    (v.Skill.SkillType == Pyre.SkillType.QuaffMana) or
-                    (v.Skill.SkillType == Pyre.SkillType.QuaffMove))
+                return ((v.Skill.SkillType == Pyre.SkillType.CombatInitiate) or
+                    (v.Skill.SkillType == Pyre.SkillType.CombatMove))
             end
         )
         CheckForQuaff()

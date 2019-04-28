@@ -354,6 +354,12 @@ function SkillFeature.FeatureSettingHandle(settingName, p1, p2, p3, p4)
             end
             local stat = nil
             Pyre.Switch(string.lower(p1)) {
+                ['clear'] = function()
+                    Quaff.Hp.Failed = false
+                    Quaff.Mp.Failed = false
+                    Quaff.Mv.Failed = false
+                    Pyre.Log('Quaff potion failures have been reset')
+                end,
                 ['enabled'] = function()
                     Quaff.Enabled = tonumber(p2) or 0
                     if (Quaff.Enabled < 0 or Quaff.Enabled > 1) then
@@ -432,8 +438,8 @@ function SkillFeature.FeatureTick()
     CheckSkillExpirations()
     CheckClanSkills()
     CleanExpiredAttackQueue()
-    ProcessAttackQueue()
     CheckForQuaff()
+    ProcessAttackQueue()
 end
 
 function SkillFeature.FeatureHelp()
@@ -470,15 +476,16 @@ function CleanExpiredAttackQueue()
                 if (SkillFeature.AttackQueue == nil) then
                     return
                 end
-
+                print('before expire remove ' .. Pyre.TableLength(SkillFeature.AttackQueue))
                 SkillFeature.AttackQueue =
                     Pyre.Except(
                     SkillFeature.AttackQueue,
                     function(v)
-                        return not (v.Skill.Name == item.Skill.Name)
+                        return (v.Skill.Name == item.Skill.Name)
                     end,
                     1
                 )
+                print('after expire remove ' .. Pyre.TableLength(SkillFeature.AttackQueue))
                 return
             end
         end
@@ -684,6 +691,25 @@ function ProcessAttackQueue()
         return
     end
 
+    -- if our current wait is for a skill that is not a heal potion but one in queue.. we will skip past it
+    if ((Quaff.Hp:Needed()) and not (item.Skill.SkillType == Pyre.SkillType.QuaffHeal)) then
+        SkillFeature.AttackQueue =
+            Pyre.Except(
+            SkillFeature.AttackQueue,
+            function(v)
+                return (v.Skill.Name == item.Skill.Name)
+            end,
+            1
+        )
+        item =
+            Pyre.First(
+            SkillFeature.AttackQueue,
+            function()
+                return true
+            end
+        )
+    end
+
     -- our pending skill hasnt been cleared via expiration or detection
     local lastId = SkillFeature.LastSkillUniqueId
     if (item.uid == lastId) then
@@ -750,14 +776,36 @@ function SkillFeature.AttackDequeue(skill)
         return
     end
 
-    for i, queued in pairs(SkillFeature.AttackQueue) do
-        if (queued.Skill.Name == skill.Name) then
-            table.remove(SkillFeature.AttackQueue, i)
-            SkillFeature.LastUnqueue = os.time()
-            Pyre.Log('Skill Dequeued ' .. skill.Name, Pyre.LogLevel.DEBUG)
-            -- if there are no more skills with that name we need to disable the dequeue trigger
-            return
-        end
+    local match =
+        Pyre.First(
+        SkillFeature.AttackQueue,
+        function(v)
+            return true
+        end,
+        nil
+    )
+
+    if (match == nil) then
+        return
+    end
+
+    if (match.Skill.Name == skill.Name) then
+        --table.remove(SkillFeature.AttackQueue, i)
+        print('before dequeue remove ' .. Pyre.TableLength(SkillFeature.AttackQueue))
+        SkillFeature.AttackQueue =
+            Pyre.Except(
+            SkillFeature.AttackQueue,
+            function(v)
+                return (v.Skill.Name == match.Skill.Name)
+            end,
+            1
+        )
+        print('after dequeue remove ' .. Pyre.TableLength(SkillFeature.AttackQueue))
+
+        SkillFeature.LastUnqueue = os.time()
+        Pyre.Log('Skill Dequeued ' .. skill.Name, Pyre.LogLevel.DEBUG)
+        -- if there are no more skills with that name we need to disable the dequeue trigger
+        return
     end
 end
 
@@ -922,18 +970,8 @@ function OnSkillAttack()
 
         Pyre.Log(bestSkill.Name .. ' queued')
 
-        local potioncount =
-            Pyre.TableLength(
-            SkillFeature.AttackQueue,
-            (bestSkill.SkillType == Pyre.SkillType.QuaffHeal or bestSkill.SkillType == Pyre.SkillType.QuaffMana or
-                bestSkill.SkillType == Pyre.SkillType.QuaffMove)
-        )
-
-        local position = potioncount
-
         table.insert(
             SkillFeature.AttackQueue,
-            position,
             {
                 Skill = bestSkill,
                 Expiration = socket.gettime() + expiration,
@@ -962,7 +1000,7 @@ function OnSkillAttack()
                             Pyre.Except(
                             SkillFeature.AttackQueue,
                             function(v)
-                                return (not ((skill == nil) or (skill.Skill == nil)) and
+                                return ((not ((skill == nil) or (skill.Skill == nil))) and
                                     (v.Skill.Name == skill.Skill.Name))
                             end,
                             1
@@ -1027,20 +1065,23 @@ function OnQuaffUsed(name, line, wildcards)
         nil
     )
 
-    if (potion == nil or potion.Stat == nil) then
+    if ((potion == nil) or (potion.Stat == nil)) then
+        print('not potion in queue to dequeue')
         return
     end
 
     potion.Stat.Failed = false
+    print('before quaff remove ' .. Pyre.TableLength(SkillFeature.AttackQueue))
     SkillFeature.AttackQueue =
         Pyre.Except(
         SkillFeature.AttackQueue,
         function(v)
-            return (v.Skill.SkillType == Pyre.SkillType.QuaffHeal or v.Skill.SkillType == Pyre.SkillType.QuaffMana or
-                v.Skill.SkillType == Pyre.SkillType.QuaffMove)
+            return ((v.Skill.SkillType == Pyre.SkillType.QuaffHeal) or (v.Skill.SkillType == Pyre.SkillType.QuaffMana) or
+                (v.Skill.SkillType == Pyre.SkillType.QuaffMove))
         end,
         1
     )
+    print('after quaff remove ' .. Pyre.TableLength(SkillFeature.AttackQueue))
 end
 
 function OnQuaffFailed(name, line, wildcards)
@@ -1066,13 +1107,16 @@ function OnQuaffFailed(name, line, wildcards)
     end
 
     potion.Stat.Failed = true
-
+    Pyre.Log(
+        'Quaff Disabled for ' .. potion.Stat.Name .. " type 'pyre setting quaff clear' to reset",
+        Pyre.LogLevel.INFO
+    )
     SkillFeature.AttackQueue =
         Pyre.Except(
         SkillFeature.AttackQueue,
         function(v)
-            return (v.Skill.SkillType == Pyre.SkillType.QuaffHeal or v.Skill.SkillType == Pyre.SkillType.QuaffMana or
-                v.Skill.SkillType == Pyre.SkillType.QuaffMove)
+            return ((v.Skill.SkillType == Pyre.SkillType.QuaffHeal) or (v.Skill.SkillType == Pyre.SkillType.QuaffMana) or
+                (v.Skill.SkillType == Pyre.SkillType.QuaffMove))
         end,
         1
     )

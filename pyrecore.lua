@@ -345,10 +345,8 @@ function core_module.Except(tbl, checkFn, exceptHowMany)
     end
     local excludedCount = 0
     for _, v in pairs(tbl) do
-        if (not (checkFn(v))) then
-            if not (excludedCount > exceptHowMany) then
-                table.insert(match, v)
-            end
+        if ((not (checkFn(v))) or (excludedCount >= exceptHowMany)) then
+            table.insert(match, v)
         else
             excludedCount = excludedCount + 1
         end

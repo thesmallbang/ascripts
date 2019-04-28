@@ -708,6 +708,10 @@ function ProcessAttackQueue()
                 return true
             end
         )
+
+        if (item == nil) then
+            return
+        end
     end
 
     -- our pending skill hasnt been cleared via expiration or detection

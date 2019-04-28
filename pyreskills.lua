@@ -987,7 +987,7 @@ function OnSkillAttack()
                 Expiration = socket.gettime() + expiration,
                 Execute = function(s, qitem)
                     -- if we quaffed recently we will add a slight delay avoid queueing an attak when a heal may we required again soon
-                    if ((socket.gettime() - 1) < SkillFeature.LastQuaff) then
+                    if ((socket.gettime() - 1.5) < SkillFeature.LastQuaff) then
                         Pyre.Log('Quaff too recently .. skipping attack', Pyre.LogLevel.DEBUG)
                         SkillFeature.AttackQueue =
                             Pyre.Except(
@@ -1209,7 +1209,7 @@ function SkillsSetup()
 
     AddTriggerEx(
         'ph_skillused',
-        '^Your (\\w*) -?<(.*)>-? (.*)! \\[(.*)\\]$',
+        '^Your (\\w*) -?<?(.*)>?-? (.*)! \\[(.*)\\]$',
         '',
         trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
         -1,

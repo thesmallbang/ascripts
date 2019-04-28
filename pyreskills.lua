@@ -13,7 +13,8 @@ SkillFeature = {
     LastSkill = nil,
     LastAttack = 0,
     AttackQueue = {},
-    LastUnqueue = 0
+    LastUnqueue = 0,
+    LastSkillUniqueId = 0
 }
 
 ClanSkills = {
@@ -258,6 +259,56 @@ ClanSkills = {
     }
 }
 
+Quaff = {
+    Save = function(q)
+        SetVariable('quaff_enabled', q.Enabled)
+        SetVariable('quaff_topoff', q.Topoff)
+        SetVariable('quaff_container', q.Container)
+        q.Hp:Save()
+        q.Mp:Save()
+        q.Mv:Save()
+    end,
+    Enabled = tonumber(GetVariable('quaff_enabled')) or 0,
+    Topoff = tonumber(GetVariable('quaff_topoff')) or 0,
+    Container = GetVariable('quaff_container') or '',
+    Hp = {
+        Name = 'Hp',
+        Percent = tonumber(GetVariable('Quaff_hp_percent')) or 50,
+        TopOffPercent = tonumber(GetVariable('Quaff_hp_topoff_percent')) or 50,
+        Item = GetVariable('quaff_hp_item') or 'heal',
+        DefaultItem = 'heal',
+        Save = function(stat)
+            SetVariable('quaff_hp_item', stat.Item or 'heal')
+            SetVariable('Quaff_hp_topoff_percent', stat.TopOffPercent or 50)
+            SetVariable('Quaff_hp_percent', stat.Percent or 50)
+        end
+    },
+    Mp = {
+        Name = 'Mp',
+        Percent = tonumber(GetVariable('Quaff_mp_percent')) or 50,
+        TopOffPercent = tonumber(GetVariable('Quaff_mp_topoff_percent')) or 50,
+        Item = GetVariable('quaff_mp_item') or 'lotus',
+        DefaultItem = 'lotus',
+        Save = function(stat)
+            SetVariable('quaff_mp_item', stat.Item or 'lotus')
+            SetVariable('Quaff_mp_topoff_percent', stat.TopOffPercent or 50)
+            SetVariable('Quaff_mp_percent', stat.Percent or 50)
+        end
+    },
+    Mv = {
+        Name = 'Mv',
+        Percent = tonumber(GetVariable('Quaff_mv_percent')) or 50,
+        TopOffPercent = tonumber(GetVariable('Quaff_mv_topoff_percent')) or 50,
+        Item = GetVariable('quaff_mv_item') or 'move',
+        DefaultItem = 'move',
+        Save = function(stat)
+            SetVariable('quaff_mv_item', stat.Item or 'move')
+            SetVariable('Quaff_mv_topoff_percent', stat.TopOffPercent or 50)
+            SetVariable('Quaff_mv_percent', stat.Percent or 50)
+        end
+    }
+}
+
 local adjustingAlignment = false
 
 function SkillFeature.FeatureStart()
@@ -267,19 +318,94 @@ end
 function SkillFeature.FeatureStop()
 end
 
-function SkillFeature.FeatureSettingHandle(settingName, potentialValue)
-    for _, skill in ipairs(ClanSkills) do
-        if (string.lower(skill.Name) == string.lower(settingName)) then
-            skill.Setting = skill.ParseSetting(potentialValue)
-            Pyre.Log(skill.Name .. ' : ' .. skill.DisplayValue(skill.Setting))
+function SkillFeature.FeatureSettingHandle(settingName, p1, p2, p3, p4)
+    Pyre.Switch(string.lower(settingName)) {
+        ['quaff'] = function()
+            if (p2 == nil) then
+                return
+            end
+            local stat = nil
+            Pyre.Switch(string.lower(p1)) {
+                ['enabled'] = function()
+                    Quaff.Enabled = tonumber(p2) or 0
+                    if (Quaff.Enabled < 0 or Quaff.Enabled > 1) then
+                        Quaf.Enabled = 0
+                    end
+                    Pyre.Log('quaff enabled: ' .. Quaff.Enabled)
+                end,
+                ['container'] = function()
+                    Quaff.Container = tostring(p2) or ''
+                    Pyre.Log('quaff container: ' .. Quaff.Container)
+                end,
+                ['topoff'] = function()
+                    Quaff.Topoff = tonumber(p2) or 0
+                    if (Quaff.Topoff < 0 or Quaff.Topoff > 1) then
+                        Quaf.Topoff = 0
+                    end
+                    Pyre.Log('quaff topoff: ' .. Quaff.Topoff)
+                end,
+                ['hp'] = function()
+                    stat = Quaff.Hp
+                end,
+                ['mp'] = function()
+                    stat = Quaff.Mp
+                end,
+                ['mv'] = function()
+                    stat = Quaff.Mv
+                end
+            }
+
+            if not (stat == nil) then
+                Pyre.Switch(string.lower(p2)) {
+                    ['percent'] = function()
+                        stat.Percent = tonumber(p3) or 50
+                        if (stat.Percent < 0) then
+                            stat.Percent = 0
+                        end
+                        if (stat.Percent > 99) then
+                            stat.Percent = 99
+                        end
+                        Pyre.Log('quaff ' .. stat.Name .. ' percent : ' .. tostring(stat.Percent))
+                    end,
+                    ['topoffpercent'] = function()
+                        stat.TopOffPercent = tonumber(p3) or 50
+                        if (stat.TopOffPercent < 0) then
+                            stat.TopOffPercent = 0
+                        end
+                        if (stat.TopOffPercent > 99) then
+                            stat.TopOffPercent = 99
+                        end
+                        Pyre.Log('quaff ' .. stat.Name .. ' topoff percent : ' .. tostring(stat.TopOffPercent))
+                    end,
+                    ['item'] = function()
+                        local i = stat.DefaultItem
+                        if not (p3 == '') then
+                            i = p3
+                        end
+                        stat.Item = i
+                        Pyre.Log('quaff ' .. stat.Name .. ' item : ' .. tostring(stat.Item))
+                    end
+                }
+            end
+            Quaff:Save()
+        end,
+        ['skill'] = function(p1, p2, p3)
+            for _, skill in ipairs(ClanSkills) do
+                if (string.lower(skill.Name) == string.lower(p1)) then
+                    skill.Setting = skill.ParseSetting(p2)
+                    Pyre.Log(skill.Name .. ' : ' .. skill.DisplayValue(skill.Setting))
+                end
+            end
         end
-    end
+    }
 end
 
 function SkillFeature.FeatureTick()
     CheckSkillExpirations()
-    ProcessSkillQueue()
+    CheckClanSkills()
     CleanExpiredAttackQueue()
+    ProcessAttackQueue()
+    CheckForQuaff()
 end
 
 function SkillFeature.FeatureHelp()
@@ -292,6 +418,8 @@ function SkillFeature.FeatureHelp()
 end
 
 function SkillFeature.FeatureSave()
+    Quaff:Save()
+
     for _, skill in ipairs(ClanSkills) do
         SetVariable('Skill_' .. skill.Name, skill.Setting)
     end
@@ -303,20 +431,201 @@ end
 function CleanExpiredAttackQueue()
     Pyre.Log('CleanExpiredAttackQueue', Pyre.LogLevel.VERBOSE)
 
-    for i, item in pairs(SkillFeature.AttackQueue) do
+    i = 0
+    for _, item in pairs(SkillFeature.AttackQueue) do
+        i = i + 1
         if not (item.Expiration == nil) then
             if (socket.gettime() > item.Expiration) then
                 Pyre.Log('Queue had expiration: ' .. item.Skill.Name, Pyre.LogLevel.DEBUG)
-                table.remove(SkillFeature.AttackQueue, i)
+                --table.remove(SkillFeature.AttackQueue, i)
+                -- not sure why table.remove wasn't working? maybe cause we have a callback in it.. oh well new functionality was born
+                if (SkillFeature.AttackQueue == nil) then
+                    return
+                end
+                SkillFeature.AttackQueue =
+                    Pyre.Except(
+                    SkillFeature.AttackQueue,
+                    function(v)
+                        return (v.Skill.Name == item.Skill.Name)
+                    end,
+                    1
+                )
                 return
             end
         end
     end
 end
 
-function ProcessSkillQueue()
+function CheckForQuaff()
+    if (Quaff.Enabled == 0) then
+        return
+    end
+
+    if (not (Pyre.Status.State == Pyre.States.COMBAT) and not (Pyre.Status.State == Pyre.States.IDLE)) then
+        return
+    end
+
+    local inCombat = (Pyre.Status.State == Pyre.States.COMBAT)
+
+    -- do we need any pots?
+    -- these stats need to be a table to avoid all this duplicate code i'm about to write
+    -- hp
+
+    if
+        (((Pyre.Status.Hp < Quaff.Hp.Percent) and (inCombat == true)) or
+            ((Pyre.Status.Hp < Quaff.Hp.TopOffPercent) and (inCombat == false)))
+     then
+        -- is there already another quaff queued for this stat?
+        local queued =
+            Pyre.First(
+            SkillFeature.AttackQueue,
+            function(q)
+                return q.Skill.SkillType == Pyre.SkillType.QuaffHeal
+            end
+        )
+
+        if (queued == nil) then
+            -- queue it
+            Pyre.Log('Adding Quaff Hp to Queue', Pyre.LogLevel.DEBUG)
+
+            table.insert(
+                SkillFeature.AttackQueue,
+                0,
+                {
+                    Skill = {Name = 'QuaffHeal', SkillType = Pyre.SkillType.QuaffHeal},
+                    Expiration = socket.gettime() + 10,
+                    Execute = function(skill)
+                        Pyre.Log('Executing Quaff Hp From Queue', Pyre.LogLevel.DEBUG)
+
+                        if (not (Quaff.Container == '')) then
+                            Execute('get ' .. Quaff.Hp.Item .. ' ' .. Quaff.Container)
+                        else
+                            print('container wasnt set..' .. Quaff.Container)
+                        end
+                        Execute('quaff ' .. Quaff.Hp.Item)
+                    end
+                }
+            )
+        end
+    end
+    -- mana
+    if
+        ((Pyre.Status.Mana < Quaff.Mp.Percent and inCombat == true) or
+            (Pyre.Status.Mana < Quaff.Mp.TopOffPercent and inCombat == false))
+     then
+        -- is there already another quaff queued for this stat?
+        local queued =
+            Pyre.First(
+            SkillFeature.AttackQueue,
+            function(q)
+                return q.Skill.SkillType == Pyre.SkillType.QuaffMana
+            end
+        )
+
+        if (queued == nil) then
+            -- queue it up
+
+            -- to know where we should queue this up we will put it first unless an heal quaff is already queued
+            local isHealQueued =
+                Pyre.Any(
+                SkillFeature.AttackQueue,
+                function(v)
+                    return (v.Skill.SkillType == Pyre.SkillType.QuaffHeal)
+                end
+            )
+            local position = (isHealQueued == true and 0 or 1)
+
+            Pyre.Log('Adding Quaff Mana to Queue', Pyre.LogLevel.DEBUG)
+
+            table.insert(
+                SkillFeature.AttackQueue,
+                position,
+                {
+                    Skill = {Name = 'QuaffMana', SkillType = Pyre.SkillType.QuaffMana},
+                    Expiration = socket.gettime() + 10,
+                    Execute = function(skill)
+                        Pyre.Log('Executing Quaff Mana From Queue', Pyre.LogLevel.DEBUG)
+
+                        if not (Quaff.Container == '') then
+                            Execute('get ' .. Quaff.Mp.Item .. ' ' .. Quaff.Container)
+                        end
+                        Execute('quaff ' .. Quaff.Mp.Item)
+                    end
+                }
+            )
+        end
+    end
+    -- moves
+
+    if
+        ((Pyre.Status.Moves < Quaff.Mv.Percent and inCombat == true) or
+            (Pyre.Status.Moves < Quaff.Mv.TopOffPercent and inCombat == false))
+     then
+        -- is there already another quaff queued for this stat?
+        local queued =
+            Pyre.First(
+            SkillFeature.AttackQueue,
+            function(q)
+                return q.Skill.SkillType == Pyre.SkillType.QuaffMove
+            end
+        )
+
+        if (queued == nil) then
+            -- queue it up
+
+            -- to know where we should queue this up we will put it first unless an heal quaff is already queued
+            local isHealQueued =
+                Pyre.Any(
+                SkillFeature.AttackQueue,
+                function(v)
+                    return (v.Skill.SkillType == Pyre.SkillType.QuaffHeal)
+                end,
+                1
+            )
+
+            local isManaQueued =
+                Pyre.Any(
+                SkillFeature.AttackQueue,
+                function(v)
+                    return (v.Skill.SkillType == Pyre.SkillType.QuaffMana)
+                end,
+                2
+            )
+
+            -- this is our least priority state to queue so we want to make sure its behind the others
+            local position = 0
+            if (isHealQueued) then
+                position = 1
+            end
+            if (isManaQueued) then
+                position = position + 1
+            end
+
+            Pyre.Log('Adding Move Quaff to queue', Pyre.LogLevel.DEBUG)
+
+            table.insert(
+                SkillFeature.AttackQueue,
+                position,
+                {
+                    Skill = {Name = 'QuaffMove', SkillType = Pyre.SkillType.QuaffMana},
+                    Expiration = socket.gettime() + 10,
+                    Execute = function(skill)
+                        Pyre.Log('Executing Quaff Move From Queue', Pyre.LogLevel.DEBUG)
+
+                        if not (Quaff.Container == '') then
+                            Execute('get ' .. Quaff.Mv.Item .. ' ' .. Quaff.Container)
+                        end
+                        Execute('quaff ' .. Quaff.Mv.Item)
+                    end
+                }
+            )
+        end
+    end
+end
+
+function CheckClanSkills()
     for _, skill in ipairs(ClanSkills) do
-        Pyre.Log('ProcessQueue: ' .. skill.Name, Pyre.LogLevel.VERBOSE)
+        Pyre.Log('CheckClanSkill: ' .. skill.Name, Pyre.LogLevel.VERBOSE)
 
         local canCast = skill.CanCast(skill)
         Pyre.Log('canCast: ' .. tostring(canCast), Pyre.LogLevel.VERBOSE)
@@ -325,6 +634,34 @@ function ProcessSkillQueue()
             skill.Cast(skill)
         end
     end
+end
+
+function ProcessAttackQueue()
+    Pyre.Log('ProcessAttackQueue', Pyre.LogLevel.VERBOSE)
+
+    item =
+        Pyre.First(
+        SkillFeature.AttackQueue,
+        function()
+            return true
+        end
+    )
+    if (item == nil) then
+        return
+    end
+
+    -- our pending skill hasnt been cleared via expiration or detection
+    local lastId = SkillFeature.LastSkillUniqueId
+    if (item.uid == lastId) then
+        return
+    end
+
+    -- this may be silly but i wasn't sure how objects were handled and if 2 identical commands would equal the same object
+    -- and just did it in case
+    local newUniqueId = math.random(1, 1000000)
+    item.uid = newUniqueId
+    item.Execute(item.Skill)
+    SkillFeature.LastSkillUniqueId = item.uid
 end
 
 function CheckSkillExpirations()
@@ -357,25 +694,6 @@ function CheckSkillExpirations()
     end
 end
 
-function OnSkillFail(name, line, wildcards)
-    Pyre.Log('OnSkillFail ' .. name, Pyre.LogLevel.VERBOSE)
-    local skill = SkillFeature.GetSkillByName(string.sub(name, 6))
-    if skill == nil then
-        return
-    end
-    skill.OnFailure(skill)
-end
-
-function OnSkillSuccess(name, line, wildcards)
-    Pyre.Log('OnSkillSuccess ' .. name, Pyre.LogLevel.VERBOSE)
-    local skillName = string.sub(name, 6)
-    local skill = SkillFeature.GetSkillByName(skillName)
-    if (skill == nil) then
-        return
-    end
-    skill.OnSuccess(skill)
-end
-
 function CheckSkillDuration(skill)
     Pyre.Log('CheckSkillDuration ' .. skill.Name .. ' ' .. Pyre.Settings.SkillExpirationWarn, Pyre.LogLevel.VERBOSE)
 
@@ -387,6 +705,69 @@ function CheckSkillDuration(skill)
 
     SendNoEcho('saf ' .. skill.Name)
 end
+
+function SkillFeature.AttackDequeue(skill)
+    local difftime = os.difftime(os.time(), SkillFeature.LastUnqueue)
+    if (tonumber(difftime) < 1) then
+        return
+    end
+
+    for i, queued in pairs(SkillFeature.AttackQueue) do
+        if (queued.Skill.Name == skill.Name) then
+            table.remove(SkillFeature.AttackQueue, i)
+            SkillFeature.LastUnqueue = os.time()
+            Pyre.Log('Skill Dequeued ' .. skill.Name, Pyre.LogLevel.DEBUG)
+            -- if there are no more skills with that name we need to disable the dequeue trigger
+            return
+        end
+    end
+end
+
+function SkillFeature.GetSkillByName(name)
+    for _, skill in ipairs(ClanSkills) do
+        if (string.lower(skill.Name) == string.lower(name)) then
+            return skill
+        end
+    end
+
+    return nil
+end
+
+function SkillFeature.GetClassSkillByLevel(subclassToCheck, level, filterFn)
+    local foundSkill = nil
+
+    if (filterFn == nil) then
+        filterFn = function(skill)
+            return true
+        end
+    end
+
+    for _, subclass in ipairs(Pyre.Classes) do
+        if string.lower(subclass.Name) == string.lower(subclassToCheck) then
+            local skillTable = subclass.Skills
+
+            local previousSkillLoopItem = nil
+            for _, skill in ipairs(skillTable) do
+                if
+                    ((skill.Level <= level) and (foundSkill == nil or foundSkill.Level < skill.Level) and
+                        not (not (SkillFeature.SkillFail == nil) and (skill.Level > SkillFeature.SkillFail.Level)) and
+                        (filterFn(skill)))
+                 then
+                    foundSkill = skill
+                    if (not (SkillFeature.SkillFail == nil) and skill.Name == SkillFeature.SkillFail.Name) then
+                        foundSkill = previousSkillLoopItem
+                    end
+                end
+                previousSkillLoopItem = skill
+            end
+        end
+    end
+    return foundSkill
+end
+
+-- -----------------------------------------------
+--  Trigger, Alias Callbacks
+-- -----------------------------------------------
 
 function OnQueueAttempted(name, line, wildcards)
     Pyre.Log('OnQueueAttempted ' .. name, Pyre.LogLevel.VERBOSE)
@@ -448,69 +829,34 @@ function OnSkillUsed(name, line, wildcards)
     SkillFeature.AttackDequeue(skill)
 end
 
-function SkillFeature.AttackDequeue(skill)
-    local difftime = os.difftime(os.time(), SkillFeature.LastUnqueue)
-    if (tonumber(difftime) < 1) then
+function OnSkillFail(name, line, wildcards)
+    Pyre.Log('OnSkillFail ' .. name, Pyre.LogLevel.VERBOSE)
+    local skill = SkillFeature.GetSkillByName(string.sub(name, 6))
+    if skill == nil then
         return
     end
-
-    for i, queued in pairs(SkillFeature.AttackQueue) do
-        if (queued.Skill.Name == skill.Name) then
-            table.remove(SkillFeature.AttackQueue, i)
-            SkillFeature.LastUnqueue = os.time()
-            Pyre.Log('Skill Dequeued ' .. skill.Name, Pyre.LogLevel.DEBUG)
-            -- if there are no more skills with that name we need to disable the dequeue trigger
-            return
-        end
-    end
+    skill.OnFailure(skill)
 end
 
-function SkillFeature.GetSkillByName(name)
-    for _, skill in ipairs(ClanSkills) do
-        if (string.lower(skill.Name) == string.lower(name)) then
-            return skill
-        end
+function OnSkillSuccess(name, line, wildcards)
+    Pyre.Log('OnSkillSuccess ' .. name, Pyre.LogLevel.VERBOSE)
+    local skillName = string.sub(name, 6)
+    local skill = SkillFeature.GetSkillByName(skillName)
+    if (skill == nil) then
+        return
     end
-
-    return nil
-end
-
-function SkillFeature.GetClassSkillByLevel(subclassToCheck, level, initiator)
-    local foundSkill = nil
-    if (initiator == nil) then
-        initiator = false
-    end
-
-    for _, subclass in ipairs(Pyre.Classes) do
-        if string.lower(subclass.Name) == string.lower(subclassToCheck) then
-            local skillTable
-            if (initiator) then
-                skillTable = subclass.CombatInit
-            else
-                skillTable = subclass.CombatSkills
-            end
-
-            local previousSkillLoopItem = nil
-            for _, skill in ipairs(skillTable) do
-                if
-                    ((skill.Level <= level) and (foundSkill == nil or foundSkill.Level < skill.Level) and
-                        not (not (SkillFeature.SkillFail == nil) and (skill.Level > SkillFeature.SkillFail.Level)))
-                 then
-                    foundSkill = skill
-                    if (not (SkillFeature.SkillFail == nil) and skill.Name == SkillFeature.SkillFail.Name) then
-                        foundSkill = previousSkillLoopItem
-                    end
-                end
-                previousSkillLoopItem = skill
-            end
-        end
-    end
-    return foundSkill
+    skill.OnSuccess(skill)
 end
 
 function OnSkillAttack()
     local inCombat = (Pyre.Status.State == Pyre.States.COMBAT)
-    local bestSkill = SkillFeature.GetClassSkillByLevel(Pyre.Status.Subclass, Pyre.Status.Level, not (inCombat))
+
+    -- we only want a skill selection appriopriate to our combat status
+    local skillFilter = function(skill)
+        return ((inCombat and skill.SkillType == Pyre.SkillType.CombatMove) or
+            (not (inCombat) and skill.SkillType == Pyre.SkillType.CombatInitiate))
+    end
+    local bestSkill = SkillFeature.GetClassSkillByLevel(Pyre.Status.Subclass, Pyre.Status.Level, skillFilter)
 
     if (not (Pyre.Status.State == Pyre.States.COMBAT) and not (Pyre.Status.State == Pyre.States.IDLE)) then
         Pyre.Log('Invalid State for attacking', Pyre.LogLevel.DEBUG)
@@ -534,47 +880,73 @@ function OnSkillAttack()
     end
 
     if not (bestSkill == nil) then
-        if (bestSkill.AutoSend) then
-            local regexForAttempt = ''
-
-            for _, attempt in pairs(bestSkill.Attempts) do
-                if not (regexForAttempt == '') then
-                    regexForAttempt = regexForAttempt .. '|'
-                end
-                regexForAttempt = regexForAttempt .. '(' .. attempt .. ')'
-            end
-
-            local triggerName = 'ph_sa' .. bestSkill.Name
-            AddTriggerEx(
-                triggerName,
-                '^' .. regexForAttempt .. '$',
-                '',
-                trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
-                -1,
-                0,
-                '',
-                'OnQueueAttempted',
-                0
-            )
-
-            Execute(bestSkill.Name)
-        else
-            SetCommand(bestSkill.Name .. ' ')
-            return
-        end
-        SkillFeature.LastSkill = bestSkill
         local expiration = (Pyre.TableLength(SkillFeature.AttackQueue) + 5)
+
+        if (Pyre.TableLength(SkillFeature.AttackQueue) > 0) then
+            Pyre.Log(bestSkill.Name .. ' queued')
+        end
+
         table.insert(
             SkillFeature.AttackQueue,
             {
                 Skill = bestSkill,
-                Expiration = socket.gettime() + expiration
+                Expiration = socket.gettime() + expiration,
+                Execute = function(skill)
+                    SkillFeature.LastSkill = skill
+                    if (skill.AutoSend) then
+                        local regexForAttempt = ''
+
+                        for _, attempt in pairs(skill.Attempts) do
+                            if not (regexForAttempt == '') then
+                                regexForAttempt = regexForAttempt .. '|'
+                            end
+                            regexForAttempt = regexForAttempt .. '(' .. attempt .. ')'
+                        end
+
+                        local triggerName = 'ph_sa' .. skill.Name
+                        AddTriggerEx(
+                            triggerName,
+                            '^' .. regexForAttempt .. '$',
+                            '',
+                            trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace +
+                                trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
+                            -1,
+                            0,
+                            '',
+                            'OnQueueAttempted',
+                            0
+                        )
+
+                        Execute(skill.Name)
+                    else
+                        SetCommand(skill.Name .. ' ')
+                        return
+                    end
+                end
             }
         )
         SkillFeature.LastAttack = socket.gettime()
     else
         Pyre.Log('This enemy is unaffected by your available skills.', Pyre.LogLevel.INFO)
     end
+end
+
+function OnQuaffAttempted()
+    -- just going lazy for now to see what kind of results i get without tracking the potions quaffed at all or
+    if (SkillFeature.AttackQueue == nil) then
+        return
+    end
+
+    Pyre.Log('Quaff Attempted', Pyre.LogLevel.DEBUG)
+    SkillFeature.AttackQueue =
+        Pyre.Except(
+        SkillFeature.AttackQueue,
+        function(v)
+            return (v.Skill.SkillType == Pyre.SkillType.QuaffHeal or v.Skill.SkillType == Pyre.SkillType.QuaffMana or
+                v.Skill.SkillType == Pyre.SkillType.QuaffMove)
+        end,
+        1
+    )
 end
 
 function OnNewEnemy(enemyObject)
@@ -584,7 +956,7 @@ end
 
 function OnStateChange(stateObject)
     if (stateObject.new == Pyre.States.IDLE) then
-        SkillFeature.AttackQueue = {}
+    --SkillFeature.AttackQueue = {}
     end
 end
 
@@ -593,6 +965,18 @@ function SkillsSetup()
     -- subscribe to some core events
     table.insert(Pyre.Events[Pyre.Event.NewEnemy], OnNewEnemy)
     table.insert(Pyre.Events[Pyre.Event.StateChanged], OnStateChange)
+
+    AddTriggerEx(
+        'ph_qf',
+        "^(You don't have that potion.)|(You quaff (.*))$",
+        '',
+        trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
+        -1,
+        0,
+        '',
+        'OnQuaffAttempted',
+        0
+    )
 
     AddAlias(
         'ph_skills_attack',
@@ -604,7 +988,7 @@ function SkillsSetup()
 
     AddTriggerEx(
         'ph_skillused',
-        '^Your (\\w*) <(.*)> (.*)! \\[(.*)\\]$',
+        '^Your (\\w*) -?<(.*)>-? (.*)! \\[(.*)\\]$',
         '',
         trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
         -1,

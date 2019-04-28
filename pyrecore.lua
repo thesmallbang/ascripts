@@ -195,12 +195,24 @@ function core_module.ShowSettings()
     core_module.Log('AttackMaxQueue : ' .. core_module.Settings.AttackMaxQueue)
 end
 
-function core_module.TableLength(T)
-    local count = 0
-    for _ in pairs(T) do
-        count = count + 1
+function core_module.GetClassSkillByName(skillName)
+    local matchSkill = nil
+
+    for _, subclass in ipairs(core_module.Classes) do
+        if string.lower(subclass.Name) == string.lower(core_module.Status.Subclass) then
+            local skillTable = subclass.Skills
+
+            for _, skill in ipairs(skillTable) do
+                if
+                    (string.match(string.lower(skillName), string.lower(skill.Name)) or
+                        (string.match(string.lower(skillName), string.lower(skill.Alias))))
+                 then
+                    matchSkill = skill
+                end
+            end
+        end
     end
-    return count
+    return matchSkill
 end
 
 function core_module.SetState(state)
@@ -253,13 +265,21 @@ core_module.Status = {
     Clan = '',
     IsLeader = true,
     Enemy = '',
-    EnemyHp = 0
+    EnemyHp = 0,
+    Hp = 0,
+    MaxHp = 0,
+    RawHp = 0,
+    Mana = 0,
+    MaxMana = 0,
+    RawMana = 0,
+    Moves = 0,
+    MaxMoves = 0,
+    RawMoves = 0
 }
 
-core_module.Event = {
-    StateChanged = 10,
-    NewEnemy = 100
-}
+-------------------------------------
+--  HELPER FUNCTIONS
+-------------------------------------
 
 function core_module.Split(inputstr, sep)
     if sep == nil then
@@ -272,10 +292,111 @@ function core_module.Split(inputstr, sep)
     return t
 end
 
+function core_module.TableLength(T)
+    local count = 0
+    for _ in pairs(T) do
+        count = count + 1
+    end
+    return count
+end
+
+-------------------------------------
+-- TABLE QUERY FUNCTIONS
+-------------------------------------
+function core_module.First(table, checkFn, default)
+    local match = default
+
+    for _, v in pairs(table) do
+        if (checkFn(v)) then
+            return v
+        end
+    end
+    return match
+end
+
+function core_module.Filter(table, checkFn, limit)
+    local match = {}
+    if (limit == nil) then
+        limit = 100000
+    end
+
+    local matches = 0
+
+    for _, v in pairs(table) do
+        if (checkFn(v)) then
+            matches = matches + 1
+            table.insert(match, v)
+        end
+        if (matches > limit) then
+            return match
+        end
+    end
+    return match
+end
+function core_module.Except(tbl, checkFn, exceptHowMany)
+    local match = {}
+    if (exceptHowMany == nil) then
+        exceptHowMany = 100000
+    end
+    local excludedCount = 0
+    for _, v in pairs(tbl) do
+        if (not checkFn(v)) then
+            if not (excludedCount > exceptHowMany) then
+                table.insert(match, v)
+            end
+        else
+            excludedCount = excludedCount + 1
+        end
+    end
+    return match
+end
+
+function core_module.Any(table, checkFn, limit)
+    if (limit == nil) then
+        limit = 100000
+    end
+    local i = 0
+    for _, v in pairs(table) do
+        i = i + 1
+        if (i > limit) then
+            return false
+        end
+        if (checkFn(v)) then
+            return true
+        end
+    end
+    return false
+end
+
+function core_module.Each(table, executeFn)
+    for _, v in pairs(table) do
+        executeFn(v, _)
+    end
+end
+
+-------------------------------------
+-- EVENTS
+-------------------------------------
+
+core_module.Event = {
+    StateChanged = 10,
+    NewEnemy = 100
+}
+
 core_module.Events = {
     [core_module.Event.NewEnemy] = {},
     [core_module.Event.StateChanged] = {}
 }
+
+function core_module.ShareEvent(eventType, eventObject)
+    for _, evt in pairs(core_module.Events[eventType]) do
+        evt(eventObject)
+    end
+end
+
+-------------------------------------
+-- OTHER OBJECTS
+-------------------------------------
 
 core_module.Settings = {
     Channel = GetVariable('Channel') or 'echo',
@@ -287,21 +408,39 @@ core_module.Settings = {
     AttackMaxQueue = tonumber(GetVariable('AttackMaxQueue')) or 2
 }
 
+core_module.SkillType = {
+    Basic = 0,
+    Heal = 20,
+    CombatInitiate = 100,
+    CombatMove = 110,
+    CombatHeal = 120,
+    QuaffHeal = 500,
+    QuaffMana = 510,
+    QuaffMove = 520
+}
+
 core_module.Classes = {
     {
         Name = 'Blacksmith',
-        CombatInit = {
-            {Name = 'Attack ', Level = 1, AutoSend = false, Alias = '~', Attempts = {'Who are you trying to attack?'}},
+        Skills = {
             {
+                SkillType = core_module.SkillType.CombatInitiate,
+                Name = 'Attack ',
+                Level = 1,
+                AutoSend = false,
+                Alias = '~',
+                Attempts = {'Who are you trying to attack?'}
+            },
+            {
+                SkillType = core_module.SkillType.CombatInitiate,
                 Name = 'Hammerswing',
                 Level = 51,
                 AutoSend = true,
                 Alias = 'swing',
                 Attempts = {'You swing your hammer wildly but find nobody to hit', 'You are not using a hammer.'}
-            }
-        },
-        CombatSkills = {
+            },
             {
+                SkillType = core_module.SkillType.CombatMove,
                 Name = 'Bash',
                 Level = 11,
                 AutoSend = true,
@@ -309,6 +448,7 @@ core_module.Classes = {
                 Attempts = {'Bash whom?', "You don't know how to bash someone."}
             },
             {
+                SkillType = core_module.SkillType.CombatMove,
                 Name = 'Sap',
                 Level = 50,
                 AutoSend = true,
@@ -316,6 +456,7 @@ core_module.Classes = {
                 Attempts = {'Sap whom?', "You don't know how to sap someone."}
             },
             {
+                SkillType = core_module.SkillType.CombatMove,
                 Name = 'Scalp',
                 Level = 60,
                 AutoSend = true,
@@ -323,6 +464,7 @@ core_module.Classes = {
                 Attempts = {'Scalp whom?', "You don't know how to scalp someone."}
             },
             {
+                SkillType = core_module.SkillType.CombatMove,
                 Name = 'Assault',
                 Level = 88,
                 AutoSend = true,
@@ -330,6 +472,7 @@ core_module.Classes = {
                 Attempts = {'Assault whom?', "You don't know how to assault someone."}
             },
             {
+                SkillType = core_module.SkillType.CombatMove,
                 Name = 'Uppercut',
                 Level = 101,
                 AutoSend = true,
@@ -337,6 +480,7 @@ core_module.Classes = {
                 Attempts = {'Uppercut whom?', "You don't know how to uppercut someone."}
             },
             {
+                SkillType = core_module.SkillType.CombatMove,
                 Name = 'Stomp',
                 Level = 137,
                 AutoSend = true,
@@ -344,6 +488,7 @@ core_module.Classes = {
                 Attempts = {'Stomp whom?', "You don't know how to stomp someone."}
             },
             {
+                SkillType = core_module.SkillType.CombatMove,
                 Name = 'Bodycheck',
                 Level = 151,
                 AutoSend = true,
@@ -351,6 +496,7 @@ core_module.Classes = {
                 Attempts = {'Bodycheck whom?', "You don't know how to bodycheck someone."}
             },
             {
+                SkillType = core_module.SkillType.CombatMove,
                 Name = 'Cleave',
                 Level = 165,
                 AutoSend = true,
@@ -358,6 +504,7 @@ core_module.Classes = {
                 Attempts = {'Cleave whom?', "You don't know how to cleave."}
             },
             {
+                SkillType = core_module.SkillType.CombatMove,
                 Name = 'Hammering',
                 Level = 178,
                 AutoSend = true,
@@ -367,50 +514,5 @@ core_module.Classes = {
         }
     }
 }
-
-function core_module.ShareEvent(eventType, eventObject)
-    for _, evt in pairs(core_module.Events[eventType]) do
-        evt(eventObject)
-    end
-end
-
-function core_module.GetClassSkillByName(skillName)
-    local matchSkill = nil
-
-    for _, subclass in ipairs(core_module.Classes) do
-        if string.lower(subclass.Name) == string.lower(core_module.Status.Subclass) then
-            local skillTable = subclass.CombatInit
-
-            for _, skill in ipairs(skillTable) do
-                if
-                    (string.match(string.lower(skillName), string.lower(skill.Name)) or
-                        (string.match(string.lower(skillName), string.lower(skill.Alias))))
-                 then
-                    matchSkill = skill
-                end
-            end
-        end
-    end
-
-    if not (matchSkill == nil) then
-        return matchSkill
-    end
-
-    for _, subclass in ipairs(core_module.Classes) do
-        if string.lower(subclass.Name) == string.lower(core_module.Status.Subclass) then
-            local skillTable = subclass.CombatSkills
-
-            for _, skill in ipairs(skillTable) do
-                if
-                    (string.match(string.lower(skillName), string.lower(skill.Name)) or
-                        (string.match(string.lower(skillName), string.lower(skill.Alias))))
-                 then
-                    matchSkill = skill
-                end
-            end
-        end
-    end
-    return matchSkill
-end
 
 return core_module

@@ -92,12 +92,62 @@ end
 
 function Helper.OnGMCP(text)
     Pyre.Log('gmcp ' .. text, Pyre.LogLevel.VERBOSE)
+    if (text == 'char.vitals') then
+        res, gmcparg = CallPlugin('3e7dedbe37e44942dd46d264', 'gmcpval', 'char')
+        luastmt = 'gmcpdata = ' .. gmcparg
+        assert(loadstring(luastmt or ''))()
+        Pyre.Status.RawHp = tonumber(gmcpval('vitals.hp')) or 0
+        Pyre.Status.RawMana = tonumber(gmcpval('vitals.mana')) or 0
+        Pyre.Status.RawMoves = tonumber(gmcpval('vitals.moves')) or 0
+
+        if (Pyre.Status.RawHp == 0) then
+            Pyre.Status.Hp = 0
+        else
+            Pyre.Status.Hp = tonumber((Pyre.Status.RawHp / Pyre.Status.MaxHp) * 100) or 0
+        end
+        if (Pyre.Status.RawMana == 0) then
+            Pyre.Status.Mana = 0
+        else
+            Pyre.Status.Mana = tonumber((Pyre.Status.RawMana / Pyre.Status.MaxMana) * 100) or 0
+        end
+        if (Pyre.Status.RawMoves == 0) then
+            Pyre.Status.Moves = 0
+        else
+            Pyre.Status.Moves = tonumber((Pyre.Status.RawMoves / Pyre.Status.MaxMoves) * 100) or 0
+        end
+    end
+    if (text == 'char.maxstats') then
+        res, gmcparg = CallPlugin('3e7dedbe37e44942dd46d264', 'gmcpval', 'char')
+        luastmt = 'gmcpdata = ' .. gmcparg
+        assert(loadstring(luastmt or ''))()
+        Pyre.Status.MaxHp = tonumber(gmcpval('maxstats.maxhp')) or 0
+        Pyre.Status.MaxMana = tonumber(gmcpval('maxstats.maxmana')) or 0
+        Pyre.Status.MaxMoves = tonumber(gmcpval('maxstats.maxmoves')) or 0
+
+        if (Pyre.Status.RawHp == 0) then
+            Pyre.Status.Hp = 0
+        else
+            Pyre.Status.Hp = tonumber((Pyre.Status.RawHp / Pyre.Status.MaxHp) * 100) or 0
+        end
+        if (Pyre.Status.RawMana == 0) then
+            Pyre.Status.Mana = 0
+        else
+            Pyre.Status.Mana = tonumber((Pyre.Status.RawMana / Pyre.Status.MaxMana) * 100) or 0
+        end
+        if (Pyre.Status.RawMoves == 0) then
+            Pyre.Status.Moves = 0
+        else
+            Pyre.Status.Moves = tonumber((Pyre.Status.RawMoves / Pyre.Status.MaxMoves) * 100) or 0
+        end
+    end
+
     if (text == 'char.status') then
         res, gmcparg = CallPlugin('3e7dedbe37e44942dd46d264', 'gmcpval', 'char')
         luastmt = 'gmcpdata = ' .. gmcparg
         assert(loadstring(luastmt or ''))()
         Pyre.SetState(tonumber(gmcpval('status.state')))
         Pyre.Status.RawAlignment = tonumber(gmcpval('status.align'))
+
         Pyre.Status.RawLevel = tonumber(gmcpval('status.level'))
         local newEnemy = gmcpval('status.enemy')
         local oldEnemy = Pyre.Status.Enemy
@@ -158,30 +208,43 @@ function OnHelp()
     end
 end
 
+function all_trim(s)
+    return s:match '^%s*(.*)':match '(.-)%s*$'
+end
+
 function OnSetting(name, line, wildcards)
     Pyre.Log('OnSetting', Pyre.LogLevel.DEBUG)
 
     local setting = wildcards[1]
 
-    local potentialValue = (wildcards[2])
+    local p1 = wildcards[2]:gsub('%s+', '') or ''
+    local p2 = wildcards[3]:gsub('%s+', '') or ''
+    local p3 = wildcards[4]:gsub('%s+', '') or ''
+    local p4 = wildcards[5]:gsub('%s+', '') or ''
 
-    if (setting == nil or potentialValue == nil or setting == '' or potentialValue == '') then
+    setting = all_trim(setting)
+    p1 = all_trim(p1)
+    p2 = all_trim(p2)
+    p3 = all_trim(p3)
+    p4 = all_trim(p4)
+
+    if (setting == nil or setting == '' or p1 == '') then
         return
     end
 
     for _, feat in ipairs(Features) do
         if (feat.Encapsulated == true) then
-            feat.Feature.FeatureSettingHandle(setting, potentialValue)
+            feat.Feature.FeatureSettingHandle(setting, p1, p2, p3, p4)
         end
     end
 
-    Pyre.ChangeSetting(setting, potentialValue)
+    Pyre.ChangeSetting(setting, p1, p2, p3, p4)
 end
 
 function Helper.Setup()
     Helper.LoadFeatures()
 
-    AddTimer('ph_tick', 0, 0, 2.0, '', timer_flag.Enabled + timer_flag.Replace + timer_flag.Temporary, 'Tick')
+    AddTimer('ph_tick', 0, 0, 0.5, '', timer_flag.Enabled + timer_flag.Replace + timer_flag.Temporary, 'Tick')
 
     -- add help alias
     AddAlias(
@@ -194,7 +257,7 @@ function Helper.Setup()
     -- add settings alias
     AddAlias(
         'ph_setting',
-        '^[pP]yre [sS]etting ([a-zA-Z]+) ([a-zA-Z0-9]+)$',
+        "^[pP]yre [sS]e?t?t?i?n?g?\\s([a-zA-Z0-9']+\\s?)?([a-zA-Z0-9']+\\s?)?([a-zA-Z0-9']+\\s?)?([a-zA-Z0-9']+\\s?)?([a-zA-Z0-9']+\\s?)?([a-zA-Z0-9']+\\s?)?([a-zA-Z0-9']+\\s?)?([a-zA-Z0-9']+\\s?)?$",
         '',
         alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
         'OnSetting'

@@ -440,7 +440,11 @@ core_module.Classes = {
                 Level = 51,
                 AutoSend = true,
                 Alias = 'swing',
-                Attempts = {'You swing your hammer wildly but find nobody to hit', 'You are not using a hammer.'}
+                Attempts = {
+                    'You swing your hammer wildly but find nobody to hit',
+                    'You are not using a hammer.',
+                    'You start to build momentum with your hammer.'
+                }
             },
             {
                 SkillType = core_module.SkillType.CombatMove,

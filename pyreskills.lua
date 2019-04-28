@@ -14,7 +14,8 @@ SkillFeature = {
     LastAttack = 0,
     AttackQueue = {},
     LastUnqueue = 0,
-    LastSkillUniqueId = 0
+    LastSkillUniqueId = 0,
+    LastQuaff = 0
 }
 
 ClanSkills = {
@@ -476,7 +477,6 @@ function CleanExpiredAttackQueue()
                 if (SkillFeature.AttackQueue == nil) then
                     return
                 end
-                print('before expire remove ' .. Pyre.TableLength(SkillFeature.AttackQueue))
                 SkillFeature.AttackQueue =
                     Pyre.Except(
                     SkillFeature.AttackQueue,
@@ -485,7 +485,6 @@ function CleanExpiredAttackQueue()
                     end,
                     1
                 )
-                print('after expire remove ' .. Pyre.TableLength(SkillFeature.AttackQueue))
                 return
             end
         end
@@ -720,7 +719,7 @@ function ProcessAttackQueue()
     -- and just did it in case
     local newUniqueId = math.random(1, 1000000)
     item.uid = newUniqueId
-    item.Execute(item.Skill)
+    item.Execute(item.Skill, item)
     Pyre.Log(
         'Queue Length (Including This Still until detected) : ' .. Pyre.TableLength(SkillFeature.AttackQueue),
         Pyre.LogLevel.VERBOSE
@@ -771,8 +770,8 @@ function CheckSkillDuration(skill)
 end
 
 function SkillFeature.AttackDequeue(skill)
-    local difftime = os.difftime(os.time(), SkillFeature.LastUnqueue)
-    if (tonumber(difftime) < 1) then
+    local difftime = socket.gettime() - SkillFeature.LastUnqueue
+    if (difftime < 1) then
         return
     end
 
@@ -791,7 +790,6 @@ function SkillFeature.AttackDequeue(skill)
 
     if (match.Skill.Name == skill.Name) then
         --table.remove(SkillFeature.AttackQueue, i)
-        print('before dequeue remove ' .. Pyre.TableLength(SkillFeature.AttackQueue))
         SkillFeature.AttackQueue =
             Pyre.Except(
             SkillFeature.AttackQueue,
@@ -800,9 +798,8 @@ function SkillFeature.AttackDequeue(skill)
             end,
             1
         )
-        print('after dequeue remove ' .. Pyre.TableLength(SkillFeature.AttackQueue))
 
-        SkillFeature.LastUnqueue = os.time()
+        SkillFeature.LastUnqueue = socket.gettime()
         Pyre.Log('Skill Dequeued ' .. skill.Name, Pyre.LogLevel.DEBUG)
         -- if there are no more skills with that name we need to disable the dequeue trigger
         return
@@ -968,6 +965,19 @@ function OnSkillAttack()
     if not (bestSkill == nil) then
         local expiration = ((Pyre.TableLength(SkillFeature.AttackQueue) * 15) + 5)
 
+        -- dont allow duplicate initiators
+        if
+            (Pyre.Any(
+                SkillFeature.AttackQueue,
+                function(v)
+                    return (v.Skill.SkillType == Pyre.SkillType.CombatInitiate)
+                end
+            ))
+         then
+            Pyre.Log('Discarding duplicate initiator attack', Pyre.LogLevel.DEBUG)
+            return
+        end
+
         Pyre.Log(bestSkill.Name .. ' queued')
 
         table.insert(
@@ -975,10 +985,28 @@ function OnSkillAttack()
             {
                 Skill = bestSkill,
                 Expiration = socket.gettime() + expiration,
-                Execute = function(skill)
+                Execute = function(s, qitem)
+                    -- if we quaffed recently we will add a slight delay avoid queueing an attak when a heal may we required again soon
+                    if ((socket.gettime() - 2) < SkillFeature.LastQuaff) then
+                        Pyre.Log('Quaff too recently .. skipping attack', Pyre.LogLevel.DEBUG)
+                        SkillFeature.AttackQueue =
+                            Pyre.Except(
+                            SkillFeature.AttackQueue,
+                            function(v)
+                                if (v == nil or v.Skill == nil or s == nil) then
+                                    return false
+                                end
+                                return (v.Skill.Name == s.Name)
+                            end,
+                            1
+                        )
+                        SkillFeature.LastAttack = socket.gettime()
+                        return
+                    end
+
                     -- we are in combat we are skipping a combat init
                     if
-                        ((skill.SkillType == Pyre.SkillType.CombatInitiate) and
+                        ((qitem.SkillType == Pyre.SkillType.CombatInitiate) and
                             (Pyre.Status.State == Pyre.States.COMBAT))
                      then
                         Pyre.Log('Skipping Combat Initiator, already in combat', Pyre.LogLevel.DEBUG)
@@ -986,11 +1014,14 @@ function OnSkillAttack()
                             Pyre.Except(
                             SkillFeature.AttackQueue,
                             function(v)
-                                return (not ((skill == nil) or (skill.Skill == nil)) and
-                                    (v.Skill.Name == skill.Skill.Name))
+                                if (v == nil or v.Skill == nil or s == nil) then
+                                    return false
+                                end
+                                return (v.Skill.Name == s.Name)
                             end,
                             1
                         )
+                        SkillFeature.LastAttack = socket.gettime()
                         return
                     end
 
@@ -1000,26 +1031,29 @@ function OnSkillAttack()
                             Pyre.Except(
                             SkillFeature.AttackQueue,
                             function(v)
-                                return ((not ((skill == nil) or (skill.Skill == nil))) and
-                                    (v.Skill.Name == skill.Skill.Name))
+                                if (v == nil or v.Skill == nil or s == nil) then
+                                    return false
+                                end
+                                return (v.Skill.Name == s.Name)
                             end,
                             1
                         )
+                        SkillFeature.LastAttack = socket.gettime()
                         return
                     end
 
-                    SkillFeature.LastSkill = skill
-                    if (skill.AutoSend) then
+                    SkillFeature.LastSkill = s
+                    if (s.AutoSend) then
                         local regexForAttempt = ''
 
-                        for _, attempt in pairs(skill.Attempts) do
+                        for _, attempt in pairs(s.Attempts) do
                             if not (regexForAttempt == '') then
                                 regexForAttempt = regexForAttempt .. '|'
                             end
                             regexForAttempt = regexForAttempt .. '(' .. attempt .. ')'
                         end
 
-                        local triggerName = 'ph_sa' .. skill.Name
+                        local triggerName = 'ph_sa' .. s.Name
                         AddTriggerEx(
                             triggerName,
                             '^' .. regexForAttempt .. '$',
@@ -1033,9 +1067,9 @@ function OnSkillAttack()
                             0
                         )
 
-                        Execute(skill.Name)
+                        Execute(s.Name)
                     else
-                        SetCommand(skill.Name .. ' ')
+                        SetCommand(s.Name .. ' ')
                         return
                     end
                 end
@@ -1066,12 +1100,11 @@ function OnQuaffUsed(name, line, wildcards)
     )
 
     if ((potion == nil) or (potion.Stat == nil)) then
-        print('not potion in queue to dequeue')
         return
     end
 
     potion.Stat.Failed = false
-    print('before quaff remove ' .. Pyre.TableLength(SkillFeature.AttackQueue))
+    SkillFeature.LastQuaff = socket.gettime()
     SkillFeature.AttackQueue =
         Pyre.Except(
         SkillFeature.AttackQueue,
@@ -1081,7 +1114,6 @@ function OnQuaffUsed(name, line, wildcards)
         end,
         1
     )
-    print('after quaff remove ' .. Pyre.TableLength(SkillFeature.AttackQueue))
 end
 
 function OnQuaffFailed(name, line, wildcards)
@@ -1107,6 +1139,7 @@ function OnQuaffFailed(name, line, wildcards)
     end
 
     potion.Stat.Failed = true
+    SkillFeature.LastQuaff = 0
     Pyre.Log(
         'Quaff Disabled for ' .. potion.Stat.Name .. " type 'pyre setting quaff clear' to reset",
         Pyre.LogLevel.INFO

@@ -292,8 +292,13 @@ function core_module.Split(inputstr, sep)
     return t
 end
 
-function core_module.TableLength(T)
+function core_module.TableLength(T, filterFn)
     local count = 0
+    if (filterFn == nil) then
+        filterFn = function()
+            return true
+        end
+    end
     for _ in pairs(T) do
         count = count + 1
     end

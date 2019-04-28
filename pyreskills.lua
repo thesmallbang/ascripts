@@ -273,6 +273,7 @@ Quaff = {
     Container = GetVariable('quaff_container') or '',
     Hp = {
         Name = 'Hp',
+        Failed = false,
         Percent = tonumber(GetVariable('Quaff_hp_percent')) or 50,
         TopOffPercent = tonumber(GetVariable('Quaff_hp_topoff_percent')) or 50,
         Item = GetVariable('quaff_hp_item') or 'heal',
@@ -283,6 +284,10 @@ Quaff = {
             SetVariable('Quaff_hp_percent', stat.Percent or 50)
         end,
         Needed = function(stat)
+            if (stat.Failed == true) then
+                return false
+            end
+
             local inCombat = (Pyre.Status.State == Pyre.States.COMBAT)
             return ((Pyre.Status.Hp < Quaff.Hp.Percent and inCombat == true) or
                 (Pyre.Status.Hp < Quaff.Hp.TopOffPercent and inCombat == false))
@@ -290,6 +295,7 @@ Quaff = {
     },
     Mp = {
         Name = 'Mp',
+        Failed = false,
         Percent = tonumber(GetVariable('Quaff_mp_percent')) or 50,
         TopOffPercent = tonumber(GetVariable('Quaff_mp_topoff_percent')) or 50,
         Item = GetVariable('quaff_mp_item') or 'lotus',
@@ -300,6 +306,9 @@ Quaff = {
             SetVariable('Quaff_mp_percent', stat.Percent or 50)
         end,
         Needed = function(stat)
+            if (stat.Failed == true) then
+                return false
+            end
             local inCombat = (Pyre.Status.State == Pyre.States.COMBAT)
             return ((Pyre.Status.Mana < stat.Percent and inCombat == true) or
                 (Pyre.Status.Mana < stat.TopOffPercent and inCombat == false))
@@ -307,6 +316,7 @@ Quaff = {
     },
     Mv = {
         Name = 'Mv',
+        Failed = false,
         Percent = tonumber(GetVariable('Quaff_mv_percent')) or 50,
         TopOffPercent = tonumber(GetVariable('Quaff_mv_topoff_percent')) or 50,
         Item = GetVariable('quaff_mv_item') or 'move',
@@ -317,6 +327,9 @@ Quaff = {
             SetVariable('Quaff_mv_percent', stat.Percent or 50)
         end,
         Needed = function(stat)
+            if (stat.Failed == true) then
+                return false
+            end
             local inCombat = (Pyre.Status.State == Pyre.States.COMBAT)
             return ((Pyre.Status.Moves < stat.Percent and inCombat == true) or
                 (Pyre.Status.Moves < stat.TopOffPercent and inCombat == false))
@@ -504,6 +517,7 @@ function CheckForQuaff()
                 SkillFeature.AttackQueue,
                 0,
                 {
+                    Stat = Quaff.Hp,
                     Skill = {Name = 'QuaffHeal', SkillType = Pyre.SkillType.QuaffHeal},
                     Expiration = socket.gettime() + 20,
                     Execute = function(skill)
@@ -553,6 +567,7 @@ function CheckForQuaff()
                 SkillFeature.AttackQueue,
                 position,
                 {
+                    Stat = Quaff.Mp,
                     Skill = {Name = 'QuaffMana', SkillType = Pyre.SkillType.QuaffMana},
                     Expiration = socket.gettime() + 20,
                     Execute = function(skill)
@@ -621,6 +636,7 @@ function CheckForQuaff()
                 SkillFeature.AttackQueue,
                 position,
                 {
+                    Stat = Quaff.Mv,
                     Skill = {Name = 'QuaffMove', SkillType = Pyre.SkillType.QuaffMana},
                     Expiration = socket.gettime() + 20,
                     Execute = function(skill)
@@ -679,6 +695,10 @@ function ProcessAttackQueue()
     local newUniqueId = math.random(1, 1000000)
     item.uid = newUniqueId
     item.Execute(item.Skill)
+    Pyre.Log(
+        'Queue Length (Including This Still until detected) : ' .. Pyre.TableLength(SkillFeature.AttackQueue),
+        Pyre.LogLevel.VERBOSE
+    )
     SkillFeature.LastSkillUniqueId = item.uid
 end
 
@@ -902,12 +922,54 @@ function OnSkillAttack()
 
         Pyre.Log(bestSkill.Name .. ' queued')
 
+        local potioncount =
+            Pyre.TableLength(
+            SkillFeature.AttackQueue,
+            (bestSkill.SkillType == Pyre.SkillType.QuaffHeal or bestSkill.SkillType == Pyre.SkillType.QuaffMana or
+                bestSkill.SkillType == Pyre.SkillType.QuaffMove)
+        )
+
+        local position = potioncount
+
         table.insert(
             SkillFeature.AttackQueue,
+            position,
             {
                 Skill = bestSkill,
                 Expiration = socket.gettime() + expiration,
                 Execute = function(skill)
+                    -- we are in combat we are skipping a combat init
+                    if
+                        ((skill.SkillType == Pyre.SkillType.CombatInitiate) and
+                            (Pyre.Status.State == Pyre.States.COMBAT))
+                     then
+                        Pyre.Log('Skipping Combat Initiator, already in combat', Pyre.LogLevel.DEBUG)
+                        SkillFeature.AttackQueue =
+                            Pyre.Except(
+                            SkillFeature.AttackQueue,
+                            function(v)
+                                return (not ((skill == nil) or (skill.Skill == nil)) and
+                                    (v.Skill.Name == skill.Skill.Name))
+                            end,
+                            1
+                        )
+                        return
+                    end
+
+                    if (Quaff.Hp:Needed()) then
+                        Pyre.Log('Skipping Combat Move, Need Hp', Pyre.LogLevel.DEBUG)
+                        SkillFeature.AttackQueue =
+                            Pyre.Except(
+                            SkillFeature.AttackQueue,
+                            function(v)
+                                return (not ((skill == nil) or (skill.Skill == nil)) and
+                                    (v.Skill.Name == skill.Skill.Name))
+                            end,
+                            1
+                        )
+                        return
+                    end
+
                     SkillFeature.LastSkill = skill
                     if (skill.AutoSend) then
                         local regexForAttempt = ''
@@ -947,13 +1009,64 @@ function OnSkillAttack()
     end
 end
 
-function OnQuaffAttempted()
+function OnQuaffUsed(name, line, wildcards)
     -- just going lazy for now to see what kind of results i get without tracking the potions quaffed at all or
     if (SkillFeature.AttackQueue == nil) then
         return
     end
 
-    Pyre.Log('Quaff Attempted', Pyre.LogLevel.DEBUG)
+    Pyre.Log('Quaff Execute Detected', Pyre.LogLevel.DEBUG)
+
+    local potion =
+        Pyre.First(
+        SkillFeature.AttackQueue,
+        function(v)
+            return (v.Skill.SkillType == Pyre.SkillType.QuaffHeal or v.Skill.SkillType == Pyre.SkillType.QuaffMana or
+                v.Skill.SkillType == Pyre.SkillType.QuaffMove)
+        end,
+        nil
+    )
+
+    if (potion == nil or potion.Stat == nil) then
+        return
+    end
+
+    potion.Stat.Failed = false
+    SkillFeature.AttackQueue =
+        Pyre.Except(
+        SkillFeature.AttackQueue,
+        function(v)
+            return (v.Skill.SkillType == Pyre.SkillType.QuaffHeal or v.Skill.SkillType == Pyre.SkillType.QuaffMana or
+                v.Skill.SkillType == Pyre.SkillType.QuaffMove)
+        end,
+        1
+    )
+end
+
+function OnQuaffFailed(name, line, wildcards)
+    -- just going lazy for now to see what kind of results i get without tracking the potions quaffed at all or
+    if (SkillFeature.AttackQueue == nil) then
+        return
+    end
+
+    Pyre.Log('Quaff Fail Detected', Pyre.LogLevel.DEBUG)
+
+    local potion =
+        Pyre.First(
+        SkillFeature.AttackQueue,
+        function(v)
+            return (v.Skill.SkillType == Pyre.SkillType.QuaffHeal or v.Skill.SkillType == Pyre.SkillType.QuaffMana or
+                v.Skill.SkillType == Pyre.SkillType.QuaffMove)
+        end,
+        nil
+    )
+
+    if (potion == nil) then
+        return
+    end
+
+    potion.Stat.Failed = true
+
     SkillFeature.AttackQueue =
         Pyre.Except(
         SkillFeature.AttackQueue,
@@ -984,14 +1097,25 @@ function SkillsSetup()
     table.insert(Pyre.Events[Pyre.Event.StateChanged], OnStateChange)
 
     AddTriggerEx(
-        'ph_qf',
-        "^(You don't have that potion.)|(You quaff (.*))$",
+        'ph_qff',
+        "^You don't have that potion.$",
         '',
         trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
         -1,
         0,
         '',
-        'OnQuaffAttempted',
+        'OnQuaffFailed',
+        0
+    )
+    AddTriggerEx(
+        'ph_qfs',
+        '^You quaff (.*)$',
+        '',
+        trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
+        -1,
+        0,
+        '',
+        'OnQuaffUsed',
         0
     )
 

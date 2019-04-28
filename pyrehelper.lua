@@ -244,7 +244,7 @@ end
 function Helper.Setup()
     Helper.LoadFeatures()
 
-    AddTimer('ph_tick', 0, 0, 1.0, '', timer_flag.Enabled + timer_flag.Replace + timer_flag.Temporary, 'Tick')
+    AddTimer('ph_tick', 0, 0, 0.5, '', timer_flag.Enabled + timer_flag.Replace + timer_flag.Temporary, 'Tick')
 
     -- add help alias
     AddAlias(

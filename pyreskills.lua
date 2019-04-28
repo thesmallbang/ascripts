@@ -978,7 +978,7 @@ function OnSkillAttack()
             return
         end
 
-        Pyre.Log(bestSkill.Name .. ' queued')
+        Pyre.Log(bestSkill.Name .. ' queued [' .. Pyre.TableLength(SkillFeature.AttackQueue) .. ']')
 
         table.insert(
             SkillFeature.AttackQueue,
@@ -1001,6 +1001,8 @@ function OnSkillAttack()
                             1
                         )
                         SkillFeature.LastAttack = socket.gettime()
+                        qitem.Expiration = ((Pyre.TableLength(SkillFeature.AttackQueue) * 15) + 5)
+                        table.insert(SkillFeature.AttackQueue, qitem)
                         return
                     end
 
@@ -1022,6 +1024,8 @@ function OnSkillAttack()
                             1
                         )
                         SkillFeature.LastAttack = socket.gettime()
+                        qitem.Expiration = ((Pyre.TableLength(SkillFeature.AttackQueue) * 15) + 5)
+                        table.insert(SkillFeature.AttackQueue, qitem)
                         return
                     end
 
@@ -1039,6 +1043,8 @@ function OnSkillAttack()
                             1
                         )
                         SkillFeature.LastAttack = socket.gettime()
+                        qitem.Expiration = ((Pyre.TableLength(SkillFeature.AttackQueue) * 15) + 5)
+                        table.insert(SkillFeature.AttackQueue, qitem)
                         return
                     end
 

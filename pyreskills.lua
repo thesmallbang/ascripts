@@ -1165,7 +1165,16 @@ end
 
 function OnStateChange(stateObject)
     if (stateObject.new == Pyre.States.IDLE) then
-        SkillFeature.AttackQueue = {}
+        -- remove all except for pending potions
+        SkillFeature.AttackQueue =
+            Pyre.Except(
+            SkillFeature.AttackQueue,
+            function(v)
+                return ((v.Skill.SkillType == Pyre.SkillType.QuaffHeal) or
+                    (v.Skill.SkillType == Pyre.SkillType.QuaffMana) or
+                    (v.Skill.SkillType == Pyre.SkillType.QuaffMove))
+            end
+        )
         CheckForQuaff()
     end
 end

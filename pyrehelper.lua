@@ -244,7 +244,7 @@ end
 function Helper.Setup()
     Helper.LoadFeatures()
 
-    AddTimer('ph_tick', 0, 0, 0.5, '', timer_flag.Enabled + timer_flag.Replace + timer_flag.Temporary, 'Tick')
+    AddTimer('ph_tick', 0, 0, 1.0, '', timer_flag.Enabled + timer_flag.Replace + timer_flag.Temporary, 'Tick')
 
     -- add help alias
     AddAlias(
@@ -257,7 +257,7 @@ function Helper.Setup()
     -- add settings alias
     AddAlias(
         'ph_setting',
-        "^[pP]yre [sS]e?t?t?i?n?g?\\s([a-zA-Z0-9']+\\s?)?([a-zA-Z0-9']+\\s?)?([a-zA-Z0-9']+\\s?)?([a-zA-Z0-9']+\\s?)?([a-zA-Z0-9']+\\s?)?([a-zA-Z0-9']+\\s?)?([a-zA-Z0-9']+\\s?)?([a-zA-Z0-9']+\\s?)?$",
+        "^[pP]yre [sS]e?t?t?i?n?g?\\s([a-zA-Z0-9']+\\s?)?([a-zA-Z0-9']+\\s?)?([a-zA-Z0-9\\.']+\\s?)?([a-zA-Z0-9\\.']+\\s?)?([a-zA-Z0-9\\.']+\\s?)?([a-zA-Z0-9\\.']+\\s?)?([a-zA-Z0-9\\.']+\\s?)?([a-zA-Z0-9\\.']+\\s?)?$",
         '',
         alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
         'OnSetting'

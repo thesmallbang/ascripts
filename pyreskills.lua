@@ -281,6 +281,11 @@ Quaff = {
             SetVariable('quaff_hp_item', stat.Item or 'heal')
             SetVariable('Quaff_hp_topoff_percent', stat.TopOffPercent or 50)
             SetVariable('Quaff_hp_percent', stat.Percent or 50)
+        end,
+        Needed = function(stat, inCombat)
+            local inCombat = (Pyre.Status.State == Pyre.States.COMBAT)
+            return ((Pyre.Status.Hp < Quaff.Hp.Percent and inCombat == true) or
+                (Pyre.Status.Hp < Quaff.Hp.TopOffPercent and inCombat == false))
         end
     },
     Mp = {
@@ -293,6 +298,11 @@ Quaff = {
             SetVariable('quaff_mp_item', stat.Item or 'lotus')
             SetVariable('Quaff_mp_topoff_percent', stat.TopOffPercent or 50)
             SetVariable('Quaff_mp_percent', stat.Percent or 50)
+        end,
+        Needed = function(stat, inCombat)
+            local inCombat = (Pyre.Status.State == Pyre.States.COMBAT)
+            return ((Pyre.Status.Mana < stat.Percent and inCombat == true) or
+                (Pyre.Status.Mana < stat.TopOffPercent and inCombat == false))
         end
     },
     Mv = {
@@ -301,10 +311,16 @@ Quaff = {
         TopOffPercent = tonumber(GetVariable('Quaff_mv_topoff_percent')) or 50,
         Item = GetVariable('quaff_mv_item') or 'move',
         DefaultItem = 'move',
-        Save = function(stat)
+        Save = function(stat, inCombat)
             SetVariable('quaff_mv_item', stat.Item or 'move')
             SetVariable('Quaff_mv_topoff_percent', stat.TopOffPercent or 50)
             SetVariable('Quaff_mv_percent', stat.Percent or 50)
+        end,
+        Needed = function(stat)
+            local inCombat = (Pyre.Status.State == Pyre.States.COMBAT)
+
+            return ((Pyre.Status.Moves < stat.Percent and inCombat == true) or
+                (Pyre.Status.Moves < stat.TopOffPercent and inCombat == false))
         end
     }
 }
@@ -442,11 +458,12 @@ function CleanExpiredAttackQueue()
                 if (SkillFeature.AttackQueue == nil) then
                     return
                 end
+
                 SkillFeature.AttackQueue =
                     Pyre.Except(
                     SkillFeature.AttackQueue,
                     function(v)
-                        return (v.Skill.Name == item.Skill.Name)
+                        return not (v.Skill.Name == item.Skill.Name)
                     end,
                     1
                 )
@@ -465,16 +482,11 @@ function CheckForQuaff()
         return
     end
 
-    local inCombat = (Pyre.Status.State == Pyre.States.COMBAT)
-
     -- do we need any pots?
     -- these stats need to be a table to avoid all this duplicate code i'm about to write
     -- hp
 
-    if
-        (((Pyre.Status.Hp < Quaff.Hp.Percent) and (inCombat == true)) or
-            ((Pyre.Status.Hp < Quaff.Hp.TopOffPercent) and (inCombat == false)))
-     then
+    if (Quaff.Hp:Needed()) then
         -- is there already another quaff queued for this stat?
         local queued =
             Pyre.First(
@@ -493,14 +505,16 @@ function CheckForQuaff()
                 0,
                 {
                     Skill = {Name = 'QuaffHeal', SkillType = Pyre.SkillType.QuaffHeal},
-                    Expiration = socket.gettime() + 10,
+                    Expiration = socket.gettime() + 20,
                     Execute = function(skill)
-                        Pyre.Log('Executing Quaff Hp From Queue', Pyre.LogLevel.DEBUG)
+                        if (Quaff.Hp:Needed()) then
+                            Pyre.Log('Executing Quaff Hp From Queue', Pyre.LogLevel.DEBUG)
+                        else
+                            Pyre.Log('Aborting Quaff Hp - Virtal OK', Pyre.LogLevel.DEBUG)
+                        end
 
                         if (not (Quaff.Container == '')) then
                             Execute('get ' .. Quaff.Hp.Item .. ' ' .. Quaff.Container)
-                        else
-                            print('container wasnt set..' .. Quaff.Container)
                         end
                         Execute('quaff ' .. Quaff.Hp.Item)
                     end
@@ -509,10 +523,7 @@ function CheckForQuaff()
         end
     end
     -- mana
-    if
-        ((Pyre.Status.Mana < Quaff.Mp.Percent and inCombat == true) or
-            (Pyre.Status.Mana < Quaff.Mp.TopOffPercent and inCombat == false))
-     then
+    if (Quaff.Mp:Needed()) then
         -- is there already another quaff queued for this stat?
         local queued =
             Pyre.First(
@@ -542,9 +553,13 @@ function CheckForQuaff()
                 position,
                 {
                     Skill = {Name = 'QuaffMana', SkillType = Pyre.SkillType.QuaffMana},
-                    Expiration = socket.gettime() + 10,
+                    Expiration = socket.gettime() + 20,
                     Execute = function(skill)
-                        Pyre.Log('Executing Quaff Mana From Queue', Pyre.LogLevel.DEBUG)
+                        if (Quaff.Mp:Needed()) then
+                            Pyre.Log('Executing Quaff Mp From Queue', Pyre.LogLevel.DEBUG)
+                        else
+                            Pyre.Log('Aborting Quaff Mp - Virtal OK', Pyre.LogLevel.DEBUG)
+                        end
 
                         if not (Quaff.Container == '') then
                             Execute('get ' .. Quaff.Mp.Item .. ' ' .. Quaff.Container)
@@ -557,17 +572,15 @@ function CheckForQuaff()
     end
     -- moves
 
-    if
-        ((Pyre.Status.Moves < Quaff.Mv.Percent and inCombat == true) or
-            (Pyre.Status.Moves < Quaff.Mv.TopOffPercent and inCombat == false))
-     then
+    if (Quaff.Mv:Needed()) then
         -- is there already another quaff queued for this stat?
         local queued =
             Pyre.First(
             SkillFeature.AttackQueue,
             function(q)
                 return q.Skill.SkillType == Pyre.SkillType.QuaffMove
-            end
+            end,
+            nil
         )
 
         if (queued == nil) then
@@ -602,15 +615,18 @@ function CheckForQuaff()
             end
 
             Pyre.Log('Adding Move Quaff to queue', Pyre.LogLevel.DEBUG)
-
             table.insert(
                 SkillFeature.AttackQueue,
                 position,
                 {
                     Skill = {Name = 'QuaffMove', SkillType = Pyre.SkillType.QuaffMana},
-                    Expiration = socket.gettime() + 10,
+                    Expiration = socket.gettime() + 20,
                     Execute = function(skill)
-                        Pyre.Log('Executing Quaff Move From Queue', Pyre.LogLevel.DEBUG)
+                        if (Quaff.Mv:Needed()) then
+                            Pyre.Log('Executing Quaff Mv From Queue', Pyre.LogLevel.DEBUG)
+                        else
+                            Pyre.Log('Aborting Quaff Mv - Virtal OK', Pyre.LogLevel.DEBUG)
+                        end
 
                         if not (Quaff.Container == '') then
                             Execute('get ' .. Quaff.Mv.Item .. ' ' .. Quaff.Container)
@@ -818,9 +834,9 @@ end
 
 function OnSkillUsed(name, line, wildcards)
     -- verify the enemy is even correct
-    if (not (string.lower(wildcards[3]) == string.lower(Pyre.Status.Enemy))) then
-        return
-    end
+    -- if (not (string.lower(wildcards[3]) == string.lower(Pyre.Status.Enemy))) then
+    --     return
+    -- end
 
     local skill = Pyre.GetClassSkillByName(wildcards[1])
     if (skill == nil) then
@@ -880,11 +896,9 @@ function OnSkillAttack()
     end
 
     if not (bestSkill == nil) then
-        local expiration = (Pyre.TableLength(SkillFeature.AttackQueue) + 5)
+        local expiration = ((Pyre.TableLength(SkillFeature.AttackQueue) * 5) + 5)
 
-        if (Pyre.TableLength(SkillFeature.AttackQueue) > 0) then
-            Pyre.Log(bestSkill.Name .. ' queued')
-        end
+        Pyre.Log(bestSkill.Name .. ' queued')
 
         table.insert(
             SkillFeature.AttackQueue,
@@ -956,7 +970,8 @@ end
 
 function OnStateChange(stateObject)
     if (stateObject.new == Pyre.States.IDLE) then
-    --SkillFeature.AttackQueue = {}
+        SkillFeature.AttackQueue = {}
+        CheckForQuaff()
     end
 end
 

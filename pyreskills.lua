@@ -282,7 +282,7 @@ Quaff = {
             SetVariable('Quaff_hp_topoff_percent', stat.TopOffPercent or 50)
             SetVariable('Quaff_hp_percent', stat.Percent or 50)
         end,
-        Needed = function(stat, inCombat)
+        Needed = function(stat)
             local inCombat = (Pyre.Status.State == Pyre.States.COMBAT)
             return ((Pyre.Status.Hp < Quaff.Hp.Percent and inCombat == true) or
                 (Pyre.Status.Hp < Quaff.Hp.TopOffPercent and inCombat == false))
@@ -299,7 +299,7 @@ Quaff = {
             SetVariable('Quaff_mp_topoff_percent', stat.TopOffPercent or 50)
             SetVariable('Quaff_mp_percent', stat.Percent or 50)
         end,
-        Needed = function(stat, inCombat)
+        Needed = function(stat)
             local inCombat = (Pyre.Status.State == Pyre.States.COMBAT)
             return ((Pyre.Status.Mana < stat.Percent and inCombat == true) or
                 (Pyre.Status.Mana < stat.TopOffPercent and inCombat == false))
@@ -311,14 +311,13 @@ Quaff = {
         TopOffPercent = tonumber(GetVariable('Quaff_mv_topoff_percent')) or 50,
         Item = GetVariable('quaff_mv_item') or 'move',
         DefaultItem = 'move',
-        Save = function(stat, inCombat)
+        Save = function(stat)
             SetVariable('quaff_mv_item', stat.Item or 'move')
             SetVariable('Quaff_mv_topoff_percent', stat.TopOffPercent or 50)
             SetVariable('Quaff_mv_percent', stat.Percent or 50)
         end,
         Needed = function(stat)
             local inCombat = (Pyre.Status.State == Pyre.States.COMBAT)
-
             return ((Pyre.Status.Moves < stat.Percent and inCombat == true) or
                 (Pyre.Status.Moves < stat.TopOffPercent and inCombat == false))
         end
@@ -492,7 +491,8 @@ function CheckForQuaff()
             Pyre.First(
             SkillFeature.AttackQueue,
             function(q)
-                return q.Skill.SkillType == Pyre.SkillType.QuaffHeal
+                return (q.Skill.SkillType == Pyre.SkillType.QuaffHeal or q.Skill.SkillType == Pyre.SkillType.QuaffMana or
+                    q.Skill.SkillType == Pyre.SkillType.QuaffMove)
             end
         )
 
@@ -529,7 +529,8 @@ function CheckForQuaff()
             Pyre.First(
             SkillFeature.AttackQueue,
             function(q)
-                return q.Skill.SkillType == Pyre.SkillType.QuaffMana
+                return (q.Skill.SkillType == Pyre.SkillType.QuaffHeal or q.Skill.SkillType == Pyre.SkillType.QuaffMana or
+                    q.Skill.SkillType == Pyre.SkillType.QuaffMove)
             end
         )
 
@@ -578,7 +579,8 @@ function CheckForQuaff()
             Pyre.First(
             SkillFeature.AttackQueue,
             function(q)
-                return q.Skill.SkillType == Pyre.SkillType.QuaffMove
+                return (q.Skill.SkillType == Pyre.SkillType.QuaffHeal or q.Skill.SkillType == Pyre.SkillType.QuaffMana or
+                    q.Skill.SkillType == Pyre.SkillType.QuaffMove)
             end,
             nil
         )
@@ -896,7 +898,7 @@ function OnSkillAttack()
     end
 
     if not (bestSkill == nil) then
-        local expiration = ((Pyre.TableLength(SkillFeature.AttackQueue) * 5) + 5)
+        local expiration = ((Pyre.TableLength(SkillFeature.AttackQueue) * 15) + 5)
 
         Pyre.Log(bestSkill.Name .. ' queued')
 

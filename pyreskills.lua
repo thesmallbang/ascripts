@@ -987,7 +987,7 @@ function OnSkillAttack()
                 Expiration = socket.gettime() + expiration,
                 Execute = function(s, qitem)
                     -- if we quaffed recently we will add a slight delay avoid queueing an attak when a heal may we required again soon
-                    if ((socket.gettime() - 2) < SkillFeature.LastQuaff) then
+                    if ((socket.gettime() - 1) < SkillFeature.LastQuaff) then
                         Pyre.Log('Quaff too recently .. skipping attack', Pyre.LogLevel.DEBUG)
                         SkillFeature.AttackQueue =
                             Pyre.Except(
@@ -1000,8 +1000,7 @@ function OnSkillAttack()
                             end,
                             1
                         )
-                        SkillFeature.LastAttack = socket.gettime()
-                        qitem.Expiration = ((Pyre.TableLength(SkillFeature.AttackQueue) * 15) + 5)
+                        qitem.Expiration = socket.gettime() + ((Pyre.TableLength(SkillFeature.AttackQueue) * 15) + 5)
                         table.insert(SkillFeature.AttackQueue, qitem)
                         return
                     end
@@ -1023,8 +1022,7 @@ function OnSkillAttack()
                             end,
                             1
                         )
-                        SkillFeature.LastAttack = socket.gettime()
-                        qitem.Expiration = ((Pyre.TableLength(SkillFeature.AttackQueue) * 15) + 5)
+                        qitem.Expiration = socket.gettime() + ((Pyre.TableLength(SkillFeature.AttackQueue) * 15) + 5)
                         table.insert(SkillFeature.AttackQueue, qitem)
                         return
                     end
@@ -1042,8 +1040,7 @@ function OnSkillAttack()
                             end,
                             1
                         )
-                        SkillFeature.LastAttack = socket.gettime()
-                        qitem.Expiration = ((Pyre.TableLength(SkillFeature.AttackQueue) * 15) + 5)
+                        qitem.Expiration = socket.gettime() + ((Pyre.TableLength(SkillFeature.AttackQueue) * 15) + 5)
                         table.insert(SkillFeature.AttackQueue, qitem)
                         return
                     end

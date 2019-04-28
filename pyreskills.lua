@@ -719,7 +719,7 @@ function ProcessAttackQueue()
     -- check that we are not execeting too quickly for combat types
     local waitTime = 2
     if (item.Skill.SkillType == Pyre.SkillType.CombatInitiate) then
-        waitTime = waitTime + 1
+        waitTime = waitTime + 2
     end
     if
         (((item.Skill.SkillType == Pyre.SkillType.CombatInitiate) or (item.Skill.SkillType == Pyre.SkillType.CombatMove)) and

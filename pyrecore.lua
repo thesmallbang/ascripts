@@ -383,12 +383,14 @@ end
 
 core_module.Event = {
     StateChanged = 10,
-    NewEnemy = 100
+    NewEnemy = 100,
+    EnemyDied = 110
 }
 
 core_module.Events = {
     [core_module.Event.NewEnemy] = {},
-    [core_module.Event.StateChanged] = {}
+    [core_module.Event.StateChanged] = {},
+    [core_module.Event.EnemyDied] = {}
 }
 
 function core_module.ShareEvent(eventType, eventObject)

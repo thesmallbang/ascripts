@@ -241,6 +241,11 @@ function OnSetting(name, line, wildcards)
     Pyre.ChangeSetting(setting, p1, p2, p3, p4)
 end
 
+function OnEnemyDied()
+    Pyre.Log('Event enemydied')
+    Pyre.ShareEvent(Pyre.Event.EnemyDied, {})
+end
+
 function Helper.Setup()
     Helper.LoadFeatures()
 
@@ -261,6 +266,21 @@ function Helper.Setup()
         '',
         alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
         'OnSetting'
+    )
+
+    local diedRegex = '^(.+)(DEAD!|it!!)$'
+
+    -- enemy died trigger
+    AddTriggerEx(
+        'ph_enemydied',
+        '^(.+)(DEAD!|it!!|him!!|her!!)$',
+        '',
+        trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
+        -1,
+        0,
+        '',
+        'OnEnemyDied',
+        0
     )
 end
 

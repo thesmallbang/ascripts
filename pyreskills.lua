@@ -8,6 +8,9 @@ Pyre.Log('skills.lua loaded', Pyre.LogLevel.DEBUG)
 --  LastAttack / AttackQueue.QueuedTime
 -- ------------------------
 
+local isafk = false
+local lastRoomChanged = os.time()
+
 SkillFeature = {
     SkillFail = nil,
     LastSkill = nil,
@@ -437,7 +440,21 @@ function SkillFeature.FeatureSettingHandle(settingName, p1, p2, p3, p4)
 end
 
 function SkillFeature.FeatureTick()
+    CheckForAFK()
+
+    --
+    --  ALLOWED TO RUN WHILE AFK
+    --
     CheckSkillExpirations()
+
+    if (isafk) then
+        return
+    end
+
+    --
+    -- NOT ALLOWED TO RUN WHILE AFK
+    --
+
     CheckClanSkills()
     CleanExpiredAttackQueue()
     CheckForQuaff()
@@ -493,7 +510,7 @@ function CleanExpiredAttackQueue()
 end
 
 function CheckForQuaff()
-    if (Quaff.Enabled == 0) then
+    if ((Quaff.Enabled == 0) or (isafk == true)) then
         return
     end
 
@@ -661,6 +678,19 @@ function CheckForQuaff()
                 }
             )
         end
+    end
+end
+
+function CheckForAFK()
+    if (isafk == true) then
+        return
+    end
+
+    local afkTime = os.time() - (3 * 60)
+    isafk = (lastRoomChanged <= afkTime)
+
+    if (isafk == true) then
+        Pyre.Log('AFK - Some features have been disabled. Change rooms to enable them again.')
     end
 end
 
@@ -965,8 +995,8 @@ function OnSkillAttack()
         return
     end
 
-    if (not (Pyre.Status.IsLeader == true) and Pyre.Settings.OnlyLeaderInitiate == 1) then
-        Pyre.Log('Initiation blocked. You are not the group leader', Pyre.LogLevel.DEBUG)
+    if ((Pyre.Status.IsLeader == false) and (Pyre.Settings.OnlyLeaderInitiate == 1)) then
+        Pyre.Log('Initiation blocked. You are not the group leader', Pyre.LogLevel.INFO)
         return
     end
 
@@ -997,14 +1027,17 @@ function OnSkillAttack()
             return
         end
 
-        Pyre.Log(bestSkill.Name .. ' queued [' .. Pyre.TableLength(SkillFeature.AttackQueue) .. ']')
-
         table.insert(
             SkillFeature.AttackQueue,
             {
                 Skill = bestSkill,
                 Expiration = socket.gettime() + expiration,
                 Execute = function(s, qitem)
+                    if ((Pyre.Status.IsLeader == false) and (Pyre.Settings.OnlyLeaderInitiate == 1)) then
+                        Pyre.Log('Initiation cancelled. You are not the group leader', Pyre.LogLevel.INFO)
+                        return
+                    end
+
                     -- if we quaffed recently we will add a slight delay avoid queueing an attak when a heal may we required again soon
                     if ((socket.gettime() - 1.5) < SkillFeature.LastQuaff) then
                         Pyre.Log('Quaff too recently .. skipping attack', Pyre.LogLevel.DEBUG)
@@ -1097,6 +1130,9 @@ function OnSkillAttack()
                 end
             }
         )
+
+        Pyre.Log(bestSkill.Name .. ' queued [' .. Pyre.TableLength(SkillFeature.AttackQueue) .. ']')
+
         SkillFeature.LastAttack = socket.gettime()
     else
         Pyre.Log('This enemy is unaffected by your available skills.', Pyre.LogLevel.INFO)
@@ -1177,24 +1213,35 @@ function OnQuaffFailed(name, line, wildcards)
     )
 end
 
-function OnNewEnemy(enemyObject)
+function ResetAttackQueue()
+    Pyre.Log('Resetting attack queue', Pyre.LogLevel.DEBUG)
     SkillFeature.SkillFail = nil
     SkillFeature.LastSkill = nil
+    SkillFeature.AttackQueue = {}
+end
+function OnNewEnemy(enemyObject)
 end
 
 function OnStateChange(stateObject)
     if (stateObject.new == Pyre.States.IDLE) then
         -- remove all except for pending potions
-        SkillFeature.AttackQueue =
-            Pyre.Except(
-            SkillFeature.AttackQueue,
-            function(v)
-                return ((v.Skill.SkillType == Pyre.SkillType.CombatInitiate) or
-                    (v.Skill.SkillType == Pyre.SkillType.CombatMove))
-            end
-        )
+        ResetAttackQueue()
         CheckForQuaff()
     end
+end
+
+function OnRoomChanged(changeInfo)
+    lastRoomChanged = os.time()
+    ResetAttackQueue()
+
+    if (isafk == true) then
+        isafk = false
+        Pyre.Log('AFK OFF - Full features were enabled again')
+    end
+end
+
+function OnAFKChanged(isAfk)
+    Pyre.Log('Afk status changed: ' .. tostring(isAfk))
 end
 
 function SkillsSetup()
@@ -1202,6 +1249,8 @@ function SkillsSetup()
     -- subscribe to some core events
     table.insert(Pyre.Events[Pyre.Event.NewEnemy], OnNewEnemy)
     table.insert(Pyre.Events[Pyre.Event.StateChanged], OnStateChange)
+    table.insert(Pyre.Events[Pyre.Event.RoomChanged], OnRoomChanged)
+    table.insert(Pyre.Events[Pyre.Event.AFKChanged], OnAFKChanged)
 
     AddTriggerEx(
         'ph_qff',

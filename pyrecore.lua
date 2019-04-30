@@ -1,5 +1,7 @@
 core_module = {}
 
+local json = require('json')
+
 function core_module.Switch(case)
     return function(codetable)
         local f
@@ -21,6 +23,10 @@ end
 -------------------------------------
 function core_module.Log(msg, loglevel)
     core_module.ColorLog(msg, 'white', '', loglevel)
+end
+
+function core_module.ToString(o)
+    return json.encode(o)
 end
 
 function core_module.CleanLog(msg, color, backcolor, loglevel)
@@ -224,11 +230,29 @@ function core_module.SetState(state)
     core_module.Status.PreviousStateTime = os.time()
     local oldstate = core_module.Status.State
     core_module.Status.State = state
-    core_module.ShareEvent(core_module.Event.StateChanged, {new = state, old = oldstate})
+    core_module.ShareEvent(core_module.Event.StateChanged, {New = state, Old = oldstate})
     core_module.Log(
         'State Changed ' .. core_module.Status.PreviousState .. ' to ' .. state,
         core_module.LogLevel.VERBOSE
     )
+end
+function core_module.SetMap(id, name)
+    if ((core_module.Status.RoomId == id) and (core_module.Status.Room == name)) then
+        return
+    end
+
+    local oldid = core_module.Status.RoomId
+    local oldname = core_module.Status.Room
+
+    core_module.Status.RoomId = id
+    core_module.Status.Room = name
+
+    local eventData = {
+        New = {Id = core_module.Status.RoomId, Name = core_module.Status.Room},
+        Old = {Id = oldid, Name = oldname}
+    }
+    core_module.Log('Map Changed ' .. core_module.ToString(eventData), core_module.LogLevel.VERBOSE)
+    core_module.ShareEvent(core_module.Event.RoomChanged, eventData)
 end
 
 core_module.LogLevel = {OFF = 0, VERBOSE = 1, DEBUG = 2, INFO = 3, ERROR = 4}
@@ -383,14 +407,18 @@ end
 
 core_module.Event = {
     StateChanged = 10,
+    AFKChanged = 11,
     NewEnemy = 100,
-    EnemyDied = 110
+    EnemyDied = 110,
+    RoomChanged = 200
 }
 
 core_module.Events = {
     [core_module.Event.NewEnemy] = {},
     [core_module.Event.StateChanged] = {},
-    [core_module.Event.EnemyDied] = {}
+    [core_module.Event.EnemyDied] = {},
+    [core_module.Event.RoomChanged] = {},
+    [core_module.Event.AFKChanged] = {}
 }
 
 function core_module.ShareEvent(eventType, eventObject)

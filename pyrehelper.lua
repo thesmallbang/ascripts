@@ -6,10 +6,10 @@ Pyre.Log('helper.lua loaded', Pyre.LogLevel.DEBUG)
 
 local Helper = {}
 
-local Version = '1.2.3'
+local Version = '1.2.4'
 local Features = {
-    {Name = 'skills', Feature = nil, Encapsulated = true},
-    {Name = 'scanner', Feature = nil, Encapsulated = true}
+    {Name = 'skills', Feature = {}, Encapsulated = true},
+    {Name = 'scanner', Feature = {}, Encapsulated = true}
 }
 
 function Helper.LoadFeatures()
@@ -164,6 +164,7 @@ function Helper.OnGMCP(text)
         res, gmcparg = CallPlugin('3e7dedbe37e44942dd46d264', 'gmcpval', 'char')
         luastmt = 'gmcpdata = ' .. gmcparg
         assert(loadstring(luastmt or ''))()
+        Pyre.Status.Name = gmcpval('base.name')
         Pyre.Status.Tier = tonumber(gmcpval('base.tier'))
         Pyre.Status.Subclass = gmcpval('base.subclass')
         Pyre.Status.Clan = gmcpval('base.clan')
@@ -173,14 +174,14 @@ function Helper.OnGMCP(text)
         res, gmcparg = CallPlugin('3e7dedbe37e44942dd46d264', 'gmcpval', 'room')
         luastmt = 'gmcpdata = ' .. gmcparg
         assert(loadstring(luastmt or ''))()
-        Pyre.Status.Room = gmcpval('info.name')
-        Pyre.Status.RoomId = gmcpval('info.num')
+        Pyre.SetMap(tonumber(gmcpval('info.num')), gmcpval('info.name') or '')
     end
     if (text == 'group') then
         res, gmcparg = CallPlugin('3e7dedbe37e44942dd46d264', 'gmcpval', 'group')
         luastmt = 'gmcpdata = ' .. gmcparg
         assert(loadstring(luastmt or ''))()
-        Pyre.Status.IsLeader = Pyre.Status.Name == gmcpval('group.leader')
+        local leader = gmcpval('group.leader')
+        Pyre.Status.IsLeader = ((Pyre.Status.Name == leader) or (leader == ''))
     end
 end
 

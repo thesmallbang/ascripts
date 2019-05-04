@@ -978,7 +978,7 @@ function OnYouDamageEnemy(name, line, wildcards)
         )
     end
 
-    local skill = Pyre.GetClassSkillByName(wildcards[1])
+    local skill = Pyre.GetClassSkillByName(damageType)
     if (skill == nil) then
         return
     end

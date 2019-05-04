@@ -343,6 +343,223 @@ function core_module.Round(num, numDecimalPlaces)
     return math.floor(num * mult + 0.5) / mult
 end
 
+local tableizeHeader = function(h, hcolor, width, buffer)
+    local b = string.rep(' ', buffer)
+    ColourTell('white', '', b .. '|')
+
+    local w = (width - buffer) - 2 -- left/right | for table display can't be used
+    local stringLen = #h
+    local remainingSpace = w - stringLen
+
+    if (remainingSpace < 0) then
+        h = string.sub(h, 0 - remainingSpace)
+    else
+        h = string.rep(' ', math.ceil(remainingSpace / 2)) .. h .. string.rep(' ', math.ceil(remainingSpace / 2))
+    end
+
+    remainingSpace = w - #h
+    h = h .. string.rep(' ', remainingSpace)
+
+    ColourTell(hcolor, '', h)
+    ColourNote('white', '', '|')
+end
+
+local tableizeDescription = function(tabledesc)
+end
+
+local tableizeRow = function(perRow, columns, data, width, buffer)
+    local rowOutput = ''
+    local specials = 0
+    local originalData = #data
+
+    while (#data < perRow) do
+        table.insert(data, {})
+    end
+
+    local b = string.rep(' ', buffer)
+    ColourTell('white', '', b .. '|')
+    --rowOutput = rowOutput .. b .. '|'
+
+    local rowWidth = (width)
+    -----------------------end pipes - pyrespaces   / sections per row - 1     (-1 for | between each column )
+    local propertyWidth = (((width - 2) - buffer) / (perRow * #columns)) - (#columns - 1)
+    local counter = 0
+
+    for sectionCounter = 1, perRow, 1 do
+        counter = counter + 1
+        if (counter > (perRow)) then
+            return
+        end
+        local record = data[counter]
+
+        core_module.Each(
+            record,
+            function(col, index)
+                local h = tostring(col)
+
+                if (#h > propertyWidth) then
+                    h = string.sub(h, 1, propertyWidth - 1) .. '^'
+                end
+
+                local remainingSpace = propertyWidth - #h
+                if (remainingSpace < 0) then
+                    print(remainingSpace)
+                    h = string.sub(h, 1, 0 - remainingSpace)
+                else
+                    h = h .. string.rep(' ', remainingSpace)
+                end
+
+                rowOutput = rowOutput .. h
+                ColourTell('', '', h)
+
+                if (index < #columns) then
+                    specials = specials + 2
+                    rowOutput = rowOutput .. ': '
+                    ColourTell('white', '', ': ')
+                end
+            end,
+            #columns
+        )
+
+        if (counter < (perRow)) then
+            specials = specials + 1
+
+            if (counter < originalData) then
+                rowOutput = rowOutput .. '|'
+                ColourTell('white', '', '|')
+            else
+                rowOutput = rowOutput .. ' '
+                ColourTell('white', '', ' ')
+            end
+        end
+    end
+
+    local remainingSpace = ((width - 2) - buffer) - #rowOutput
+    if (remainingSpace > 0) then
+        ColourTell('', '', string.rep(' ', remainingSpace))
+    end
+
+    ColourNote('white', '', '|')
+    return core_module.Except(
+        data,
+        function()
+            return true
+        end,
+        perRow
+    )
+end
+
+local tableizeColumns = function(perRow, columns, width, buffer)
+    local rowOutput = ''
+    local specials = 0
+
+    local b = string.rep(' ', buffer)
+    ColourTell('white', '', b .. '|')
+    --rowOutput = rowOutput .. b .. '|'
+
+    local rowWidth = (width)
+    -----------------------end pipes - pyrespaces   / sections per row - 1     (-1 for | between each column )
+    local propertyWidth = (((width - 2) - buffer) / (perRow * #columns)) - (#columns - 1)
+    local counter = 0
+
+    for sectionCounter = 1, perRow, 1 do
+        counter = counter + 1
+        if (counter > (perRow)) then
+            return
+        end
+
+        core_module.Each(
+            columns,
+            function(col, index)
+                local h = tostring(col)
+
+                if (#h > propertyWidth) then
+                    h = string.sub(h, 1, propertyWidth - 1) .. '^'
+                end
+
+                local remainingSpace = propertyWidth - #h
+                if (remainingSpace < 0) then
+                    print(remainingSpace)
+                    h = string.sub(h, 1, 0 - remainingSpace)
+                else
+                    h = h .. string.rep(' ', remainingSpace)
+                end
+
+                rowOutput = rowOutput .. h
+
+                ColourTell('white', '', h)
+
+                if (index < #columns) then
+                    specials = specials + 2
+                    rowOutput = rowOutput .. ': '
+                    ColourTell('white', '', ': ')
+                end
+            end,
+            #columns
+        )
+
+        if (counter < (perRow)) then
+            specials = specials + 1
+
+            rowOutput = rowOutput .. '|'
+            ColourTell('white', '', '|')
+        end
+    end
+
+    local remainingSpace = ((width - 2) - buffer) - #rowOutput
+    if (remainingSpace > 0) then
+        ColourTell('', '', string.rep(' ', remainingSpace))
+    end
+
+    ColourNote('white', '', '|')
+end
+
+function core_module.LogTable(header, headercolor, columns, values, perRow, showColumnHeaders)
+    buffer = 8 --  "PYRE    "  prefix for lines
+    if (showColumnHeaders == nil) then
+        showColumnHeaders = false
+    end
+
+    local tableDescription = {
+        buffer = buffer,
+        width = 75, -- full width block
+        perRow = perRow,
+        columns = columns,
+        values = values
+    }
+
+    core_module.Log('+-----------------------------------------------------------------+')
+    tableizeHeader(header, headercolor, tableDescription.width, buffer)
+    core_module.Log('+-----------------------------------------------------------------+')
+    -- tableDescription(tableDescription)
+
+    if (showColumnHeaders) then
+        tableizeColumns(
+            tableDescription.perRow,
+            tableDescription.columns,
+            tableDescription.width,
+            tableDescription.buffer
+        )
+        core_module.Log('+-----------------------------------------------------------------+')
+    end
+
+    local howMany = core_module.TableLength(tableDescription.values) / tableDescription.perRow
+    local counter = 0
+
+    while (core_module.TableLength(tableDescription.values) > 0) do
+        tableDescription.values =
+            tableizeRow(
+            tableDescription.perRow,
+            tableDescription.columns,
+            tableDescription.values,
+            tableDescription.width,
+            tableDescription.buffer
+        )
+    end
+
+    core_module.Log('+-----------------------------------------------------------------+')
+end
+
 -------------------------------------
 -- TABLE QUERY FUNCTIONS
 -------------------------------------
@@ -409,8 +626,14 @@ function core_module.Any(table, checkFn, limit)
     return false
 end
 
-function core_module.Each(table, executeFn)
+function core_module.Each(table, executeFn, limit)
+    if (limit == nil) then
+        limit = 50000000
+    end
     for _, v in pairs(table) do
+        if (_ > limit) then
+            return
+        end
         executeFn(v, _)
     end
 end

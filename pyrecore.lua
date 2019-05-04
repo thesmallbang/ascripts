@@ -236,23 +236,31 @@ function core_module.SetState(state)
         core_module.LogLevel.VERBOSE
     )
 end
-function core_module.SetMap(id, name)
+function core_module.SetMap(id, name, zone)
     if ((core_module.Status.RoomId == id) and (core_module.Status.Room == name)) then
         return
     end
 
     local oldid = core_module.Status.RoomId
     local oldname = core_module.Status.Room
+    local oldzone = core_module.Status.Zone
 
     core_module.Status.RoomId = id
     core_module.Status.Room = name
+    core_module.Status.Zone = zone
 
     local eventData = {
-        New = {Id = core_module.Status.RoomId, Name = core_module.Status.Room},
-        Old = {Id = oldid, Name = oldname}
+        New = {Id = core_module.Status.RoomId, Name = core_module.Status.Room, Zone = core_module.Status.Zone},
+        Old = {Id = oldid, Name = oldname, Zone = oldzone}
     }
+
     core_module.Log('Map Changed ' .. core_module.ToString(eventData), core_module.LogLevel.VERBOSE)
     core_module.ShareEvent(core_module.Event.RoomChanged, eventData)
+
+    if not (oldzone == zone) then
+        core_module.Log('Zone Changed ' .. core_module.ToString(eventData), core_module.LogLevel.VERBOSE)
+        core_module.ShareEvent(core_module.Event.ZoneChanged, eventData)
+    end
 end
 
 core_module.LogLevel = {OFF = 0, VERBOSE = 1, DEBUG = 2, INFO = 3, ERROR = 4}
@@ -282,6 +290,7 @@ core_module.Status = {
     RawAlignment = 0,
     Room = '',
     RoomId = 0,
+    Zone = '',
     Level = 0,
     RawLevel = 0,
     Tier = 0,
@@ -327,6 +336,11 @@ function core_module.TableLength(T, filterFn)
         count = count + 1
     end
     return count
+end
+
+function core_module.Round(num, numDecimalPlaces)
+    local mult = 10 ^ (numDecimalPlaces or 0)
+    return math.floor(num * mult + 0.5) / mult
 end
 
 -------------------------------------
@@ -410,7 +424,8 @@ core_module.Event = {
     AFKChanged = 11,
     NewEnemy = 100,
     EnemyDied = 110,
-    RoomChanged = 200
+    RoomChanged = 200,
+    ZoneChanged = 201
 }
 
 core_module.Events = {
@@ -418,7 +433,8 @@ core_module.Events = {
     [core_module.Event.StateChanged] = {},
     [core_module.Event.EnemyDied] = {},
     [core_module.Event.RoomChanged] = {},
-    [core_module.Event.AFKChanged] = {}
+    [core_module.Event.AFKChanged] = {},
+    [core_module.Event.ZoneChanged] = {}
 }
 
 function core_module.ShareEvent(eventType, eventObject)

@@ -342,6 +342,19 @@ Quaff = {
     }
 }
 
+-- a "fight" is considered the time we go into COMBAT until IDLE. There can be many enemies in that time
+FightTracker = {
+    CurrentFight = {
+        Area = '',
+        StartTime = 0,
+        EndTime = 0,
+        XpMessages = {}, -- { Value, Type (Normal, Rare, Double) }
+        DmgMessages = {}, -- { Value , SourceType (Player,Enemy) , IsCritical,  }
+        HealMessages = {} -- { Value , SourceType (Player,Quaff) }
+    },
+    LastFight = {}
+}
+
 local adjustingAlignment = false
 
 function SkillFeature.FeatureStart()
@@ -686,8 +699,8 @@ function CheckForAFK()
         return
     end
 
-    local afkTime = os.time() - (3 * 60)
-    isafk = (lastRoomChanged <= afkTime)
+    local afkTime = os.time() - (3 * 60) -- 3 minutes = afk
+    isafk = ((lastRoomChanged <= afkTime) and (Pyre.Status.State == Pyre.States.IDLE))
 
     if (isafk == true) then
         Pyre.Log('AFK - Some features have been disabled. Change rooms to enable them again.')
@@ -948,17 +961,56 @@ function OnSkillUnaffected(name, line, wildcards)
     end
 end
 
-function OnSkillUsed(name, line, wildcards)
+function OnYouDamageEnemy(name, line, wildcards)
     -- verify the enemy is even correct
     -- if (not (string.lower(wildcards[3]) == string.lower(Pyre.Status.Enemy))) then
     --     return
     -- end
+
+    local isCritical = (wildcards[1] == '*') or false
+    local damageType = wildcards[2] or 'unknown'
+    local damage = tonumber(wildcards[5]) or 0
+
+    if not (FightTracker.CurrentFight == nil) then
+        table.insert(
+            FightTracker.CurrentFight.DmgMessages,
+            {Value = damage, SourceType = 1, DamageType = damageType, IsCritical = isCritical}
+        )
+    end
 
     local skill = Pyre.GetClassSkillByName(wildcards[1])
     if (skill == nil) then
         return
     end
     SkillFeature.AttackDequeue(skill)
+end
+
+function OnEnemyDamageYou(name, line, wildcards)
+    local isCritical = (wildcards[1] == '*') or false
+    local damageType = wildcards[3] or 'unknown'
+    local damage = tonumber(wildcards[5]) or 0
+
+    if not (FightTracker.CurrentFight == nil) then
+        table.insert(
+            FightTracker.CurrentFight.DmgMessages,
+            {Value = damage, SourceType = 2, DamageType = damageType, IsCritical = isCritical}
+        )
+    end
+end
+
+function OnBasicExperienceGain(name, line, wildcards)
+    local main = tonumber(wildcards[0]) or 0
+    local additional1 = tonumber(wildcards[1]) or 0
+    local additional2 = tonumber(wildcards[2]) or 0
+    local isRare = (wildcards[3] == "'rare kill'") or false
+    local xpType = 1
+    if (isRare) then
+        xpType = 2
+    end
+
+    if not (FightTracker.CurrentFight == nil) then
+        table.insert(FightTracker.CurrentFight.XpMessages, {Value = (main + additional1 + additional2), Type = xpType})
+    end
 end
 
 function OnSkillFail(name, line, wildcards)
@@ -1214,19 +1266,82 @@ function OnQuaffFailed(name, line, wildcards)
 end
 
 function ResetAttackQueue()
-    Pyre.Log('Resetting attack queue', Pyre.LogLevel.DEBUG)
+    Pyre.Log('Resetting attack queue', Pyre.LogLevel.VERBOSE)
     SkillFeature.SkillFail = nil
     SkillFeature.LastSkill = nil
     SkillFeature.AttackQueue = {}
 end
-function OnNewEnemy(enemyObject)
+
+function ReportLastFight()
+    local fight = FightTracker.LastFight
+
+    if (fight == nil) then
+        return
+    end
+
+    local duration = fight.EndTime - fight.StartTime
+    local totalExp = 0
+    local enemies = 0
+    local dpsIn = 0
+    local dpsOut = 0
+
+    Pyre.Each(
+        fight.XpMessages,
+        function(xp)
+            totalExp = totalExp + xp.Value
+            if (xp.Type == 1) then
+                enemies = enemies + 1
+            end
+        end
+    )
+
+    Pyre.Each(
+        fight.DmgMessages,
+        function(dmgRecord)
+            if (dmgRecord.SourceType == 1) then
+                dpsOut = dpsOut + dmgRecord.Value
+            end
+            if (dmgRecord.SourceType == 2) then
+                dpsIn = dpsIn + dmgRecord.Value
+            end
+        end
+    )
+
+    Pyre.Log('You fought ' .. enemies .. ' enemies in ' .. duration .. ' seconds for ' .. totalExp .. ' experience.')
+    Pyre.Log(
+        'DPS - You: ' ..
+            tostring(Pyre.Round(dpsOut / duration), 1) .. ' Enemy: ' .. tostring(Pyre.Round(dpsIn / duration), 1)
+    )
 end
 
 function OnStateChange(stateObject)
-    if (stateObject.new == Pyre.States.IDLE) then
+    if (stateObject.New == Pyre.States.IDLE) then
         -- remove all except for pending potions
         ResetAttackQueue()
         CheckForQuaff()
+
+        if (not (FightTracker.CurrentFight == nil) and not (FightTracker.CurrentFight.StartTime == 0)) then
+            FightTracker.CurrentFight.EndTime = os.time()
+            FightTracker.LastFight = FightTracker.CurrentFight
+
+            -- report last fight
+            -- Pyre.Log(Pyre.ToString(FightTracker.LastFight))
+            ReportLastFight()
+
+            -- clear current fight so nothing is added somehow
+            FightTracker.CurrentFight = nil
+        end
+    end
+
+    if (stateObject.New == Pyre.States.COMBAT) then
+        FightTracker.CurrentFight = {
+            StartTime = os.time(),
+            Area = Pyre.Status.Zone,
+            EndTime = 0,
+            XpMessages = {}, -- { Value, Type (Normal, Rare, Double) }
+            DmgMessages = {}, -- { Value , SourceType (Player,Enemy) , IsCritical,  }
+            HealMessages = {} -- { Value , SourceType (Player,Quaff) }}
+        }
     end
 end
 
@@ -1240,17 +1355,11 @@ function OnRoomChanged(changeInfo)
     end
 end
 
-function OnAFKChanged(isAfk)
-    Pyre.Log('Afk status changed: ' .. tostring(isAfk))
-end
-
 function SkillsSetup()
     Pyre.Log('SkillsSetup (alias+triggers)', Pyre.LogLevel.DEBUG)
     -- subscribe to some core events
-    table.insert(Pyre.Events[Pyre.Event.NewEnemy], OnNewEnemy)
     table.insert(Pyre.Events[Pyre.Event.StateChanged], OnStateChange)
     table.insert(Pyre.Events[Pyre.Event.RoomChanged], OnRoomChanged)
-    table.insert(Pyre.Events[Pyre.Event.AFKChanged], OnAFKChanged)
 
     AddTriggerEx(
         'ph_qff',
@@ -1285,13 +1394,37 @@ function SkillsSetup()
 
     AddTriggerEx(
         'ph_skillused',
-        '^Your (\\w*) -?<?(.*)>?-? (.*)! \\[(.*)\\]$',
+        '^(\\*)?Your (\\w*) -?<?(.*)>?-? (.*)! \\[(.*)\\]$',
         '',
         trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
         -1,
         0,
         '',
-        'OnSkillUsed',
+        'OnYouDamageEnemy',
+        0
+    )
+
+    AddTriggerEx(
+        'ph_enemyattack',
+        "^(\\*)?(.*)'s (\\w*) (.*) you! \\[(.*)\\]$",
+        '',
+        trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
+        -1,
+        0,
+        '',
+        'OnEnemyDamageYou',
+        0
+    )
+
+    AddTriggerEx(
+        'ph_basicexp',
+        "^You receive ([0-9]+)\\+?([0-9]+)?\\+?([0-9]+)? ?('rare kill')? experience (points|bonus).$",
+        '',
+        trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
+        -1,
+        0,
+        '',
+        'OnBasicExperienceGain',
         0
     )
 

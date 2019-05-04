@@ -174,7 +174,7 @@ function Helper.OnGMCP(text)
         res, gmcparg = CallPlugin('3e7dedbe37e44942dd46d264', 'gmcpval', 'room')
         luastmt = 'gmcpdata = ' .. gmcparg
         assert(loadstring(luastmt or ''))()
-        Pyre.SetMap(tonumber(gmcpval('info.num')), gmcpval('info.name') or '')
+        Pyre.SetMap(tonumber(gmcpval('info.num')), gmcpval('info.name') or '', gmcpval('info.zone') or '')
     end
     if (text == 'group') then
         res, gmcparg = CallPlugin('3e7dedbe37e44942dd46d264', 'gmcpval', 'group')

@@ -6,7 +6,7 @@ Pyre.Log('helper.lua loaded', Pyre.LogLevel.DEBUG)
 
 local Helper = {}
 
-local Version = '1.2.4'
+local Version = '1.2.5'
 local Features = {
     {Name = 'skills', Feature = {}, Encapsulated = true},
     {Name = 'scanner', Feature = {}, Encapsulated = true}
@@ -243,7 +243,7 @@ function OnSetting(name, line, wildcards)
 end
 
 function OnEnemyDied()
-    Pyre.Log('Event enemydied')
+    Pyre.Log('Event enemydied', Pyre.LogLevel.DEBUG)
     Pyre.ShareEvent(Pyre.Event.EnemyDied, {})
 end
 

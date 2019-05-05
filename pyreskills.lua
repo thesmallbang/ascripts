@@ -362,6 +362,7 @@ function SkillFeature.FeatureStart()
 end
 
 function SkillFeature.FeatureStop()
+    HideFightTrackerWindow()
 end
 
 function SkillFeature.FeatureSettingHandle(settingName, p1, p2, p3, p4)
@@ -373,10 +374,7 @@ function SkillFeature.FeatureSettingHandle(settingName, p1, p2, p3, p4)
             local stat = nil
             Pyre.Switch(string.lower(p1)) {
                 ['clear'] = function()
-                    Quaff.Hp.Failed = false
-                    Quaff.Mp.Failed = false
-                    Quaff.Mv.Failed = false
-                    Pyre.Log('Quaff potion failures have been reset')
+                    ClearFailedPots()
                 end,
                 ['enabled'] = function()
                     Quaff.Enabled = tonumber(p2) or 0
@@ -454,7 +452,7 @@ end
 
 function SkillFeature.FeatureTick()
     CheckForAFK()
-
+    ShowFightTrackerWindow()
     --
     --  ALLOWED TO RUN WHILE AFK
     --
@@ -520,6 +518,13 @@ function CleanExpiredAttackQueue()
             end
         end
     end
+end
+
+function ClearFailedPots()
+    Quaff.Hp.Failed = false
+    Quaff.Mp.Failed = false
+    Quaff.Mv.Failed = false
+    Pyre.Log('Quaff potion failures have been reset')
 end
 
 function CheckForQuaff()
@@ -764,7 +769,7 @@ function ProcessAttackQueue()
     end
 
     -- check that we are not execeting too quickly for combat types
-    local waitTime = 2
+    local waitTime = 2.5
     if (item.Skill.SkillType == Pyre.SkillType.CombatInitiate) then
         waitTime = waitTime + 2
     end
@@ -909,6 +914,239 @@ function SkillFeature.GetClassSkillByLevel(subclassToCheck, level, filterFn)
     end
     return foundSkill
 end
+
+function IAmNotAFK()
+    isafk = false
+    lastRoomChanged = os.time()
+    Pyre.Log('AFK mode reset manually')
+end
+
+-- -----------------------------------------------
+--  Pyre Fight Tracker Window
+-- -----------------------------------------------
+local xpMonWindow = 'Pyre_XP_Monitor1'
+local handleHeight = 22
+local xpMonWindowMoving = false
+function ShowFightTrackerWindow()
+    if (xpMonWindowMoving == true) then
+        return
+    end
+    WindowCreate(
+        xpMonWindow,
+        tonumber(GetVariable('win_' .. xpMonWindow .. '_x')) or 50,
+        tonumber(GetVariable('win_' .. xpMonWindow .. '_y')) or 50,
+        tonumber(GetVariable('win_' .. xpMonWindow .. '_x2')) or 400,
+        tonumber(GetVariable('win_' .. xpMonWindow .. '_y2')) or 200,
+        0,
+        miniwin.create_absolute_location,
+        ColourNameToRGB('white')
+    ) -- create window
+    WindowBezier(xpMonWindow, '1', ColourNameToRGB('blue'), 0, 2)
+
+    WindowShow(xpMonWindow, true)
+    WindowAddHotspot(
+        xpMonWindow,
+        'movewindowhs',
+        0,
+        0,
+        WindowInfo(xpMonWindow, 3),
+        handleHeight, -- rectangle
+        '',
+        '',
+        'FightTrackerMouseDown',
+        '',
+        '',
+        'Drag to move window', -- tooltip text
+        10, -- hand cursor
+        0
+    ) -- flags
+
+    local top = 2 + ((4 - 1) * 15)
+    WindowAddHotspot(
+        xpMonWindow,
+        'winclearqueue',
+        315,
+        60,
+        390,
+        75, -- rectangle
+        '',
+        '',
+        'ResetAttackQueue',
+        '',
+        '',
+        'Clear attack queue', -- tooltip text
+        1, -- hand cursor
+        0
+    ) -- flags
+
+    WindowDragHandler(xpMonWindow, 'movewindowhs', 'FightTrackerMove', 'FightTrackerMoveRelease', 0)
+
+    WindowCircleOp(
+        xpMonWindow,
+        3,
+        0,
+        0,
+        WindowInfo(xpMonWindow, 3),
+        WindowInfo(xpMonWindow, 4),
+        ColourNameToRGB('teal'),
+        0,
+        0,
+        ColourNameToRGB('transparent'),
+        0,
+        0,
+        0
+    )
+    WindowLine(xpMonWindow, 1, handleHeight, WindowInfo(xpMonWindow, 3), handleHeight, ColourNameToRGB('teal'), 0, 1)
+
+    WindowFont(xpMonWindow, 'l', 'Trebuchet MS', 12, false, false, false, false)
+    WindowFont(xpMonWindow, 'm', 'Trebuchet MS', 10, false, false, false, false)
+    WindowFont(xpMonWindow, 'mb', 'Trebuchet MS', 10, true, false, false, false)
+    WindowFont(xpMonWindow, 's', 'Trebuchet MS', 8, false, false, false, false)
+    WindowFont(xpMonWindow, 'sb', 'Trebuchet MS', 8, true, false, false, false)
+    WindowFont(xpMonWindow, 'su', 'Trebuchet MS', 8, false, false, true, false)
+
+    WindowDrawTextLine_Line(xpMonWindow, 1, 'Pyre Helper', 'm')
+    WindowDrawTextLine_Line(
+        xpMonWindow,
+        3,
+        'Attack Queue: ' .. #SkillFeature.AttackQueue,
+        'm',
+        nil,
+        WindowInfo(xpMonWindow, 3) - 120
+    )
+    WindowDrawTextLine_Line(xpMonWindow, 4, 'Clear Queue', 'su', nil, WindowInfo(xpMonWindow, 3) - 80)
+
+    if (isafk) then
+        WindowAddHotspot(
+            xpMonWindow,
+            'notafk',
+            295,
+            100,
+            390,
+            115, -- rectangle
+            '',
+            '',
+            'IAmNotAFK',
+            '',
+            '',
+            '', -- tooltip text
+            1, -- hand cursor
+            0
+        ) -- flags
+        WindowDrawTextLine_Line(xpMonWindow, 6, 'Clear AFK', 'su', nil, WindowInfo(xpMonWindow, 3) - 80)
+    end
+    if (Quaff.Hp.Failed == true or Quaff.Mp.Failed == true or Quaff.Mv.Failed == true) then
+        WindowAddHotspot(
+            xpMonWindow,
+            'clearfailedpots',
+            295,
+            81,
+            390,
+            95, -- rectangle
+            '',
+            '',
+            'ClearFailedPots',
+            '',
+            '',
+            'Clear potion failures so they attempt to quaff again', -- tooltip text
+            1, -- hand cursor
+            0
+        ) -- flags
+        WindowDrawTextLine_Line(xpMonWindow, 5, 'Clear Pots', 'su', nil, WindowInfo(xpMonWindow, 3) - 80)
+    end
+
+    local duration = 1
+    local totalExp = 0
+    local enemies = 0
+    local dpsIn = 0
+    local dpsOut = 0
+
+    -- calculate some current fight stats
+    local fight = FightTracker.CurrentFight
+    if ((fight == nil) or not (fight.EndTime or -1) == 0) then
+        fight = FightTracker.LastFight
+    end
+
+    if (not (fight == nill) and not ((fight.Area or '') == '')) then
+        local endTime = fight.EndTime
+        if (endTime == 0) then
+            endTime = os.time()
+        end
+
+        duration = endTime - (fight.StartTime or 0)
+
+        Pyre.Each(
+            fight.XpMessages,
+            function(xp)
+                totalExp = totalExp + xp.Value
+                if (xp.Type == 1) then
+                    enemies = enemies + 1
+                end
+            end
+        )
+
+        Pyre.Each(
+            fight.DmgMessages,
+            function(dmgRecord)
+                if (dmgRecord.SourceType == 1) then
+                    dpsOut = dpsOut + dmgRecord.Value
+                end
+                if (dmgRecord.SourceType == 2) then
+                    dpsIn = dpsIn + dmgRecord.Value
+                end
+            end
+        )
+    end
+
+    WindowDrawTextLine_Line(xpMonWindow, 3, 'Xp: ' .. totalExp, 'm')
+    WindowDrawTextLine_Line(xpMonWindow, 3, 'Duration: ' .. duration, 'm', nil, WindowInfo(xpMonWindow, 3) / 3)
+
+    WindowDrawTextLine_Line(xpMonWindow, 3, 'Xp: ' .. totalExp, 'm')
+    WindowDrawTextLine_Line(xpMonWindow, 4, 'DPS: ' .. tostring(Pyre.Round((dpsOut / duration), 1)), 'm')
+    WindowDrawTextLine_Line(xpMonWindow, 5, 'EnemyDPS: ' .. tostring(Pyre.Round((dpsIn / duration), 1)), 'm')
+
+    --WindowText(xpMonWindow, 'f', 'Pyre Helper', 5, 1, 0, 0, ColourNameToRGB('teal'), false)
+end
+
+function WindowDrawTextLine_Line(win, line, text, fontid, colour, left)
+    left = left or 10
+    local top = 2 + ((line - 1) * 20)
+    colour = colour or ColourNameToRGB('white')
+    fontid = fontid or 'm'
+
+    WindowText(win, fontid, text, left, top, 0, 0, colour)
+end -- Display_Line
+
+function HideFightTrackerWindow()
+    WindowDelete(xpMonWindow)
+end
+
+local FightTrackerWindowStartX = 0
+local FightTrackerWindowStartY = 0
+
+function FightTrackerMouseDown(flags, hotspot_id)
+    FightTrackerWindowStartX, FightTrackerWindowStartY = WindowInfo(xpMonWindow, 14), WindowInfo(xpMonWindow, 15)
+end
+
+function FightTrackerMoveRelease(flags, hotspot_id)
+    SetVariable('win_' .. xpMonWindow .. '_x', WindowInfo(xpMonWindow, 10))
+    SetVariable('win_' .. xpMonWindow .. '_y', WindowInfo(xpMonWindow, 11))
+    xpMonWindowMoving = false
+end -- dragrelease
+
+function FightTrackerMove(flags, hotspot_id)
+    local posx, posy = WindowInfo(xpMonWindow, 17), WindowInfo(xpMonWindow, 18)
+    xpMonWindowMoving = true
+    if posx < 0 or posx > GetInfo(281) or posy < 0 or posy > GetInfo(280) then
+        check(SetCursor(11)) -- X cursor
+    else
+        check(SetCursor(10)) -- hand cursor
+        -- move the window to the new location
+        WindowPosition(xpMonWindow, posx - FightTrackerWindowStartX, posy - FightTrackerWindowStartY, 0, 2)
+    end -- if
+
+    -- change the mouse cursor shape appropriately
+end -- dragmove
 
 -- -----------------------------------------------
 --  Trigger, Alias Callbacks
@@ -1326,7 +1564,7 @@ function OnStateChange(stateObject)
 
             -- report last fight
             -- Pyre.Log(Pyre.ToString(FightTracker.LastFight))
-            ReportLastFight()
+            -- ReportLastFight()
 
             -- clear current fight so nothing is added somehow
             FightTracker.CurrentFight = nil

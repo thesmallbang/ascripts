@@ -1168,16 +1168,16 @@ function ShowContextMenu(flags, hotspot_id)
             windowLayer .. ') |Top (1000)|Layer Up (+10)|Layer Down (-10)|Bottom (0)|<'
     )
 
-    if (result) == 'Top' then
+    if (result) == 'Top (1000)' then
         windowLayer = 1000
     end
-    if result == 'Layer Up' then
+    if result == 'Layer Up (+10)' then
         windowLayer = windowLayer + 10
     end -- if
-    if result == 'Layer Down' then
+    if result == 'Layer Down (-10)' then
         windowLayer = windowLayer - 10
     end -- if
-    if (result) == 'Bottom' then
+    if (result) == 'Bottom (0)' then
         windowLayer = 0
     end
     WindowSetZOrder(xpMonWindow, windowLayer)

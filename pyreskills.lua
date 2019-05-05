@@ -10,6 +10,7 @@ Pyre.Log('skills.lua loaded', Pyre.LogLevel.DEBUG)
 
 local isafk = false
 local lastRoomChanged = os.time()
+local windowTab = 0
 
 SkillFeature = {
     SkillFail = nil,
@@ -927,6 +928,8 @@ end
 local xpMonWindow = 'Pyre_XP_Monitor1'
 local handleHeight = 22
 local xpMonWindowMoving = false
+local windowLayer = tonumber(GetVariable('win_' .. xpMonWindow .. '_layer')) or 100
+
 function ShowFightTrackerWindow()
     if (xpMonWindowMoving == true) then
         return
@@ -941,9 +944,30 @@ function ShowFightTrackerWindow()
         miniwin.create_absolute_location,
         ColourNameToRGB('white')
     ) -- create window
-    WindowBezier(xpMonWindow, '1', ColourNameToRGB('blue'), 0, 2)
+
+    WindowSetZOrder(xpMonWindow, windowLayer)
 
     WindowShow(xpMonWindow, true)
+
+    -- Background Context MEnu hotspot
+    WindowAddHotspot(
+        xpMonWindow,
+        'contextmenu',
+        0,
+        handleHeight * 2,
+        WindowInfo(xpMonWindow, 3),
+        WindowInfo(xpMonWindow, 4),
+        '',
+        '',
+        'ShowContextMenu',
+        '',
+        '',
+        '', -- tooltip text
+        0, -- hand cursor
+        miniwin.hotspot_got_rh_mouse
+    ) -- flags
+
+    -- Move Window
     WindowAddHotspot(
         xpMonWindow,
         'movewindowhs',
@@ -960,7 +984,9 @@ function ShowFightTrackerWindow()
         10, -- hand cursor
         0
     ) -- flags
+    WindowDragHandler(xpMonWindow, 'movewindowhs', 'FightTrackerMove', 'FightTrackerMoveRelease', 0)
 
+    -- Clear Queue Button
     local top = 2 + ((4 - 1) * 15)
     WindowAddHotspot(
         xpMonWindow,
@@ -979,8 +1005,7 @@ function ShowFightTrackerWindow()
         0
     ) -- flags
 
-    WindowDragHandler(xpMonWindow, 'movewindowhs', 'FightTrackerMove', 'FightTrackerMoveRelease', 0)
-
+    -- Primary Window Border
     WindowCircleOp(
         xpMonWindow,
         3,
@@ -996,7 +1021,21 @@ function ShowFightTrackerWindow()
         0,
         0
     )
+
+    -- Window Title Seperator Line
     WindowLine(xpMonWindow, 1, handleHeight, WindowInfo(xpMonWindow, 3), handleHeight, ColourNameToRGB('teal'), 0, 1)
+
+    -- Draw Tabs seperator
+    WindowLine(
+        xpMonWindow,
+        1,
+        (handleHeight * 2) - 3,
+        WindowInfo(xpMonWindow, 3),
+        (handleHeight * 2) - 3,
+        ColourNameToRGB('teal'),
+        0,
+        1
+    )
 
     WindowFont(xpMonWindow, 'l', 'Trebuchet MS', 12, false, false, false, false)
     WindowFont(xpMonWindow, 'm', 'Trebuchet MS', 10, false, false, false, false)
@@ -1010,7 +1049,7 @@ function ShowFightTrackerWindow()
         xpMonWindow,
         3,
         'Attack Queue: ' .. #SkillFeature.AttackQueue,
-        'm',
+        's',
         nil,
         WindowInfo(xpMonWindow, 3) - 120
     )
@@ -1055,73 +1094,124 @@ function ShowFightTrackerWindow()
         WindowDrawTextLine_Line(xpMonWindow, 5, 'Clear Pots', 'su', nil, WindowInfo(xpMonWindow, 3) - 80)
     end
 
-    local duration = 1
-    local totalExp = 0
-    local enemies = 0
-    local dpsIn = 0
-    local dpsOut = 0
+    -- draw tabs
+    local tabs = {
+        'Area',
+        'Fight'
+    }
 
-    -- calculate some current fight stats
-    local fight = FightTracker.CurrentFight
-    if ((fight == nil) or not (fight.EndTime or -1) == 0) then
-        fight = FightTracker.LastFight
-    end
+    local tabForeColor = 'red'
+    local tabBackColor = 'white'
+    local tabSelectedBackColor = 'teal'
 
-    if (not (fight == nill) and not ((fight.Area or '') == '')) then
-        local endTime = fight.EndTime
-        if (endTime == 0) then
-            endTime = os.time()
+    Pyre.Each(
+        tabs,
+        function(v, i)
+            local f = tabForeColor
+            local b = tabBackColor
+            if (i == windowTab) then
+                b = tabSelectedBackColor
+            end
+            WindowDrawTextLine_Line(xpMonWindow, 2, v, 's', nil, 10 + ((i - 1) * 50))
         end
-
-        duration = endTime - (fight.StartTime or 0)
-
-        Pyre.Each(
-            fight.XpMessages,
-            function(xp)
-                totalExp = totalExp + xp.Value
-                if (xp.Type == 1) then
-                    enemies = enemies + 1
-                end
-            end
-        )
-
-        Pyre.Each(
-            fight.DmgMessages,
-            function(dmgRecord)
-                if (dmgRecord.SourceType == 1) then
-                    dpsOut = dpsOut + dmgRecord.Value
-                end
-                if (dmgRecord.SourceType == 2) then
-                    dpsIn = dpsIn + dmgRecord.Value
-                end
-            end
-        )
-    end
-
-    WindowDrawTextLine_Line(xpMonWindow, 3, 'Xp: ' .. totalExp, 'm')
-    WindowDrawTextLine_Line(xpMonWindow, 3, 'Duration: ' .. duration, 'm', nil, WindowInfo(xpMonWindow, 3) / 3)
-
-    WindowDrawTextLine_Line(xpMonWindow, 4, 'DPS: ' .. tostring(Pyre.Round((dpsOut / duration), 1)), 'm')
-
-    WindowDrawTextLine_Line(
-        xpMonWindow,
-        4,
-        'EnemyDPS: ' .. tostring(Pyre.Round((dpsIn / duration), 1)),
-        'm',
-        nil,
-        WindowInfo(xpMonWindow, 3) / 3
     )
 
-    WindowDrawTextLine_Line(xpMonWindow, 5, 'Killed: ' .. enemies, 'm')
+    if (windowTab == 0) then
+        local duration = 1
+        local totalExp = 0
+        local enemies = 0
+        local dpsIn = 0
+        local dpsOut = 0
+
+        -- calculate some current fight stats
+        local fight = FightTracker.CurrentFight
+        if ((fight == nil) or not (fight.EndTime or -1) == 0) then
+            fight = FightTracker.LastFight
+        end
+
+        if (not (fight == nill) and not ((fight.Area or '') == '')) then
+            local endTime = fight.EndTime
+            if (endTime == 0) then
+                endTime = os.time()
+            end
+
+            duration = endTime - (fight.StartTime or 0)
+
+            Pyre.Each(
+                fight.XpMessages,
+                function(xp)
+                    totalExp = totalExp + xp.Value
+                    if (xp.Type == 1) then
+                        enemies = enemies + 1
+                    end
+                end
+            )
+
+            Pyre.Each(
+                fight.DmgMessages,
+                function(dmgRecord)
+                    if (dmgRecord.SourceType == 1) then
+                        dpsOut = dpsOut + dmgRecord.Value
+                    end
+                    if (dmgRecord.SourceType == 2) then
+                        dpsIn = dpsIn + dmgRecord.Value
+                    end
+                end
+            )
+        end
+
+        WindowDrawTextLine_Line(xpMonWindow, 3, 'Xp: ' .. totalExp, 's')
+        WindowDrawTextLine_Line(xpMonWindow, 3, 'Duration: ' .. duration, 's', nil, WindowInfo(xpMonWindow, 3) / 3)
+
+        WindowDrawTextLine_Line(xpMonWindow, 4, 'DPS: ' .. tostring(Pyre.Round((dpsOut / duration), 1)), 's')
+
+        WindowDrawTextLine_Line(
+            xpMonWindow,
+            4,
+            'EnemyDPS: ' .. tostring(Pyre.Round((dpsIn / duration), 1)),
+            's',
+            nil,
+            WindowInfo(xpMonWindow, 3) / 3
+        )
+
+        WindowDrawTextLine_Line(xpMonWindow, 5, 'Killed: ' .. enemies, 's')
+    end
 
     --WindowText(xpMonWindow, 'f', 'Pyre Helper', 5, 1, 0, 0, ColourNameToRGB('teal'), false)
 end
 
+function ShowContextMenu(flags, hotspot_id)
+    if bit.band(flags, miniwin.hotspot_got_rh_mouse) ~= 0 then
+        result =
+            WindowMenu(
+            xpMonWindow,
+            WindowInfo(xpMonWindow, 14), -- x
+            WindowInfo(xpMonWindow, 15), -- y
+            'Top|Layer Up|Layer Down|Bottom'
+        )
+
+        if (result) == 'Top' then
+            windowLayer = 1000
+        end
+        if result == 'Layer Up' then
+            windowLayer = windowLayer + 10
+        end -- if
+        if result == 'Layer Down' then
+            windowLayer = windowLayer - 10
+        end -- if
+        if (result) == 'Bottom' then
+            windowLayer = 0
+        end
+        WindowSetZOrder(xpMonWindow, windowLayer)
+        SetVariable('win_' .. xpMonWindow .. '_layer', windowLayer)
+    end
+end
+
 function WindowDrawTextLine_Line(win, line, text, fontid, colour, left)
     left = left or 10
-    local top = 2 + ((line - 1) * 20)
+    local top = 3 + ((line - 1) * 20)
     colour = colour or ColourNameToRGB('white')
-    fontid = fontid or 'm'
+    fontid = fontid or 's'
 
     WindowText(win, fontid, text, left, top, 0, 0, colour)
 end -- Display_Line

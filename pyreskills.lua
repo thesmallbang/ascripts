@@ -949,24 +949,6 @@ function ShowFightTrackerWindow()
 
     WindowShow(xpMonWindow, true)
 
-    -- Background Context MEnu hotspot
-    WindowAddHotspot(
-        xpMonWindow,
-        'contextmenu',
-        0,
-        handleHeight * 2,
-        WindowInfo(xpMonWindow, 3),
-        WindowInfo(xpMonWindow, 4),
-        '',
-        '',
-        'ShowContextMenu',
-        '',
-        '',
-        '', -- tooltip text
-        0, -- hand cursor
-        miniwin.hotspot_got_rh_mouse
-    ) -- flags
-
     -- Move Window
     WindowAddHotspot(
         xpMonWindow,
@@ -985,25 +967,6 @@ function ShowFightTrackerWindow()
         0
     ) -- flags
     WindowDragHandler(xpMonWindow, 'movewindowhs', 'FightTrackerMove', 'FightTrackerMoveRelease', 0)
-
-    -- Clear Queue Button
-    local top = 2 + ((4 - 1) * 15)
-    WindowAddHotspot(
-        xpMonWindow,
-        'winclearqueue',
-        315,
-        60,
-        390,
-        75, -- rectangle
-        '',
-        '',
-        'ResetAttackQueue',
-        '',
-        '',
-        'Clear attack queue', -- tooltip text
-        1, -- hand cursor
-        0
-    ) -- flags
 
     -- Primary Window Border
     WindowCircleOp(
@@ -1025,18 +988,6 @@ function ShowFightTrackerWindow()
     -- Window Title Seperator Line
     WindowLine(xpMonWindow, 1, handleHeight, WindowInfo(xpMonWindow, 3), handleHeight, ColourNameToRGB('teal'), 0, 1)
 
-    -- Draw Tabs seperator
-    WindowLine(
-        xpMonWindow,
-        1,
-        (handleHeight * 2) - 3,
-        WindowInfo(xpMonWindow, 3),
-        (handleHeight * 2) - 3,
-        ColourNameToRGB('teal'),
-        0,
-        1
-    )
-
     WindowFont(xpMonWindow, 'l', 'Trebuchet MS', 12, false, false, false, false)
     WindowFont(xpMonWindow, 'm', 'Trebuchet MS', 10, false, false, false, false)
     WindowFont(xpMonWindow, 'mb', 'Trebuchet MS', 10, true, false, false, false)
@@ -1047,22 +998,40 @@ function ShowFightTrackerWindow()
     WindowDrawTextLine_Line(xpMonWindow, 1, 'Pyre Helper', 'm')
     WindowDrawTextLine_Line(
         xpMonWindow,
-        3,
+        2,
         'Attack Queue: ' .. #SkillFeature.AttackQueue,
         's',
         nil,
         WindowInfo(xpMonWindow, 3) - 120
     )
-    WindowDrawTextLine_Line(xpMonWindow, 4, 'Clear Queue', 'su', nil, WindowInfo(xpMonWindow, 3) - 80)
+    WindowDrawTextLine_Line(xpMonWindow, 3, 'Clear Queue', 'su', nil, WindowInfo(xpMonWindow, 3) - 80)
+    -- Clear Queue Button
+    local top = 2 + ((4 - 1) * 15)
+    WindowAddHotspot(
+        xpMonWindow,
+        'winclearqueue',
+        315,
+        50,
+        390,
+        65, -- rectangle
+        '',
+        '',
+        'ResetAttackQueue',
+        '',
+        '',
+        'Clear attack queue', -- tooltip text
+        1, -- hand cursor
+        0
+    ) -- flags
 
     if (isafk) then
         WindowAddHotspot(
             xpMonWindow,
             'notafk',
             295,
-            100,
+            90,
             390,
-            115, -- rectangle
+            105, -- rectangle
             '',
             '',
             'IAmNotAFK',
@@ -1072,16 +1041,16 @@ function ShowFightTrackerWindow()
             1, -- hand cursor
             0
         ) -- flags
-        WindowDrawTextLine_Line(xpMonWindow, 6, 'Clear AFK', 'su', nil, WindowInfo(xpMonWindow, 3) - 80)
+        WindowDrawTextLine_Line(xpMonWindow, 5, 'Clear AFK', 'su', nil, WindowInfo(xpMonWindow, 3) - 80)
     end
     if (Quaff.Hp.Failed == true or Quaff.Mp.Failed == true or Quaff.Mv.Failed == true) then
         WindowAddHotspot(
             xpMonWindow,
             'clearfailedpots',
             295,
-            81,
+            71,
             390,
-            95, -- rectangle
+            85, -- rectangle
             '',
             '',
             'ClearFailedPots',
@@ -1091,30 +1060,20 @@ function ShowFightTrackerWindow()
             1, -- hand cursor
             0
         ) -- flags
-        WindowDrawTextLine_Line(xpMonWindow, 5, 'Clear Pots', 'su', nil, WindowInfo(xpMonWindow, 3) - 80)
+        WindowDrawTextLine_Line(xpMonWindow, 4, 'Clear Pots', 'su', nil, WindowInfo(xpMonWindow, 3) - 80)
     end
 
     -- draw tabs
     local tabs = {
-        'Area',
-        'Fight'
+        [0] = 'Recent Fight',
+        [1] = 'Area'
     }
 
     local tabForeColor = 'red'
     local tabBackColor = 'white'
     local tabSelectedBackColor = 'teal'
 
-    Pyre.Each(
-        tabs,
-        function(v, i)
-            local f = tabForeColor
-            local b = tabBackColor
-            if (i == windowTab) then
-                b = tabSelectedBackColor
-            end
-            WindowDrawTextLine_Line(xpMonWindow, 2, v, 's', nil, 10 + ((i - 1) * 50))
-        end
-    )
+    WindowDrawTextLine_Line(xpMonWindow, 1, '(Viewing ' .. tabs[windowTab] .. ')', 'm', nil, 100)
 
     if (windowTab == 0) then
         local duration = 1
@@ -1160,56 +1119,77 @@ function ShowFightTrackerWindow()
             )
         end
 
-        WindowDrawTextLine_Line(xpMonWindow, 3, 'Xp: ' .. totalExp, 's')
-        WindowDrawTextLine_Line(xpMonWindow, 3, 'Duration: ' .. duration, 's', nil, WindowInfo(xpMonWindow, 3) / 3)
+        WindowDrawTextLine_Line(xpMonWindow, 2, 'Xp: ' .. totalExp, 's')
+        WindowDrawTextLine_Line(xpMonWindow, 2, 'Duration: ' .. duration, 's', nil, WindowInfo(xpMonWindow, 3) / 3)
 
-        WindowDrawTextLine_Line(xpMonWindow, 4, 'DPS: ' .. tostring(Pyre.Round((dpsOut / duration), 1)), 's')
+        WindowDrawTextLine_Line(xpMonWindow, 3, 'DPS: ' .. tostring(Pyre.Round((dpsOut / duration), 1)), 's')
 
         WindowDrawTextLine_Line(
             xpMonWindow,
-            4,
+            3,
             'EnemyDPS: ' .. tostring(Pyre.Round((dpsIn / duration), 1)),
             's',
             nil,
             WindowInfo(xpMonWindow, 3) / 3
         )
 
-        WindowDrawTextLine_Line(xpMonWindow, 5, 'Killed: ' .. enemies, 's')
+        WindowDrawTextLine_Line(xpMonWindow, 4, 'Killed: ' .. enemies, 's')
     end
+
+    -- Background Context MEnu hotspot
+    WindowAddHotspot(
+        xpMonWindow,
+        'contextmenu',
+        WindowInfo(xpMonWindow, 3) - handleHeight,
+        0,
+        WindowInfo(xpMonWindow, 3),
+        handleHeight,
+        '',
+        '',
+        'ShowContextMenu',
+        '',
+        '',
+        'Show Options', -- tooltip text
+        1, -- hand cursor
+        miniwin.hotspot_got_rh_mouse
+    ) -- flags
+    WindowDrawTextLine_Line(xpMonWindow, 1, 'O', 'su', nil, WindowInfo(xpMonWindow, 3) - handleHeight)
 
     --WindowText(xpMonWindow, 'f', 'Pyre Helper', 5, 1, 0, 0, ColourNameToRGB('teal'), false)
 end
 
 function ShowContextMenu(flags, hotspot_id)
-    if bit.band(flags, miniwin.hotspot_got_rh_mouse) ~= 0 then
-        result =
-            WindowMenu(
-            xpMonWindow,
-            WindowInfo(xpMonWindow, 14), -- x
-            WindowInfo(xpMonWindow, 15), -- y
-            'Top|Layer Up|Layer Down|Bottom'
-        )
+    result =
+        WindowMenu(
+        xpMonWindow,
+        WindowInfo(xpMonWindow, 14), -- x
+        WindowInfo(xpMonWindow, 15), -- y
+        '>View|+Recent Fight|^Area|<|>Change Layer (' .. windowLayer .. ') |Top|Layer Up|Layer Down|Bottom|<'
+    )
 
-        if (result) == 'Top' then
-            windowLayer = 1000
-        end
-        if result == 'Layer Up' then
-            windowLayer = windowLayer + 10
-        end -- if
-        if result == 'Layer Down' then
-            windowLayer = windowLayer - 10
-        end -- if
-        if (result) == 'Bottom' then
-            windowLayer = 0
-        end
-        WindowSetZOrder(xpMonWindow, windowLayer)
-        SetVariable('win_' .. xpMonWindow .. '_layer', windowLayer)
+    if (result) == 'Top' then
+        windowLayer = 1000
     end
+    if result == 'Layer Up' then
+        windowLayer = windowLayer + 10
+    end -- if
+    if result == 'Layer Down' then
+        windowLayer = windowLayer - 10
+    end -- if
+    if (result) == 'Bottom' then
+        windowLayer = 0
+    end
+    WindowSetZOrder(xpMonWindow, windowLayer)
+    SetVariable('win_' .. xpMonWindow .. '_layer', windowLayer)
 end
 
 function WindowDrawTextLine_Line(win, line, text, fontid, colour, left)
     left = left or 10
     local top = 3 + ((line - 1) * 20)
+    if (line > 1) then
+        top = top + 5
+    end
+
     colour = colour or ColourNameToRGB('white')
     fontid = fontid or 's'
 

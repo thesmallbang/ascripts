@@ -6,7 +6,7 @@ Pyre.Log('helper.lua loaded', Pyre.LogLevel.DEBUG)
 
 local Helper = {}
 
-local Version = '1.2.5'
+local Version = '1.2.6'
 local Features = {
     {Name = 'skills', Feature = {}, Encapsulated = true},
     {Name = 'scanner', Feature = {}, Encapsulated = true}

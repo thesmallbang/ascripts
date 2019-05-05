@@ -1712,7 +1712,7 @@ function SkillsSetup()
 
     AddTriggerEx(
         'ph_skillused',
-        '^(\\*)?Your (\\w*) -?<?(.*)>?-? (.*)! \\[(.*)\\]$',
+        '^(\\*)?\\[.*\\]?\\s?Your (\\w*) -?<?(.*)>?-? (.*)! \\[(.*)\\]$',
         '',
         trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
         -1,
@@ -1724,7 +1724,7 @@ function SkillsSetup()
 
     AddTriggerEx(
         'ph_enemyattack',
-        "^(\\*)?(.*)'s (\\w*) (.*) you[!|\\.] \\[(.*)\\]$",
+        "^(\\*)?\\[.*\\]?\\s?(.*)'s (\\w*) (.*) you[!|\\.] \\[(.*)\\]$",
         '',
         trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
         -1,

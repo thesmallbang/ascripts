@@ -1101,9 +1101,18 @@ function ShowFightTrackerWindow()
     WindowDrawTextLine_Line(xpMonWindow, 3, 'Xp: ' .. totalExp, 'm')
     WindowDrawTextLine_Line(xpMonWindow, 3, 'Duration: ' .. duration, 'm', nil, WindowInfo(xpMonWindow, 3) / 3)
 
-    WindowDrawTextLine_Line(xpMonWindow, 3, 'Xp: ' .. totalExp, 'm')
     WindowDrawTextLine_Line(xpMonWindow, 4, 'DPS: ' .. tostring(Pyre.Round((dpsOut / duration), 1)), 'm')
-    WindowDrawTextLine_Line(xpMonWindow, 5, 'EnemyDPS: ' .. tostring(Pyre.Round((dpsIn / duration), 1)), 'm')
+
+    WindowDrawTextLine_Line(
+        xpMonWindow,
+        4,
+        'EnemyDPS: ' .. tostring(Pyre.Round((dpsIn / duration), 1)),
+        'm',
+        nil,
+        WindowInfo(xpMonWindow, 3) / 3
+    )
+
+    WindowDrawTextLine_Line(xpMonWindow, 5, 'Killed: ' .. enemies, 'm')
 
     --WindowText(xpMonWindow, 'f', 'Pyre Helper', 5, 1, 0, 0, ColourNameToRGB('teal'), false)
 end

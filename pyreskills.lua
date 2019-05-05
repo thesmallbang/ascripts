@@ -458,6 +458,8 @@ function SkillFeature.FeatureTick()
     --  ALLOWED TO RUN WHILE AFK
     --
     CheckSkillExpirations()
+    CheckClanSkills()
+    CleanExpiredAttackQueue()
 
     if (isafk) then
         return
@@ -467,8 +469,6 @@ function SkillFeature.FeatureTick()
     -- NOT ALLOWED TO RUN WHILE AFK
     --
 
-    CheckClanSkills()
-    CleanExpiredAttackQueue()
     CheckForQuaff()
     ProcessAttackQueue()
 end

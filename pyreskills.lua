@@ -1164,7 +1164,8 @@ function ShowContextMenu(flags, hotspot_id)
         xpMonWindow,
         WindowInfo(xpMonWindow, 14), -- x
         WindowInfo(xpMonWindow, 15), -- y
-        '>View|+Recent Fight|^Area|<|>Change Layer (' .. windowLayer .. ') |Top|Layer Up|Layer Down|Bottom|<'
+        '>View|+Recent Fight|^Area|<|>Change Layer (' ..
+            windowLayer .. ') |Top (1000)|Layer Up (+10)|Layer Down (-10)|Bottom (0)|<'
     )
 
     if (result) == 'Top' then

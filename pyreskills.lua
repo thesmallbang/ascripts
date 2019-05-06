@@ -9,8 +9,8 @@ Pyre.Log('skills.lua loaded', Pyre.LogLevel.DEBUG)
 -- ------------------------
 
 local isafk = false
-local lastRoomChanged = os.time()
-local windowTab = 0
+local lastRoomChanged = socket.gettime()
+local windowTab = tonumber(GetVariable('xp_mon_tab')) or 1
 
 SkillFeature = {
     SkillFail = nil,
@@ -34,7 +34,7 @@ ClanSkills = {
         LastAttempt = nil,
         CanCast = function(skill)
             return (skill.Queued == true and skill.Setting > 0 and Pyre.Status.State == Pyre.States.IDLE and
-                (skill.LastAttempt == nil or os.difftime(os.time(), skill.LastAttempt) > 4))
+                (skill.LastAttempt == nil or os.difftime(socket.gettime(), skill.LastAttempt) > 4))
         end,
         Cast = function(skill)
             if not (Pyre.AlignmentToCategory(Pyre.Status.RawAlignment, adjustingAlignment) == skill.Setting) then
@@ -53,7 +53,7 @@ ClanSkills = {
 
             SendNoEcho(skill.Name)
 
-            skill.LastAttempt = os.time()
+            skill.LastAttempt = socket.gettime()
         end,
         OnSuccess = function(skill)
             skill.Queued = false
@@ -129,12 +129,12 @@ ClanSkills = {
         LastAttempt = nil,
         CanCast = function(skill)
             return (skill.Queued == true and skill.Setting > 0 and Pyre.Status.State == Pyre.States.IDLE and
-                (skill.LastAttempt == nil or os.difftime(os.time(), skill.LastAttempt) > 4))
+                (skill.LastAttempt == nil or os.difftime(socket.gettime(), skill.LastAttempt) > 4))
         end,
         Cast = function(skill)
             SendNoEcho(skill.Name)
 
-            skill.LastAttempt = os.time()
+            skill.LastAttempt = socket.gettime()
         end,
         OnSuccess = function(skill)
             skill.Queued = false
@@ -203,7 +203,7 @@ ClanSkills = {
         LastAttempt = nil,
         CanCast = function(skill)
             return (skill.Queued == true and skill.Setting > 0 and Pyre.Status.State == Pyre.States.IDLE and
-                (skill.LastAttempt == nil or os.difftime(os.time(), skill.LastAttempt) > 4))
+                (skill.LastAttempt == nil or os.difftime(socket.gettime(), skill.LastAttempt) > 4))
         end,
         Cast = function(skill)
             -- we dont actually want to cast sanc but just listen for it
@@ -343,18 +343,43 @@ Quaff = {
     }
 }
 
+Factory = {
+    NewFight = function()
+        return {
+            Area = 'Loading',
+            StartTime = socket.gettime(),
+            EndTime = 0,
+            XpMessages = {}, -- { Value, Type (Normal, Rare, Double) }
+            DmgMessages = {}, -- { Value , SourceType (Player,Enemy) , IsCritical,  }
+            HealMessages = {} -- { Value , SourceType (Player,Quaff) }
+        }
+    end,
+    NewArea = function()
+        return {
+            Area = 'Loading',
+            StartTime = socket.gettime(),
+            EndTime = 0,
+            XP = {}, -- { Type = (Normal, Rare, Bonus), Value = 0, Date = socket.gettime(), Duration = 0 },
+            Damage = {} -- { Source = (Player, Enemy), Duration = 0, Value = 0, bestDmg = 'bash'  }
+        }
+    end,
+    NewAreaXp = function(type, value, startTime, stopTime)
+        return {Type = type, Value = value, Duration = (stopTime - startTime)}
+    end,
+    NewAreaDamage = function(source, value, startTime, stopTime)
+        return {Source = source, Value = value, Duration = (stopTime - startTime)}
+    end
+}
+
 -- a "fight" is considered the time we go into COMBAT until IDLE. There can be many enemies in that time
 FightTracker = {
-    CurrentFight = {
-        Area = '',
-        StartTime = 0,
-        EndTime = 0,
-        XpMessages = {}, -- { Value, Type (Normal, Rare, Double) }
-        DmgMessages = {}, -- { Value , SourceType (Player,Enemy) , IsCritical,  }
-        HealMessages = {} -- { Value , SourceType (Player,Quaff) }
-    },
-    LastFight = {}
+    CurrentFight = Factory.NewFight(),
+    LastFight = Factory.NewFight()
 }
+
+AreaTracker = Factory.NewArea()
+
+AreaHistory = {}
 
 local adjustingAlignment = false
 
@@ -705,7 +730,7 @@ function CheckForAFK()
         return
     end
 
-    local afkTime = os.time() - (3 * 60) -- 3 minutes = afk
+    local afkTime = socket.gettime() - (3 * 60) -- 3 minutes = afk
     isafk = ((lastRoomChanged <= afkTime) and (Pyre.Status.State == Pyre.States.IDLE))
 
     if (isafk == true) then
@@ -804,7 +829,7 @@ function CheckSkillExpirations()
         if not (skill.Expiration == nil) then
             Pyre.Log('CheckSkillExpiration: ' .. skill.Name, Pyre.LogLevel.VERBOSE)
 
-            local expiringSeconds = os.difftime(skill.Expiration, os.time())
+            local expiringSeconds = os.difftime(skill.Expiration, socket.gettime())
             local divider = skill.DidWarn + 1
             if
                 expiringSeconds > 0 and
@@ -918,7 +943,7 @@ end
 
 function IAmNotAFK()
     isafk = false
-    lastRoomChanged = os.time()
+    lastRoomChanged = socket.gettime()
     Pyre.Log('AFK mode reset manually')
 end
 
@@ -1065,8 +1090,8 @@ function ShowFightTrackerWindow()
 
     -- draw tabs
     local tabs = {
-        [0] = 'Recent Fight',
-        [1] = 'Area'
+        [0] = 'Fights',
+        [1] = 'Areas'
     }
 
     local tabForeColor = 'red'
@@ -1091,7 +1116,7 @@ function ShowFightTrackerWindow()
         if (not (fight == nill) and not ((fight.Area or '') == '')) then
             local endTime = fight.EndTime
             if (endTime == 0) then
-                endTime = os.time()
+                endTime = socket.gettime()
             end
 
             duration = endTime - (fight.StartTime or 0)
@@ -1120,7 +1145,14 @@ function ShowFightTrackerWindow()
         end
 
         WindowDrawTextLine_Line(xpMonWindow, 2, 'Xp: ' .. totalExp, 's')
-        WindowDrawTextLine_Line(xpMonWindow, 2, 'Duration: ' .. duration, 's', nil, WindowInfo(xpMonWindow, 3) / 3)
+        WindowDrawTextLine_Line(
+            xpMonWindow,
+            2,
+            'Duration: ' .. Pyre.SecondsToClock(duration),
+            's',
+            nil,
+            WindowInfo(xpMonWindow, 3) / 3
+        )
 
         WindowDrawTextLine_Line(xpMonWindow, 3, 'DPS: ' .. tostring(Pyre.Round((dpsOut / duration), 1)), 's')
 
@@ -1136,7 +1168,84 @@ function ShowFightTrackerWindow()
         WindowDrawTextLine_Line(xpMonWindow, 4, 'Killed: ' .. enemies, 's')
     end
 
-    -- Background Context MEnu hotspot
+    if (windowTab == 1) then
+        WindowDrawTextLine_Line(xpMonWindow, 2, string.upper(AreaTracker.Area or ''), 'm', ColourNameToRGB('teal'))
+
+        local fightCount =
+            Pyre.TableLength(
+            AreaTracker.XP,
+            function(v)
+                return (v.Source == 1)
+            end
+        )
+
+        local fightDuration =
+            Pyre.Sum(
+            AreaTracker.Damage,
+            function(v)
+                if (v.Source == 1) then
+                    return v.Duration
+                else
+                    return 0
+                end
+            end
+        )
+        local areaDuration = (socket.gettime() - AreaTracker.StartTime)
+
+        WindowDrawTextLine_Line(xpMonWindow, 3, 'In Area : ' .. Pyre.SecondsToClock(areaDuration), 's')
+        WindowDrawTextLine_Line(xpMonWindow, 3, 'Combat : ' .. Pyre.SecondsToClock(fightDuration), 's', nil, 150)
+
+        WindowDrawTextLine_Line(xpMonWindow, 4, 'Fights : ' .. fightCount, 's', nil, 100)
+        WindowDrawTextLine_Line(xpMonWindow, 4, 'FPM : ' .. fightCount, 's', nil, 200)
+
+        local exp =
+            Pyre.Sum(
+            AreaTracker.XP,
+            function(v)
+                return v.Value
+            end
+        )
+        local normalexp =
+            Pyre.Sum(
+            AreaTracker.XP,
+            function(v)
+                if (v.Type == 1) then
+                    return v.Value
+                else
+                    return 0
+                end
+            end
+        )
+        local rareexp =
+            Pyre.Sum(
+            AreaTracker.XP,
+            function(v)
+                if (v.Type == 2) then
+                    return v.Value
+                else
+                    return 0
+                end
+            end
+        )
+        local bonusexp =
+            Pyre.Sum(
+            AreaTracker.XP,
+            function(v)
+                if (v.Type == 3) then
+                    return v.Value
+                else
+                    return 0
+                end
+            end
+        )
+
+        WindowDrawTextLine_Line(xpMonWindow, 6, 'Exp: ' .. exp, 's')
+        WindowDrawTextLine_Line(xpMonWindow, 7, 'Normal: ' .. normalexp, 's')
+        WindowDrawTextLine_Line(xpMonWindow, 7, 'Rare : ' .. rareexp, 's', nil, 100)
+        WindowDrawTextLine_Line(xpMonWindow, 7, 'Bonus : ' .. bonusexp, 's', nil, 200)
+    end
+
+    -- options Context MEnu hotspot
     WindowAddHotspot(
         xpMonWindow,
         'contextmenu',
@@ -1159,14 +1268,38 @@ function ShowFightTrackerWindow()
 end
 
 function ShowContextMenu(flags, hotspot_id)
+    local nameAndCheckedTab = function(name)
+        local checked = ''
+        if (name == 'Fights' and windowTab == 0) then
+            checked = '+'
+        end
+        if (name == 'Areas' and windowTab == 1) then
+            checked = '+'
+        end
+        return checked .. name
+    end
+
     result =
         WindowMenu(
         xpMonWindow,
         WindowInfo(xpMonWindow, 14), -- x
         WindowInfo(xpMonWindow, 15), -- y
-        '>View|+Recent Fight|^Area|<|>Change Layer (' ..
-            windowLayer .. ') |Top (1000)|Layer Up (+10)|Layer Down (-10)|Bottom (0)|<'
+        '>View|' ..
+            nameAndCheckedTab('Fights') ..
+                '|' ..
+                    nameAndCheckedTab('Areas') ..
+                        '|<|>Change Layer (' ..
+                            windowLayer .. ') |Top (1000)|Layer Up (+10)|Layer Down (-10)|Bottom (0)|<'
     )
+
+    if (result == 'Areas') then
+        windowTab = 1
+        SetVariable('xp_mon_tab', windowTab)
+    end
+    if (result == 'Fights') then
+        windowTab = 0
+        SetVariable('xp_mon_tab', windowTab)
+    end
 
     if (result) == 'Top (1000)' then
         windowLayer = 1000
@@ -1259,7 +1392,7 @@ function OnSkillDuration(name, line, wildcards)
 
     Pyre.Log('OnSkillDuration ' .. name .. ' Minutes ' .. minutes .. ' Seconds ' .. seconds, Pyre.LogLevel.DEBUG)
 
-    skill.Expiration = os.time() + (minutes * 60) + seconds
+    skill.Expiration = socket.gettime() + (minutes * 60) + seconds
 end
 
 function OnSkillUnaffected(name, line, wildcards)
@@ -1317,13 +1450,17 @@ function OnEnemyDamageYou(name, line, wildcards)
 end
 
 function OnBasicExperienceGain(name, line, wildcards)
-    local main = tonumber(wildcards[0]) or 0
-    local additional1 = tonumber(wildcards[1]) or 0
-    local additional2 = tonumber(wildcards[2]) or 0
-    local isRare = (wildcards[3] == "'rare kill'") or false
+    local main = tonumber(wildcards[1]) or 0
+    local additional1 = tonumber(wildcards[2]) or 0
+    local additional2 = tonumber(wildcards[3]) or 0
+    local isRare = (wildcards[4] == "'rare kill'") or false
+    local isBonus = (wildcards[4] == 'bonus')
     local xpType = 1
     if (isRare) then
         xpType = 2
+    end
+    if (isBonus) then
+        xpType = 3
     end
 
     if not (FightTracker.CurrentFight == nil) then
@@ -1638,9 +1775,108 @@ function OnStateChange(stateObject)
         ResetAttackQueue()
         CheckForQuaff()
 
-        if (not (FightTracker.CurrentFight == nil) and not (FightTracker.CurrentFight.StartTime == 0)) then
-            FightTracker.CurrentFight.EndTime = os.time()
+        if
+            (FightTracker.CurrentFight ~= nil and
+                (#FightTracker.CurrentFight.XpMessages > 1 or #FightTracker.CurrentFight.DmgMessages > 1))
+         then
+            FightTracker.CurrentFight.EndTime = socket.gettime()
+
             FightTracker.LastFight = FightTracker.CurrentFight
+
+            -- store the area data
+            local normalxp =
+                Pyre.Sum(
+                FightTracker.LastFight.XpMessages,
+                function(v)
+                    if (v.Type == 1) then
+                        return v.Value
+                    end
+                    return 0
+                end
+            )
+            local rarexp =
+                Pyre.Sum(
+                FightTracker.LastFight.XpMessages,
+                function(v)
+                    if (v.Type == 2) then
+                        return v.Value
+                    end
+                    return 0
+                end
+            )
+            local bonusxp =
+                Pyre.Sum(
+                FightTracker.LastFight.XpMessages,
+                function(v)
+                    if (v.Type == 3) then
+                        return v.Value
+                    end
+                    return 0
+                end
+            )
+
+            if (normalxp > 0) then
+                -- store our xp gains
+                table.insert(
+                    AreaTracker.XP,
+                    Factory.NewAreaXp(1, normalxp, FightTracker.LastFight.StartTime, FightTracker.LastFight.EndTime)
+                )
+            end
+
+            if (rarexp > 0) then
+                table.insert(
+                    AreaTracker.XP,
+                    Factory.NewAreaXp(2, rarexp, FightTracker.LastFight.StartTime, FightTracker.LastFight.EndTime)
+                )
+            end
+            if (bonusxp > 0) then
+                table.insert(
+                    AreaTracker.XP,
+                    Factory.NewAreaXp(3, bonusxp, FightTracker.LastFight.StartTime, FightTracker.LastFight.EndTime)
+                )
+            end
+
+            local playerDps =
+                Pyre.Sum(
+                FightTracker.LastFight.DmgMessages,
+                function(v)
+                    if (v.SourceType == 1) then
+                        return v.Value
+                    else
+                        return 0
+                    end
+                end
+            )
+
+            local enemyDps =
+                Pyre.Sum(
+                FightTracker.LastFight.DmgMessages,
+                function(v)
+                    if (v.SourceType == 2) then
+                        return v.Value
+                    else
+                        return 0
+                    end
+                end
+            )
+
+            if (playerDps > 0) then
+                table.insert(
+                    AreaTracker.Damage,
+                    Factory.NewAreaDamage(
+                        1,
+                        playerDps,
+                        FightTracker.LastFight.StartTime,
+                        FightTracker.LastFight.EndTime
+                    )
+                )
+            end
+            if (enemyDps > 0) then
+                table.insert(
+                    AreaTracker.Damage,
+                    Factory.NewAreaDamage(2, enemyDps, FightTracker.LastFight.StartTime, FightTracker.LastFight.EndTime)
+                )
+            end
 
             -- report last fight
             -- Pyre.Log(Pyre.ToString(FightTracker.LastFight))
@@ -1652,19 +1888,14 @@ function OnStateChange(stateObject)
     end
 
     if (stateObject.New == Pyre.States.COMBAT) then
-        FightTracker.CurrentFight = {
-            StartTime = os.time(),
-            Area = Pyre.Status.Zone,
-            EndTime = 0,
-            XpMessages = {}, -- { Value, Type (Normal, Rare, Double) }
-            DmgMessages = {}, -- { Value , SourceType (Player,Enemy) , IsCritical,  }
-            HealMessages = {} -- { Value , SourceType (Player,Quaff) }}
-        }
+        FightTracker.CurrentFight = Factory.NewFight()
+        FightTracker.CurrentFight.StartTime = socket.gettime()
+        FightTracker.CurrentFight.Area = Pyre.Status.Zone
     end
 end
 
 function OnRoomChanged(changeInfo)
-    lastRoomChanged = os.time()
+    lastRoomChanged = socket.gettime()
     ResetAttackQueue()
 
     if (isafk == true) then
@@ -1673,11 +1904,40 @@ function OnRoomChanged(changeInfo)
     end
 end
 
+function OnZoneChanged(changeInfo)
+    if (AreaTracker ~= nil) then
+        AreaTracker.EndTime = socket.gettime()
+    end
+    -- check to store area data
+    if (AreaTracker ~= nil and ((#AreaTracker.XP > 0) or #AreaTracker.Damage > 0)) then
+        -- story area history
+        table.insert(AreaHistory, AreaTracker)
+
+        -- dont keep more than 10 at a time
+        if (#AreaHistory > 10) then
+            local howManyToRemove = (#AreaHistory - 10)
+            AreaHistory =
+                Pyre.Except(
+                AreaHistory,
+                function()
+                    return true
+                end,
+                howManyToRemove
+            )
+        end
+    end
+
+    AreaTracker = Factory.NewArea()
+    AreaTracker.Area = Pyre.Status.Zone
+    AreaTracker.StartTime = socket.gettime()
+end
+
 function SkillsSetup()
     Pyre.Log('SkillsSetup (alias+triggers)', Pyre.LogLevel.DEBUG)
     -- subscribe to some core events
     table.insert(Pyre.Events[Pyre.Event.StateChanged], OnStateChange)
     table.insert(Pyre.Events[Pyre.Event.RoomChanged], OnRoomChanged)
+    table.insert(Pyre.Events[Pyre.Event.ZoneChanged], OnZoneChanged)
 
     AddTriggerEx(
         'ph_qff',
@@ -1736,7 +1996,7 @@ function SkillsSetup()
 
     AddTriggerEx(
         'ph_basicexp',
-        "^You receive ([0-9]+)\\+?([0-9]+)?\\+?([0-9]+)? ?('rare kill')? experience (points|bonus).$",
+        "^You receive ([0-9]+)\\+?([0-9]+)?\\+?([0-9]+)? ?('rare kill'|bonus)? experience (points|bonus|).*$",
         '',
         trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
         -1,

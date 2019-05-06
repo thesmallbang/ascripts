@@ -560,6 +560,18 @@ function core_module.LogTable(header, headercolor, columns, values, perRow, show
     core_module.Log('+-----------------------------------------------------------------+')
 end
 
+function core_module.SecondsToClock(seconds)
+    local seconds = tonumber(seconds)
+
+    if seconds <= 0 then
+        return '00:00:00'
+    else
+        hours = string.format('%02.f', math.floor(seconds / 3600))
+        mins = string.format('%02.f', math.floor(seconds / 60 - (hours * 60)))
+        secs = string.format('%02.f', math.floor(seconds - hours * 3600 - mins * 60))
+        return hours .. ':' .. mins .. ':' .. secs
+    end
+end
 -------------------------------------
 -- TABLE QUERY FUNCTIONS
 -------------------------------------
@@ -636,6 +648,14 @@ function core_module.Each(table, executeFn, limit)
         end
         executeFn(v, _)
     end
+end
+
+function core_module.Sum(table, executeFn)
+    local sum = 0
+    for _, v in pairs(table) do
+        sum = sum + (executeFn(v, _)) or 0
+    end
+    return sum
 end
 
 -------------------------------------

@@ -1327,7 +1327,14 @@ function ShowContextMenu(flags, hotspot_id)
     )
 
     if (result == 'Set Channel') then
-        local result = utils.inputbox('What channel will be used for reporting?', 'Set Channel', 'echo', 'Courier', 9)
+        local result =
+            utils.inputbox(
+            'What channel will be used for reporting?',
+            'Set Channel',
+            (Pyre.Settings.Channel or 'echo'),
+            'Courier',
+            9
+        )
         if (result ~= '') then
             Pyre.Settings.Channel = result
         end

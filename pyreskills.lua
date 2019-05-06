@@ -1379,14 +1379,6 @@ function ShowContextMenu(flags, hotspot_id)
         local npm = Pyre.Round((((normalexp or 0) / fightDuration) * 60), 0) or 0
         local rpm = Pyre.Round((((rareexp or 0) / fightDuration) * 60), 0) or 0
 
-        Execute(
-            'ct @TPH@w ' ..
-                AreaTracker.Area ..
-                    ' ' ..
-                        Pyre.SecondsToClock(Pyre.Round(fightDuration, 0)) ..
-                            ' Combat: ' .. Pyre.SecondsToClock(Pyre.Round(fightDuration, 0))
-        )
-
         if (Pyre.Settings.Channel == '') then
             Pyre.Log(
                 AreaTracker.Area ..

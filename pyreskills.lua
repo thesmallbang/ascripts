@@ -1172,10 +1172,14 @@ function ShowFightTrackerWindow()
         WindowDrawTextLine_Line(xpMonWindow, 2, string.upper(AreaTracker.Area or ''), 'm', ColourNameToRGB('teal'))
 
         local fightCount =
-            Pyre.TableLength(
-            AreaTracker.XP,
+            Pyre.Sum(
+            AreaTracker.Damage,
             function(v)
-                return (v.Source == 1)
+                if (v.Source == 1) then
+                    return 1
+                else
+                    return 0
+                end
             end
         )
 
@@ -1192,11 +1196,13 @@ function ShowFightTrackerWindow()
         )
         local areaDuration = (socket.gettime() - AreaTracker.StartTime)
 
+        local fpm = (fightCount / 60) * fightDuration
+
         WindowDrawTextLine_Line(xpMonWindow, 3, 'In Area : ' .. Pyre.SecondsToClock(areaDuration), 's')
         WindowDrawTextLine_Line(xpMonWindow, 3, 'Combat : ' .. Pyre.SecondsToClock(fightDuration), 's', nil, 150)
 
         WindowDrawTextLine_Line(xpMonWindow, 4, 'Fights : ' .. fightCount, 's', nil, 100)
-        WindowDrawTextLine_Line(xpMonWindow, 4, 'FPM : ' .. fightCount, 's', nil, 200)
+        WindowDrawTextLine_Line(xpMonWindow, 4, 'FPM : ' .. Pyre.Round(fpm,2), 's', nil, 200)
 
         local exp =
             Pyre.Sum(

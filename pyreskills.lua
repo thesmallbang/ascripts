@@ -1318,7 +1318,7 @@ function ShowContextMenu(flags, hotspot_id)
         xpMonWindow,
         WindowInfo(xpMonWindow, 14), -- x
         WindowInfo(xpMonWindow, 15), -- y
-        '>View|' ..
+        '>Report|>Area|PM|PCM|<|<|>View|' ..
             nameAndCheckedTab('Fights') ..
                 '|' ..
                     nameAndCheckedTab('Areas') ..
@@ -1326,6 +1326,103 @@ function ShowContextMenu(flags, hotspot_id)
                             windowLayer .. ') |Top (1000)|Layer Up (+10)|Layer Down (-10)|Bottom (0)|<'
     )
 
+    if (result == 'PM') then
+        local fightDuration =
+            Pyre.Sum(
+            AreaTracker.Damage,
+            function(v)
+                if (v.Source == 1) then
+                    return v.Duration
+                else
+                    return 0
+                end
+            end
+        ) or 1
+
+        local exp =
+            Pyre.Sum(
+            AreaTracker.XP,
+            function(v)
+                return v.Value
+            end
+        )
+
+        local normalexp =
+            Pyre.Sum(
+            AreaTracker.XP,
+            function(v)
+                if (v.Type == 1) then
+                    return v.Value
+                else
+                    return 0
+                end
+            end
+        )
+        local rareexp =
+            Pyre.Sum(
+            AreaTracker.XP,
+            function(v)
+                if (v.Type == 2) then
+                    return v.Value
+                else
+                    return 0
+                end
+            end
+        )
+        local epm = Pyre.Round((((exp or 0) / fightDuration) * 60), 0) or 0
+        local npm = Pyre.Round((((normalexp or 0) / fightDuration) * 60), 0) or 0
+        local rpm = Pyre.Round((((rareexp or 0) / fightDuration) * 60), 0) or 0
+
+        Execute(
+            'ct @TPH@w ' ..
+                AreaTracker.Area .. ' ' .. Pyre.SecondsToClock(Pyre.Round(socket.gettime() - AreaTracker.StartTime), 0)
+        )
+        Execute('ct @TPH@w XPCM: ' .. epm .. ' NPCM: ' .. npm .. ' RPCM: ' .. rpm)
+    end
+
+    if (result == 'PCM') then
+        local areaDuration = (socket.gettime() - AreaTracker.StartTime)
+
+        local exp =
+            Pyre.Sum(
+            AreaTracker.XP,
+            function(v)
+                return v.Value
+            end
+        )
+
+        local normalexp =
+            Pyre.Sum(
+            AreaTracker.XP,
+            function(v)
+                if (v.Type == 1) then
+                    return v.Value
+                else
+                    return 0
+                end
+            end
+        )
+        local rareexp =
+            Pyre.Sum(
+            AreaTracker.XP,
+            function(v)
+                if (v.Type == 2) then
+                    return v.Value
+                else
+                    return 0
+                end
+            end
+        )
+        local epm = Pyre.Round((((exp or 0) / areaDuration) * 60), 0) or 0
+        local npm = Pyre.Round((((normalexp or 0) / areaDuration) * 60), 0) or 0
+        local rpm = Pyre.Round((((rareexp or 0) / areaDuration) * 60), 0) or 0
+
+        Execute(
+            'ct @TPH@w ' ..
+                AreaTracker.Area .. ' ' .. Pyre.SecondsToClock(Pyre.Round(socket.gettime() - AreaTracker.StartTime), 0)
+        )
+        Execute('ct @TPH@w XPM: ' .. epm .. ' NPM: ' .. npm .. ' RPM: ' .. rpm)
+    end
     if (result == 'Areas') then
         windowTab = 1
         SetVariable('xp_mon_tab', windowTab)

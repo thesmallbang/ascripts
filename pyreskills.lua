@@ -1326,7 +1326,7 @@ function ShowContextMenu(flags, hotspot_id)
                             windowLayer .. ') |Top (1000)|Layer Up (+10)|Layer Down (-10)|Bottom (0)|<'
     )
 
-    if (result == 'PM') then
+    if (result == 'PCM') then
         local fightDuration =
             Pyre.Sum(
             AreaTracker.Damage,
@@ -1377,10 +1377,10 @@ function ShowContextMenu(flags, hotspot_id)
             'ct @TPH@w ' ..
                 AreaTracker.Area .. ' ' .. Pyre.Round(Pyre.SecondsToClock(fightDuration), 0) .. ' Combat: ' .. Pyre.SecondsToClock(fightDuration), 0)
         )
-        Execute('ct @TPH@w XPCM: ' .. epm .. ' NPCM: ' .. npm .. ' RPCM: ' .. rpm)
+        Execute('ct @TPH@w XP: ' .. exp .. ' XPCM: ' .. epm .. ' NPCM: ' .. npm .. ' RPCM: ' .. rpm)
     end
 
-    if (result == 'PCM') then
+    if (result == 'PM') then
         local areaDuration = (socket.gettime() - AreaTracker.StartTime)
 
         local exp =

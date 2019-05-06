@@ -1425,7 +1425,7 @@ function ShowContextMenu(flags, hotspot_id)
             'ct @TPH@w ' ..
                 AreaTracker.Area .. ' ' .. Pyre.SecondsToClock(Pyre.Round(socket.gettime() - AreaTracker.StartTime), 0)
         )
-        Execute('ct @TPH@w XPM: ' .. epm .. ' NPM: ' .. npm .. ' RPM: ' .. rpm)
+        Execute('ct @TPH@w XP: ' .. exp .. ' XPM: ' .. epm .. ' NPM: ' .. npm .. ' RPM: ' .. rpm)
     end
     if (result == 'Areas') then
         windowTab = 1

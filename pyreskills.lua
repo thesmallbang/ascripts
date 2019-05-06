@@ -1375,7 +1375,7 @@ function ShowContextMenu(flags, hotspot_id)
 
         Execute(
             'ct @TPH@w ' ..
-                AreaTracker.Area .. ' ' .. Pyre.SecondsToClock(Pyre.Round(socket.gettime() - AreaTracker.StartTime), 0)
+                AreaTracker.Area .. ' ' .. Pyre.Round(Pyre.SecondsToClock(fightDuration), 0) .. ' Combat: ' .. Pyre.SecondsToClock(fightDuration), 0)
         )
         Execute('ct @TPH@w XPCM: ' .. epm .. ' NPCM: ' .. npm .. ' RPCM: ' .. rpm)
     end

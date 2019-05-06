@@ -467,11 +467,11 @@ function SkillFeature.FeatureSettingHandle(settingName, p1, p2, p3, p4)
             end
             Quaff:Save()
         end,
-        ['skill'] = function(p1, p2, p3)
+        ['skill'] = function()
             for _, skill in ipairs(ClanSkills) do
-                if (string.lower(skill.Name) == string.lower(p2)) then
+                if (string.lower(skill.Name) == string.lower(p1)) then
                     print('found skill')
-                    skill.Setting = skill.ParseSetting(p3)
+                    skill.Setting = skill.ParseSetting(p2)
                     Pyre.Log(skill.Name .. ' : ' .. skill.DisplayValue(skill.Setting))
                 end
             end

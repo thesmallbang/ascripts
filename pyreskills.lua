@@ -1381,7 +1381,24 @@ function ShowContextMenu(flags, hotspot_id)
                             ' Combat: ' .. Pyre.SecondsToClock(Pyre.Round(fightDuration, 0))
         )
 
-        Execute('ct @TPH@w XP: ' .. exp .. ' XPCM: ' .. epm .. ' NPCM: ' .. npm .. ' RPCM: ' .. rpm)
+        if (Pyre.Settings.Channel == '') then
+            Pyre.Log(
+                AreaTracker.Area ..
+                    ' ' ..
+                        Pyre.SecondsToClock(Pyre.Round(fightDuration, 0)) ..
+                            ' Combat: ' .. Pyre.SecondsToClock(Pyre.Round(fightDuration, 0))
+            )
+            Pyre.Log('XP: ' .. exp .. ' XPCM: ' .. epm .. ' NPCM: ' .. npm .. ' RPCM: ' .. rpm)
+        else
+            Execute(
+                'ct @TPH@w ' ..
+                    AreaTracker.Area ..
+                        ' ' ..
+                            Pyre.SecondsToClock(Pyre.Round(fightDuration, 0)) ..
+                                ' Combat: ' .. Pyre.SecondsToClock(Pyre.Round(fightDuration, 0))
+            )
+            Execute('ct @TPH@w XP: ' .. exp .. ' XPCM: ' .. epm .. ' NPCM: ' .. npm .. ' RPCM: ' .. rpm)
+        end
     end
 
     if (result == 'PM') then
@@ -1421,11 +1438,22 @@ function ShowContextMenu(flags, hotspot_id)
         local npm = Pyre.Round((((normalexp or 0) / areaDuration) * 60), 0) or 0
         local rpm = Pyre.Round((((rareexp or 0) / areaDuration) * 60), 0) or 0
 
-        Execute(
-            'ct @TPH@w ' ..
+        if (Pyre.Settings.Channel == '') then
+            Pyre.Log(
                 AreaTracker.Area .. ' ' .. Pyre.SecondsToClock(Pyre.Round(socket.gettime() - AreaTracker.StartTime), 0)
-        )
-        Execute('ct @TPH@w XP: ' .. exp .. ' XPM: ' .. epm .. ' NPM: ' .. npm .. ' RPM: ' .. rpm)
+            )
+            Pyre.Log('XP: ' .. exp .. ' XPM: ' .. epm .. ' NPM: ' .. npm .. ' RPM: ' .. rpm)
+        else
+            Execute(
+                Pyre.Settings.Channel ..
+                    ' @TPH@w ' ..
+                        AreaTracker.Area ..
+                            ' ' .. Pyre.SecondsToClock(Pyre.Round(socket.gettime() - AreaTracker.StartTime), 0)
+            )
+            Execute(
+                Pyre.Settings.Channel .. ' @TPH@w XP: ' .. exp .. ' XPM: ' .. epm .. ' NPM: ' .. npm .. ' RPM: ' .. rpm
+            )
+        end
     end
     if (result == 'Areas') then
         windowTab = 1

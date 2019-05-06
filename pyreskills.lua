@@ -1380,7 +1380,7 @@ function ShowContextMenu(flags, hotspot_id)
         local rpm = Pyre.Round((((rareexp or 0) / fightDuration) * 60), 0) or 0
         local areaDuration = (socket.gettime() - AreaTracker.StartTime)
 
-        if (Pyre.Settings.Channel == 'echo') then
+        if (Pyre.Settings.Channel == nil or Pyre.Settings.Channel == '' or Pyre.Settings.Channel == 'echo') then
             Pyre.Log(
                 AreaTracker.Area ..
                     ' ' ..
@@ -1441,7 +1441,7 @@ function ShowContextMenu(flags, hotspot_id)
         local npm = Pyre.Round((((normalexp or 0) / areaDuration) * 60), 0) or 0
         local rpm = Pyre.Round((((rareexp or 0) / areaDuration) * 60), 0) or 0
 
-        if (Pyre.Settings.Channel == '') then
+        if (Pyre.Settings.Channel == nil or Pyre.Settings.Channel == '' or Pyre.Settings.Channel == 'echo') then
             Pyre.Log(AreaTracker.Area .. ' ' .. Pyre.SecondsToClock(Pyre.Round(areaDuration), 0))
             Pyre.Log('XP: ' .. exp .. ' XPM: ' .. epm .. ' NPM: ' .. npm .. ' RPM: ' .. rpm)
         else

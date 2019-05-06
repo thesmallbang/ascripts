@@ -1335,7 +1335,7 @@ function ShowContextMenu(flags, hotspot_id)
             'Courier',
             9
         )
-        if (result ~= '') then
+        if (result ~= nil and result ~= '') then
             Pyre.Settings.Channel = result
         end
     end

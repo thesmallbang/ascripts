@@ -1318,7 +1318,7 @@ function ShowContextMenu(flags, hotspot_id)
         xpMonWindow,
         WindowInfo(xpMonWindow, 14), -- x
         WindowInfo(xpMonWindow, 15), -- y
-        '>Report|>Area|PM|PCM|<|<|>View|' ..
+        '>Random|Set Channel|<|>Report|>Area|PM|PCM|<|<|>View|' ..
             nameAndCheckedTab('Fights') ..
                 '|' ..
                     nameAndCheckedTab('Areas') ..
@@ -1326,6 +1326,12 @@ function ShowContextMenu(flags, hotspot_id)
                             windowLayer .. ') |Top (1000)|Layer Up (+10)|Layer Down (-10)|Bottom (0)|<'
     )
 
+    if (result == 'Set Channel') then
+        local result = utils.inputbox('What channel will be used for reporting?', 'Set Channel', 'ct', 'Courier', 9)
+        if (result ~= '') then
+            Pyre.Settings.Channel = result
+        end
+    end
     if (result == 'PCM') then
         local fightDuration =
             Pyre.Sum(

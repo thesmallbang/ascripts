@@ -946,7 +946,6 @@ end
 function IAmNotAFK()
     isafk = false
     lastRoomChanged = socket.gettime()
-    Pyre.Log('AFK mode reset manually')
 end
 
 -- -----------------------------------------------
@@ -1523,6 +1522,7 @@ end
 
 function OnSkillAttack()
     local inCombat = (Pyre.Status.State == Pyre.States.COMBAT)
+    IAmNotAFK()
 
     -- we only want a skill selection appriopriate to our combat status
     local skillFilter = function(skill)

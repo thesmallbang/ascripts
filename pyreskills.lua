@@ -11,6 +11,8 @@ Pyre.Log('skills.lua loaded', Pyre.LogLevel.DEBUG)
 local isafk = false
 local lastRoomChanged = socket.gettime()
 local windowTab = tonumber(GetVariable('xp_mon_tab')) or 1
+local lastAreaDelayed = 0
+local areaLastDuration = 0
 
 SkillFeature = {
     SkillFail = nil,
@@ -1193,16 +1195,26 @@ function ShowFightTrackerWindow()
                     return 0
                 end
             end
-        )
+        ) or 1
+
         local areaDuration = (socket.gettime() - AreaTracker.StartTime)
 
-        local fpm = (fightCount / 60) * fightDuration
+        if (lastAreaDelayed < (socket.gettime() - 3)) then
+            areaLastDuration = areaDuration
+            lastAreaDelayed = socket.gettime()
+        end
+
+        local areaDurationSlowChange = areaLastDuration
+
+        local fpm = ((fightCount / areaDurationSlowChange) * 60) or 0
+        local fpcm = ((fightCount / fightDuration) * 60) or 0
 
         WindowDrawTextLine_Line(xpMonWindow, 3, 'In Area : ' .. Pyre.SecondsToClock(areaDuration), 's')
-        WindowDrawTextLine_Line(xpMonWindow, 3, 'Combat : ' .. Pyre.SecondsToClock(fightDuration), 's', nil, 150)
+        WindowDrawTextLine_Line(xpMonWindow, 3, 'Combat  : ' .. Pyre.SecondsToClock(fightDuration), 's', nil, 150)
 
-        WindowDrawTextLine_Line(xpMonWindow, 4, 'Fights : ' .. fightCount, 's', nil, 100)
-        WindowDrawTextLine_Line(xpMonWindow, 4, 'FPM : ' .. Pyre.Round(fpm,2), 's', nil, 200)
+        WindowDrawTextLine_Line(xpMonWindow, 4, 'Fights  : ' .. fightCount, 's')
+        WindowDrawTextLine_Line(xpMonWindow, 4, 'FPM     : ' .. Pyre.Round(fpm or 0, 1), 's', nil, 100)
+        WindowDrawTextLine_Line(xpMonWindow, 4, 'FPCM    : ' .. Pyre.Round(fpcm or 0, 1), 's', nil, 200)
 
         local exp =
             Pyre.Sum(
@@ -1245,10 +1257,26 @@ function ShowFightTrackerWindow()
             end
         )
 
-        WindowDrawTextLine_Line(xpMonWindow, 6, 'Exp: ' .. exp, 's')
-        WindowDrawTextLine_Line(xpMonWindow, 7, 'Normal: ' .. normalexp, 's')
-        WindowDrawTextLine_Line(xpMonWindow, 7, 'Rare : ' .. rareexp, 's', nil, 100)
-        WindowDrawTextLine_Line(xpMonWindow, 7, 'Bonus : ' .. bonusexp, 's', nil, 200)
+        local epm = (((exp or 0) / areaDurationSlowChange) * 60) or 0
+        local epcm = (((exp or 0) / fightDuration) * 60) or 0
+
+        local npm = (((normalexp or 0) / areaDurationSlowChange) * 60) or 0
+        local npcm = (((normalexp or 0) / fightDuration) * 60) or 0
+
+        local rpm = (((rareexp or 0) / areaDurationSlowChange) * 60) or 0
+        local rpcm = (((rareexp or 0) / fightDuration) * 60) or 0
+
+        WindowDrawTextLine_Line(xpMonWindow, 5, 'EXP      : ' .. exp, 's')
+        WindowDrawTextLine_Line(xpMonWindow, 5, 'EPM     : ' .. Pyre.Round(epm or 0, 1), 's', nil, 100)
+        WindowDrawTextLine_Line(xpMonWindow, 5, 'EPCM    : ' .. Pyre.Round(epcm or 0, 1), 's', nil, 200)
+
+        WindowDrawTextLine_Line(xpMonWindow, 6, 'Normal : ' .. normalexp, 's')
+        WindowDrawTextLine_Line(xpMonWindow, 6, 'NPM    : ' .. Pyre.Round(npm, 1), 's', nil, 100)
+        WindowDrawTextLine_Line(xpMonWindow, 6, 'NPCM   : ' .. Pyre.Round(npcm, 1), 's', nil, 200)
+
+        WindowDrawTextLine_Line(xpMonWindow, 7, 'Rare     : ' .. rareexp, 's')
+        WindowDrawTextLine_Line(xpMonWindow, 7, 'RPM    : ' .. Pyre.Round(rpm, 1), 's', nil, 100)
+        WindowDrawTextLine_Line(xpMonWindow, 7, 'RPCM    : ' .. Pyre.Round(rpcm, 1), 's', nil, 200)
     end
 
     -- options Context MEnu hotspot

@@ -13,6 +13,7 @@ local lastRoomChanged = socket.gettime()
 local windowTab = tonumber(GetVariable('xp_mon_tab')) or 1
 local lastAreaDelayed = 0
 local areaLastDuration = 0
+local showAreaIndex = 0
 
 SkillFeature = {
     SkillFail = nil,
@@ -1171,11 +1172,21 @@ function ShowFightTrackerWindow()
     end
 
     if (windowTab == 1) then
-        WindowDrawTextLine_Line(xpMonWindow, 2, string.upper(AreaTracker.Area or ''), 'm', ColourNameToRGB('teal'))
+        local areaSelection = showAreaIndex
+        local area = AreaTracker
+        if (areaSelection > 0) then
+            area = AreaHistory[areaSelection]
+        end
+
+        local areadt = '  | Current'
+        if (area.EndTime > 0) then
+            areadt = '  | ' .. os.date('%H:%M:%S - %d/%m/%Y', area.EndTime)
+        end
+        WindowDrawTextLine_Line(xpMonWindow, 2, string.upper(area.Area or '') .. areadt, 'm', ColourNameToRGB('teal'))
 
         local fightCount =
             Pyre.Sum(
-            AreaTracker.Damage,
+            area.Damage,
             function(v)
                 if (v.Source == 1) then
                     return 1
@@ -1187,7 +1198,7 @@ function ShowFightTrackerWindow()
 
         local fightDuration =
             Pyre.Sum(
-            AreaTracker.Damage,
+            area.Damage,
             function(v)
                 if (v.Source == 1) then
                     return v.Duration
@@ -1197,7 +1208,10 @@ function ShowFightTrackerWindow()
             end
         ) or 1
 
-        local areaDuration = (socket.gettime() - AreaTracker.StartTime)
+        local areaDuration = (socket.gettime() - area.StartTime)
+        if (area.EndTime > 0) then
+            areaDuration = (area.EndTime - area.StartTime)
+        end
 
         if (lastAreaDelayed < (socket.gettime() - 3)) then
             areaLastDuration = areaDuration
@@ -1218,14 +1232,14 @@ function ShowFightTrackerWindow()
 
         local exp =
             Pyre.Sum(
-            AreaTracker.XP,
+            area.XP,
             function(v)
                 return v.Value
             end
         )
         local normalexp =
             Pyre.Sum(
-            AreaTracker.XP,
+            area.XP,
             function(v)
                 if (v.Type == 1) then
                     return v.Value
@@ -1236,7 +1250,7 @@ function ShowFightTrackerWindow()
         )
         local rareexp =
             Pyre.Sum(
-            AreaTracker.XP,
+            area.XP,
             function(v)
                 if (v.Type == 2) then
                     return v.Value
@@ -1247,7 +1261,7 @@ function ShowFightTrackerWindow()
         )
         local bonusexp =
             Pyre.Sum(
-            AreaTracker.XP,
+            area.XP,
             function(v)
                 if (v.Type == 3) then
                     return v.Value
@@ -1277,6 +1291,133 @@ function ShowFightTrackerWindow()
         WindowDrawTextLine_Line(xpMonWindow, 7, 'Rare     : ' .. rareexp, 's')
         WindowDrawTextLine_Line(xpMonWindow, 7, 'RPM    : ' .. Pyre.Round(rpm, 1), 's', nil, 100)
         WindowDrawTextLine_Line(xpMonWindow, 7, 'RPCM    : ' .. Pyre.Round(rpcm, 1), 's', nil, 200)
+
+        if (#AreaHistory > 0) then
+            if (showAreaIndex > 0) then
+                WindowText(
+                    xpMonWindow,
+                    'su',
+                    '<<',
+                    10,
+                    WindowInfo(xpMonWindow, 4) - handleHeight,
+                    0,
+                    0,
+                    ColourNameToRGB('white')
+                )
+                WindowAddHotspot(
+                    xpMonWindow,
+                    'navarea_first_hs',
+                    10,
+                    WindowInfo(xpMonWindow, 4) - handleHeight,
+                    29,
+                    WindowInfo(xpMonWindow, 4) - 1,
+                    '',
+                    '',
+                    'NavAreaNewest',
+                    '',
+                    '',
+                    'View Newest',
+                    1, -- hand cursor
+                    0
+                )
+                WindowText(
+                    xpMonWindow,
+                    'su',
+                    '<',
+                    30,
+                    WindowInfo(xpMonWindow, 4) - handleHeight,
+                    0,
+                    0,
+                    ColourNameToRGB('white')
+                )
+                WindowAddHotspot(
+                    xpMonWindow,
+                    'navarea_newer_hs',
+                    30,
+                    WindowInfo(xpMonWindow, 4) - handleHeight,
+                    50,
+                    WindowInfo(xpMonWindow, 4) - 1,
+                    '',
+                    '',
+                    'NavAreaNewer',
+                    '',
+                    '',
+                    'View a newer area',
+                    1, -- hand cursor
+                    0
+                )
+            end
+
+            if (showAreaIndex < (#AreaHistory)) then
+                WindowText(
+                    xpMonWindow,
+                    'su',
+                    '>',
+                    WindowInfo(xpMonWindow, 3) - 35,
+                    WindowInfo(xpMonWindow, 4) - handleHeight,
+                    0,
+                    0,
+                    ColourNameToRGB('white')
+                )
+                WindowAddHotspot(
+                    xpMonWindow,
+                    'navarea_older_hs',
+                    WindowInfo(xpMonWindow, 3) - 35,
+                    WindowInfo(xpMonWindow, 4) - handleHeight,
+                    WindowInfo(xpMonWindow, 3) - 14,
+                    WindowInfo(xpMonWindow, 4) - 1, -- rectangle
+                    '',
+                    '',
+                    'NavAreaOlder',
+                    '',
+                    '',
+                    'View an older area',
+                    1, -- hand cursor
+                    0
+                )
+                WindowText(
+                    xpMonWindow,
+                    'su',
+                    '>>',
+                    WindowInfo(xpMonWindow, 3) - 15,
+                    WindowInfo(xpMonWindow, 4) - handleHeight,
+                    0,
+                    0,
+                    ColourNameToRGB('white')
+                )
+                WindowAddHotspot(
+                    xpMonWindow,
+                    'navarea_oldest_hs',
+                    WindowInfo(xpMonWindow, 3) - 15,
+                    WindowInfo(xpMonWindow, 4) - handleHeight,
+                    WindowInfo(xpMonWindow, 3) - 1,
+                    WindowInfo(xpMonWindow, 4) - 1,
+                    '',
+                    '',
+                    'NavAreaOldest',
+                    '',
+                    '',
+                    'View oldest area',
+                    1, -- hand cursor
+                    0
+                )
+            end
+        end
+
+        local msg = 'CURRENT'
+        -- if (showAreaIndex ~= 0) then
+        msg = showAreaIndex .. ' / ' .. #AreaHistory
+        --  end
+        WindowText(
+            xpMonWindow,
+            's',
+            msg,
+            175,
+            WindowInfo(xpMonWindow, 4) - (handleHeight - 2),
+            0,
+            0,
+            ColourNameToRGB('white')
+        )
     end
 
     -- options Context MEnu hotspot
@@ -1301,6 +1442,28 @@ function ShowFightTrackerWindow()
     --WindowText(xpMonWindow, 'f', 'Pyre Helper', 5, 1, 0, 0, ColourNameToRGB('teal'), false)
 end
 
+function NavAreaNewest()
+    showAreaIndex = 0
+end
+function NavAreaNewer()
+    local i = showAreaIndex - 1
+    if (i < 0) then
+        i = 0
+    end
+    showAreaIndex = i
+end
+function NavAreaOlder()
+    local i = showAreaIndex + 1
+    if (i > #AreaHistory) then
+        i = #AreaHistory
+    end
+    showAreaIndex = i
+end
+
+function NavAreaOldest()
+    showAreaIndex = #AreaHistory
+end
+
 function ShowContextMenu(flags, hotspot_id)
     local nameAndCheckedTab = function(name)
         local checked = ''
@@ -1311,6 +1474,17 @@ function ShowContextMenu(flags, hotspot_id)
             checked = '+'
         end
         return checked .. name
+    end
+
+    local areaSelection = showAreaIndex
+    local area = AreaTracker
+    if (areaSelection > 0) then
+        area = AreaHistory[areaSelection]
+    end
+
+    local areadt = '  | Current'
+    if (area.EndTime > 0) then
+        areadt = '  | ' .. os.date('%H:%M:%S - %d/%m/%Y', area.EndTime)
     end
 
     result =
@@ -1342,7 +1516,7 @@ function ShowContextMenu(flags, hotspot_id)
     if (result == 'PCM') then
         local fightDuration =
             Pyre.Sum(
-            AreaTracker.Damage,
+            area.Damage,
             function(v)
                 if (v.Source == 1) then
                     return v.Duration
@@ -1354,7 +1528,7 @@ function ShowContextMenu(flags, hotspot_id)
 
         local exp =
             Pyre.Sum(
-            AreaTracker.XP,
+            area.XP,
             function(v)
                 return v.Value
             end
@@ -1362,7 +1536,7 @@ function ShowContextMenu(flags, hotspot_id)
 
         local normalexp =
             Pyre.Sum(
-            AreaTracker.XP,
+            area.XP,
             function(v)
                 if (v.Type == 1) then
                     return v.Value
@@ -1373,7 +1547,7 @@ function ShowContextMenu(flags, hotspot_id)
         )
         local rareexp =
             Pyre.Sum(
-            AreaTracker.XP,
+            area.XP,
             function(v)
                 if (v.Type == 2) then
                     return v.Value
@@ -1385,24 +1559,28 @@ function ShowContextMenu(flags, hotspot_id)
         local epm = Pyre.Round((((exp or 0) / fightDuration) * 60), 0) or 0
         local npm = Pyre.Round((((normalexp or 0) / fightDuration) * 60), 0) or 0
         local rpm = Pyre.Round((((rareexp or 0) / fightDuration) * 60), 0) or 0
-        local areaDuration = (socket.gettime() - AreaTracker.StartTime)
+        local areaDuration = (socket.gettime() - area.StartTime)
 
         if (Pyre.Settings.Channel == nil or Pyre.Settings.Channel == '' or Pyre.Settings.Channel == 'echo') then
             Pyre.Log(
-                AreaTracker.Area ..
+                area.Area ..
                     ' ' ..
-                        Pyre.SecondsToClock(Pyre.Round(areaDuration, 0)) ..
-                            ' Combat: ' .. Pyre.SecondsToClock(Pyre.Round(fightDuration, 0))
+                        areadt ..
+                            ' ' ..
+                                Pyre.SecondsToClock(Pyre.Round(areaDuration, 0)) ..
+                                    ' Combat: ' .. Pyre.SecondsToClock(Pyre.Round(fightDuration, 0))
             )
             Pyre.Log('XP: ' .. exp .. ' XPCM: ' .. epm .. ' NPCM: ' .. npm .. ' RPCM: ' .. rpm)
         else
             Execute(
                 Pyre.Settings.Channel ..
                     ' @TPH@w ' ..
-                        AreaTracker.Area ..
+                        area.Area ..
                             ' ' ..
-                                Pyre.SecondsToClock(Pyre.Round(areaDuration, 0)) ..
-                                    ' Combat: ' .. Pyre.SecondsToClock(Pyre.Round(fightDuration, 0))
+                                areadt ..
+                                    ' ' ..
+                                        Pyre.SecondsToClock(Pyre.Round(areaDuration, 0)) ..
+                                            ' Combat: ' .. Pyre.SecondsToClock(Pyre.Round(fightDuration, 0))
             )
             Execute(
                 Pyre.Settings.Channel ..
@@ -1412,11 +1590,11 @@ function ShowContextMenu(flags, hotspot_id)
     end
 
     if (result == 'PM') then
-        local areaDuration = (socket.gettime() - AreaTracker.StartTime)
+        local areaDuration = (socket.gettime() - area.StartTime)
 
         local exp =
             Pyre.Sum(
-            AreaTracker.XP,
+            area.XP,
             function(v)
                 return v.Value
             end
@@ -1424,7 +1602,7 @@ function ShowContextMenu(flags, hotspot_id)
 
         local normalexp =
             Pyre.Sum(
-            AreaTracker.XP,
+            area.XP,
             function(v)
                 if (v.Type == 1) then
                     return v.Value
@@ -1435,7 +1613,7 @@ function ShowContextMenu(flags, hotspot_id)
         )
         local rareexp =
             Pyre.Sum(
-            AreaTracker.XP,
+            area.XP,
             function(v)
                 if (v.Type == 2) then
                     return v.Value
@@ -1449,12 +1627,12 @@ function ShowContextMenu(flags, hotspot_id)
         local rpm = Pyre.Round((((rareexp or 0) / areaDuration) * 60), 0) or 0
 
         if (Pyre.Settings.Channel == nil or Pyre.Settings.Channel == '' or Pyre.Settings.Channel == 'echo') then
-            Pyre.Log(AreaTracker.Area .. ' ' .. Pyre.SecondsToClock(Pyre.Round(areaDuration), 0))
+            Pyre.Log(area.Area .. ' ' .. areadt .. ' ' .. Pyre.SecondsToClock(Pyre.Round(areaDuration), 0))
             Pyre.Log('XP: ' .. exp .. ' XPM: ' .. epm .. ' NPM: ' .. npm .. ' RPM: ' .. rpm)
         else
             Execute(
                 Pyre.Settings.Channel ..
-                    ' @TPH@w ' .. AreaTracker.Area .. ' ' .. Pyre.SecondsToClock(Pyre.Round(areaDuration), 0)
+                    ' @TPH@w ' .. area.Area .. ' ' .. areadt .. ' ' .. Pyre.SecondsToClock(Pyre.Round(areaDuration), 0)
             )
             Execute(
                 Pyre.Settings.Channel .. ' @TPH@w XP: ' .. exp .. ' XPM: ' .. epm .. ' NPM: ' .. npm .. ' RPM: ' .. rpm
@@ -1897,48 +2075,6 @@ function ResetAttackQueue()
     SkillFeature.AttackQueue = {}
 end
 
-function ReportLastFight()
-    local fight = FightTracker.LastFight
-
-    if (fight == nil) then
-        return
-    end
-
-    local duration = fight.EndTime - fight.StartTime
-    local totalExp = 0
-    local enemies = 0
-    local dpsIn = 0
-    local dpsOut = 0
-
-    Pyre.Each(
-        fight.XpMessages,
-        function(xp)
-            totalExp = totalExp + xp.Value
-            if (xp.Type == 1) then
-                enemies = enemies + 1
-            end
-        end
-    )
-
-    Pyre.Each(
-        fight.DmgMessages,
-        function(dmgRecord)
-            if (dmgRecord.SourceType == 1) then
-                dpsOut = dpsOut + dmgRecord.Value
-            end
-            if (dmgRecord.SourceType == 2) then
-                dpsIn = dpsIn + dmgRecord.Value
-            end
-        end
-    )
-
-    Pyre.Log('You fought ' .. enemies .. ' enemies in ' .. duration .. ' seconds for ' .. totalExp .. ' experience.')
-    Pyre.Log(
-        'DPS - You: ' ..
-            tostring(Pyre.Round(dpsOut / duration), 1) .. ' Enemy: ' .. tostring(Pyre.Round(dpsIn / duration), 1)
-    )
-end
-
 function OnStateChange(stateObject)
     if (stateObject.New == Pyre.States.IDLE) then
         -- remove all except for pending potions
@@ -2081,7 +2217,7 @@ function OnZoneChanged(changeInfo)
     -- check to store area data
     if (AreaTracker ~= nil and ((#AreaTracker.XP > 0) or #AreaTracker.Damage > 0)) then
         -- story area history
-        table.insert(AreaHistory, AreaTracker)
+        table.insert(AreaHistory, 1, AreaTracker)
 
         -- dont keep more than 10 at a time
         if (#AreaHistory > 10) then

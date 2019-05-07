@@ -2184,6 +2184,12 @@ function OnStateChange(stateObject)
                 )
             end
 
+            if (showAreaIndex > 0) then
+                local i = showAreaIndex + 1
+                if (i > #AreaHistory) then
+                    i = #AreaHistory
+                end
+            end
             -- report last fight
             -- Pyre.Log(Pyre.ToString(FightTracker.LastFight))
             -- ReportLastFight()
@@ -2223,12 +2229,12 @@ function OnZoneChanged(changeInfo)
         if (#AreaHistory > 10) then
             local howManyToRemove = (#AreaHistory - 10)
             AreaHistory =
-                Pyre.Except(
+                Pyre.Filter(
                 AreaHistory,
                 function()
                     return true
                 end,
-                howManyToRemove
+                10
             )
         end
     end

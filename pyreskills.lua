@@ -471,7 +471,6 @@ function SkillFeature.FeatureSettingHandle(settingName, p1, p2, p3, p4)
         ['skill'] = function()
             for _, skill in ipairs(ClanSkills) do
                 if (string.lower(skill.Name) == string.lower(p1)) then
-                    print('found skill')
                     skill.Setting = skill.ParseSetting(p2)
                     Pyre.Log(skill.Name .. ' : ' .. skill.DisplayValue(skill.Setting))
                 end
@@ -1174,6 +1173,7 @@ function ShowFightTrackerWindow()
     if (windowTab == 1) then
         local areaSelection = showAreaIndex
         local area = AreaTracker
+
         if (areaSelection > 0) then
             area = AreaHistory[areaSelection]
         end
@@ -1213,14 +1213,15 @@ function ShowFightTrackerWindow()
             areaDuration = (area.EndTime - area.StartTime)
         end
 
-        if (lastAreaDelayed < (socket.gettime() - 3)) then
-            areaLastDuration = areaDuration
-            lastAreaDelayed = socket.gettime()
+        if (showAreaIndex > 0) then
+            if (lastAreaDelayed < (socket.gettime() - 3)) then
+                areaLastDuration = areaDuration
+                lastAreaDelayed = socket.gettime()
+            end
+            areaDuration = areaLastDuration
         end
 
-        local areaDurationSlowChange = areaLastDuration
-
-        local fpm = ((fightCount / areaDurationSlowChange) * 60) or 0
+        local fpm = ((fightCount / areaDuration) * 60) or 0
         local fpcm = ((fightCount / fightDuration) * 60) or 0
 
         WindowDrawTextLine_Line(xpMonWindow, 3, 'In Area : ' .. Pyre.SecondsToClock(areaDuration), 's')
@@ -1271,13 +1272,13 @@ function ShowFightTrackerWindow()
             end
         )
 
-        local epm = (((exp or 0) / areaDurationSlowChange) * 60) or 0
+        local epm = (((exp or 0) / areaDuration) * 60) or 0
         local epcm = (((exp or 0) / fightDuration) * 60) or 0
 
-        local npm = (((normalexp or 0) / areaDurationSlowChange) * 60) or 0
+        local npm = (((normalexp or 0) / areaDuration) * 60) or 0
         local npcm = (((normalexp or 0) / fightDuration) * 60) or 0
 
-        local rpm = (((rareexp or 0) / areaDurationSlowChange) * 60) or 0
+        local rpm = (((rareexp or 0) / areaDuration) * 60) or 0
         local rpcm = (((rareexp or 0) / fightDuration) * 60) or 0
 
         WindowDrawTextLine_Line(xpMonWindow, 5, 'EXP      : ' .. exp, 's')
@@ -2226,15 +2227,14 @@ function OnZoneChanged(changeInfo)
         table.insert(AreaHistory, 1, AreaTracker)
 
         -- dont keep more than 10 at a time
-        if (#AreaHistory > 10) then
-            local howManyToRemove = (#AreaHistory - 10)
+        if (#AreaHistory > 2) then
             AreaHistory =
                 Pyre.Filter(
                 AreaHistory,
-                function()
+                function(v)
                     return true
                 end,
-                10
+                2
             )
         end
     end

@@ -403,7 +403,6 @@ local tableizeRow = function(perRow, columns, data, width, buffer)
 
                 local remainingSpace = propertyWidth - #h
                 if (remainingSpace < 0) then
-                    print(remainingSpace)
                     h = string.sub(h, 1, 0 - remainingSpace)
                 else
                     h = h .. string.rep(' ', remainingSpace)
@@ -479,7 +478,6 @@ local tableizeColumns = function(perRow, columns, width, buffer)
 
                 local remainingSpace = propertyWidth - #h
                 if (remainingSpace < 0) then
-                    print(remainingSpace)
                     h = string.sub(h, 1, 0 - remainingSpace)
                 else
                     h = h .. string.rep(' ', remainingSpace)
@@ -575,10 +573,10 @@ end
 -------------------------------------
 -- TABLE QUERY FUNCTIONS
 -------------------------------------
-function core_module.First(table, checkFn, default)
+function core_module.First(tbl, checkFn, default)
     local match = default
 
-    for _, v in pairs(table) do
+    for _, v in pairs(tbl) do
         if (checkFn(v)) then
             return v
         end
@@ -586,15 +584,14 @@ function core_module.First(table, checkFn, default)
     return match
 end
 
-function core_module.Filter(table, checkFn, limit)
+function core_module.Filter(tbl, checkFn, limit)
     local match = {}
     if (limit == nil) then
         limit = 100000
     end
-
     local matches = 0
 
-    for _, v in pairs(table) do
+    for _, v in pairs(tbl) do
         if (checkFn(v)) then
             matches = matches + 1
             table.insert(match, v)

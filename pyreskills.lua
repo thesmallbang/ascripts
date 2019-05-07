@@ -1213,7 +1213,7 @@ function ShowFightTrackerWindow()
             areaDuration = (area.EndTime - area.StartTime)
         end
 
-        if (showAreaIndex > 0) then
+        if (showAreaIndex == 0) then
             if (lastAreaDelayed < (socket.gettime() - 3)) then
                 areaLastDuration = areaDuration
                 lastAreaDelayed = socket.gettime()

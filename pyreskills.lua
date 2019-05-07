@@ -2227,14 +2227,14 @@ function OnZoneChanged(changeInfo)
         table.insert(AreaHistory, 1, AreaTracker)
 
         -- dont keep more than 10 at a time
-        if (#AreaHistory > 2) then
+        if (#AreaHistory > 10) then
             AreaHistory =
                 Pyre.Filter(
                 AreaHistory,
                 function(v)
                     return true
                 end,
-                2
+                10
             )
         end
     end

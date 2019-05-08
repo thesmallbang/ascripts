@@ -2073,14 +2073,10 @@ function ResetAttackQueue()
     Pyre.Log('Resetting attack queue', Pyre.LogLevel.VERBOSE)
     SkillFeature.SkillFail = nil
     SkillFeature.LastSkill = nil
-    SkillFeature.AttackQueue =
-        Pyre.Except(
-        SkillFeature.AttackQueue,
-        function(v)
+    SkillFeature.AttackQueue = Pyre.Filter(SkillFeature.AttackQueue, function(v)
             return ((v.Skill.SkillType == Pyre.SkillType.QuaffHeal) or (v.Skill.SkillType == Pyre.SkillType.QuaffMana) or
                 (v.Skill.SkillType == Pyre.SkillType.QuaffMove))
-        end
-    )
+        end,)
 end
 
 function OnStateChange(stateObject)

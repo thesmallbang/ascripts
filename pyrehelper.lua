@@ -6,7 +6,7 @@ Pyre.Log('helper.lua loaded', Pyre.LogLevel.DEBUG)
 
 local Helper = {}
 
-local Version = '1.2.18'
+Version = '1.2.19'
 local Features = {
     {Name = 'skills', Feature = {}, Encapsulated = true},
     {Name = 'scanner', Feature = {}, Encapsulated = true}
@@ -186,18 +186,27 @@ function Helper.OnGMCP(text)
 end
 
 function OnHelp()
-    Pyre.CleanLog('Pyre Helper by Tamon')
+    local logTable = {
+        {
+            {
+                Value = 'update',
+                Color = 'orange',
+                Tooltip = 'Update features to latest versions',
+                Action = 'pyre update'
+            },
+            {Value = 'Update features to latest versions'}
+        },
+        {
+            {
+                Value = 'reload',
+                Color = 'orange',
+                Action = 'pyre reload'
+            },
+            {Value = 'Reload the plugin'}
+        }
+    }
 
-    Pyre.ColorLog('Reloader', 'orange')
-    Pyre.Log('pyre update|reload')
-    Pyre.ColorLog('update - download the latest versions of all components and reload the plugin', '')
-    Pyre.ColorLog('reload - reload the plugin and all related component code', '')
-    Pyre.Log('')
-    Pyre.Log('')
-    Pyre.ColorLog('pyre setting settingname 0|1|2|3|4|on|off|good|evil|neutral', 'orange')
-
-    Pyre.Log('')
-    Pyre.ColorLog('Core', 'orange')
+    Pyre.LogTable('Plugin: Reloader ', 'teal', {'Command', 'Description'}, logTable, 1, true, 'usage: pyre <command>')
 
     Pyre.ShowSettings()
 

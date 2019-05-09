@@ -187,18 +187,67 @@ function core_module.ChangeSetting(setting, settingValue)
 end
 
 function core_module.ShowSettings()
-    core_module.Log('Channel : ' .. core_module.Settings.Channel)
+    local logTable = {
+        {
+            {
+                Value = 'Channel',
+                Tooltip = 'What channel to use for reporting. Use echo for local only'
+            },
+            {Value = core_module.Settings.Channel}
+        },
+        {
+            {
+                Value = 'AlignmentBuffer',
+                Tooltip = 'After you slip an alignment how far into the correct alignment to get before auto locking again.'
+            },
+            {Value = core_module.Settings.AlignmentBuffer}
+        },
+        {
+            {
+                Value = 'LogLevel',
+                Tooltip = '0 = OFF, 1 = VERBOSE, 2 = DEBUG, 3 = INFO (default), 4 = ERRORONLY'
+            },
+            {Value = core_module.Settings.LogLevel}
+        },
+        {
+            {
+                Value = 'SkillExpirationWarn',
+                Tooltip = 'The skills feature uses this duration to notify when a clan skill will expire. 0 = OFF'
+            },
+            {Value = core_module.Settings.SkillExpirationWarn}
+        },
+        {
+            {
+                Value = 'OnlyLeaderInitiate',
+                Tooltip = 'pyre attack will not use hammerswing if the player is not the group leader.'
+            },
+            {Value = core_module.Settings.OnlyLeaderInitiate}
+        },
+        {
+            {
+                Value = 'AttackDelay',
+                Tooltip = 'At this point it is really a Queue delay.How long between adding to the queue.'
+            },
+            {Value = core_module.Settings.AttackDelay}
+        },
+        {
+            {
+                Value = 'AttackMaxQueue',
+                Tooltip = 'How big is the "Attack Queue" allowed to get (potions can still get added when full)'
+            },
+            {Value = core_module.Settings.AttackMaxQueue}
+        }
+    }
 
-    core_module.Log('AlignmentBuffer : ' .. core_module.Settings.AlignmentBuffer)
-
-    core_module.Log('LogLevel : ' .. core_module.Settings.LogLevel)
-
-    core_module.Log('SkillExpirationWarn : ' .. core_module.Settings.SkillExpirationWarn)
-
-    -- probably need to move these to skills settings
-    core_module.Log('OnlyLeaderInitiate : ' .. core_module.Settings.OnlyLeaderInitiate)
-    core_module.Log('AttackDelay : ' .. core_module.Settings.AttackDelay)
-    core_module.Log('AttackMaxQueue : ' .. core_module.Settings.AttackMaxQueue)
+    core_module.LogTable(
+        'Feature: Core',
+        'teal',
+        {'Setting', 'Value'},
+        logTable,
+        1,
+        true,
+        'usage: pyre setting <setting> <value>'
+    )
 end
 
 function core_module.GetClassSkillByName(skillName)
@@ -236,6 +285,7 @@ function core_module.SetState(state)
         core_module.LogLevel.VERBOSE
     )
 end
+
 function core_module.SetMap(id, name, zone)
     if ((core_module.Status.RoomId == id) and (core_module.Status.Room == name)) then
         return
@@ -371,7 +421,6 @@ local tableizeRow = function(perRow, columns, data, width, buffer)
     local rowOutput = ''
     local specials = 0
     local originalData = #data
-
     while (#data < perRow) do
         table.insert(data, {})
     end
@@ -395,21 +444,30 @@ local tableizeRow = function(perRow, columns, data, width, buffer)
         core_module.Each(
             record,
             function(col, index)
-                local h = tostring(col)
+                local data = tostring(col.Value)
 
-                if (#h > propertyWidth) then
-                    h = string.sub(h, 1, propertyWidth - 1) .. '^'
+                if (#data > propertyWidth) then
+                    data = string.sub(data, 1, propertyWidth - 1) .. '^'
                 end
 
-                local remainingSpace = propertyWidth - #h
+                local remainingSpace = propertyWidth - #data
                 if (remainingSpace < 0) then
-                    h = string.sub(h, 1, 0 - remainingSpace)
-                else
-                    h = h .. string.rep(' ', remainingSpace)
+                    data = string.sub(data, 1, 0 - remainingSpace)
                 end
 
-                rowOutput = rowOutput .. h
-                ColourTell('', '', h)
+                if (col.Action ~= nil or col.Tooltip ~= nil) then
+                    Hyperlink(col.Action or ' ', data, col.Tooltip or '', col.Color or 'white', '', false, true)
+                else
+                    ColourTell(col.Color or 'white', '', data)
+                end
+
+                if (remainingSpace >= 0) then
+                    data = data .. string.rep(' ', remainingSpace)
+                    ColourTell('', '', string.rep(' ', remainingSpace))
+                end
+
+                rowOutput = rowOutput .. data
+                --ColourTell('', '', data)
 
                 if (index < #columns) then
                     specials = specials + 2
@@ -512,7 +570,7 @@ local tableizeColumns = function(perRow, columns, width, buffer)
     ColourNote('white', '', '|')
 end
 
-function core_module.LogTable(header, headercolor, columns, values, perRow, showColumnHeaders)
+function core_module.LogTable(header, headercolor, columns, values, perRow, showColumnHeaders, footer, footercolor)
     buffer = 8 --  "PYRE    "  prefix for lines
     if (showColumnHeaders == nil) then
         showColumnHeaders = false
@@ -553,6 +611,11 @@ function core_module.LogTable(header, headercolor, columns, values, perRow, show
             tableDescription.width,
             tableDescription.buffer
         )
+    end
+
+    if (footer ~= nil) then
+        core_module.Log('+-----------------------------------------------------------------+')
+        tableizeHeader(footer, footer, tableDescription.width, buffer)
     end
 
     core_module.Log('+-----------------------------------------------------------------+')
@@ -639,11 +702,14 @@ function core_module.Each(table, executeFn, limit)
     if (limit == nil) then
         limit = 50000000
     end
+    local counter = 0
+
     for _, v in pairs(table) do
-        if (_ > limit) then
+        counter = counter + 1
+        if (counter > limit) then
             return
         end
-        executeFn(v, _)
+        executeFn(v, counter)
     end
 end
 

@@ -12,10 +12,37 @@ end
 function Feature.FeatureTick()
 end
 function Feature.FeatureHelp()
-    Pyre.ColorLog('Scanner', 'orange')
-    Pyre.ColorLog('pyre scan start optionalinterval')
-    Pyre.ColorLog('pyre scan stop')
-    Pyre.ColorLog('pyre scan report optionaltext')
+    local logTable = {
+        {
+            {
+                Value = 'pyre scan start <optionalseconds>',
+                Color = 'orange',
+                Tooltip = 'Store scan results to be used for reporting',
+                Action = 'pyre scan start'
+            },
+            {Value = 'Store scan results to be used for reporting'}
+        },
+        {
+            {
+                Value = 'pyre scan stop',
+                Color = 'orange',
+                Tooltip = 'Stop the scanner',
+                Action = 'pyre scan stop'
+            },
+            {Value = 'Stop scanner'}
+        },
+        {
+            {
+                Value = 'pyre scan report <optionalfilters>',
+                Color = 'orange',
+                Tooltip = 'The filter can be like OPK or RAIDER etc',
+                Action = 'pyre scan report'
+            },
+            {Value = 'Report. Use | between filters'}
+        }
+    }
+
+    Pyre.LogTable('Plugin: Scanner ', 'teal', {'Command', 'Description'}, logTable, 1, true, 'usage: pyre <command>')
 end
 function Feature.FeatureSave()
 end

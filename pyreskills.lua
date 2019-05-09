@@ -14,6 +14,11 @@ local windowTab = tonumber(GetVariable('xp_mon_tab')) or 1
 local lastAreaDelayed = 0
 local areaLastDuration = 0
 local showAreaIndex = 0
+-- draw tabs
+local tabs = {
+    [0] = 'Fights',
+    [1] = 'Areas'
+}
 
 SkillFeature = {
     SkillFail = nil,
@@ -501,13 +506,155 @@ function SkillFeature.FeatureTick()
     ProcessAttackQueue()
 end
 
+function PreSetting(cmd)
+    SetCommand(cmd)
+end
+
 function SkillFeature.FeatureHelp()
-    Pyre.ColorLog('Skills', 'orange')
-    Pyre.ColorLog('pyre attack - hammerswing or level appropriate bash skill', '')
+    local logTable = {
+        {
+            {
+                Value = 'pyre attack',
+                Tooltip = 'Execute a hammerswing or best bash skill for combat.',
+                Color = 'orange',
+                Action = 'pyre attack'
+            },
+            {Value = 'Execute a hammerswing or best bash skill for combat.'}
+        },
+        {
+            {
+                Value = 'pyre report area pm',
+                Tooltip = 'Report stats for the selected area per minute',
+                Color = 'orange',
+                Action = 'pyre report area pm'
+            },
+            {Value = 'Report stats for the selected area per minute'}
+        },
+        {
+            {
+                Value = 'pyre report area pcm',
+                Tooltip = 'Report stats for the selected area per minute in combat',
+                Color = 'orange',
+                Action = 'pyre report area pm'
+            },
+            {Value = 'Report stats for the selected area per minute in combat'}
+        },
+        {
+            {
+                Value = 'pyre report fight',
+                Tooltip = 'Report stats for the selected fight',
+                Color = 'orange',
+                Action = 'pyre report fight'
+            },
+            {Value = 'Report stats for selected fight'}
+        },
+        {
+            -- blank row for spacing after commands
+            {Value = ''},
+            {Value = ''}
+        }
+    }
 
     for _, skill in ipairs(ClanSkills) do
-        Pyre.Log(skill.Name .. ': ' .. skill.DisplayValue(skill.Setting))
+        table.insert(
+            logTable,
+            {
+                {Value = skill.Name},
+                {Value = skill.DisplayValue(skill.Setting)}
+            }
+        )
     end
+
+    Pyre.LogTable(
+        'Feature: Skills',
+        'teal',
+        {'Setting', 'Value'},
+        logTable,
+        1,
+        true,
+        'usage: pyre setting skill <setting> <value>'
+    )
+
+    logTable = {
+        {
+            {
+                Value = 'enabled',
+                Tooltip = 'Enable automatically quaffing potions'
+            },
+            {Value = Quaff.Enabled}
+        },
+        {
+            {
+                Value = 'container',
+                Tooltip = 'Which container has the potions? Use . to clear'
+            },
+            {Value = Quaff.Container}
+        },
+        {
+            {
+                Value = 'hp item'
+            },
+            {Value = Quaff.Hp.Item}
+        },
+        {
+            {
+                Value = 'hp percent'
+            },
+            {Value = Quaff.Hp.Percent}
+        },
+        {
+            {
+                Value = 'hp topoffpercent'
+            },
+            {Value = Quaff.Hp.TopOffPercent}
+        },
+        {
+            {
+                Value = 'mp item'
+            },
+            {Value = Quaff.Mp.Item}
+        },
+        {
+            {
+                Value = 'mp percent'
+            },
+            {Value = Quaff.Mp.Percent}
+        },
+        {
+            {
+                Value = 'mp topoffpercent'
+            },
+            {Value = Quaff.Mp.TopOffPercent}
+        },
+        {
+            {
+                Value = 'mv item'
+            },
+            {Value = Quaff.Mv.Item}
+        },
+        {
+            {
+                Value = 'mv percent'
+            },
+            {Value = Quaff.Mv.Percent}
+        },
+        {
+            {
+                Value = 'mv topoffpercent'
+            },
+            {Value = Quaff.Mv.TopOffPercent}
+        }
+    }
+
+    Pyre.LogTable(
+        'Feature: Quaff ',
+        'teal',
+        {'Setting', 'Value'},
+        logTable,
+        1,
+        true,
+        'usage: pyre setting quaff <setting> <value>'
+    )
 end
 
 function SkillFeature.FeatureSave()
@@ -1022,14 +1169,14 @@ function ShowFightTrackerWindow()
     WindowFont(xpMonWindow, 'sb', 'Trebuchet MS', 8, true, false, false, false)
     WindowFont(xpMonWindow, 'su', 'Trebuchet MS', 8, false, false, true, false)
 
-    WindowDrawTextLine_Line(xpMonWindow, 1, 'Pyre Helper', 'm')
+    WindowDrawTextLine_Line(xpMonWindow, 1, 'Pyre Helper ' .. Version .. ' - ' .. tabs[windowTab], 'm')
     WindowDrawTextLine_Line(
         xpMonWindow,
         2,
-        'Attack Queue: ' .. #SkillFeature.AttackQueue,
+        'Queue : ' .. #SkillFeature.AttackQueue,
         's',
         nil,
-        WindowInfo(xpMonWindow, 3) - 120
+        WindowInfo(xpMonWindow, 3) - 80
     )
     WindowDrawTextLine_Line(xpMonWindow, 3, 'Clear Queue', 'su', nil, WindowInfo(xpMonWindow, 3) - 80)
     -- Clear Queue Button
@@ -1090,17 +1237,9 @@ function ShowFightTrackerWindow()
         WindowDrawTextLine_Line(xpMonWindow, 4, 'Clear Pots', 'su', nil, WindowInfo(xpMonWindow, 3) - 80)
     end
 
-    -- draw tabs
-    local tabs = {
-        [0] = 'Fights',
-        [1] = 'Areas'
-    }
-
     local tabForeColor = 'red'
     local tabBackColor = 'white'
     local tabSelectedBackColor = 'teal'
-
-    WindowDrawTextLine_Line(xpMonWindow, 1, '(Viewing ' .. tabs[windowTab] .. ')', 'm', nil, 100)
 
     if (windowTab == 0) then
         local duration = 1
@@ -1474,6 +1613,9 @@ function ShowContextMenu(flags, hotspot_id)
         if (name == 'Areas' and windowTab == 1) then
             checked = '+'
         end
+        if (name == 'Session' and windowTab == 2) then
+            checked = '+'
+        end
         return checked .. name
     end
 
@@ -1497,10 +1639,15 @@ function ShowContextMenu(flags, hotspot_id)
             nameAndCheckedTab('Fights') ..
                 '|' ..
                     nameAndCheckedTab('Areas') ..
-                        '|<|>Change Layer (' ..
-                            windowLayer .. ') |Top (1000)|Layer Up (+10)|Layer Down (-10)|Bottom (0)|<'
+                        '|' ..
+                            nameAndCheckedTab('^Session') ..
+                                '|<|>Change Layer (' ..
+                                    windowLayer .. ') |Top (1000)|Layer Up (+10)|Layer Down (-10)|Bottom (0)|<|Help'
     )
 
+    if (result == 'Help') then
+        Execute('pyre help')
+    end
     if (result == 'Set Channel') then
         local result =
             utils.inputbox(

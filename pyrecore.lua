@@ -795,7 +795,8 @@ core_module.Classes = {
                 Attempts = {
                     'You swing your hammer wildly but find nobody to hit',
                     'You are not using a hammer.',
-                    'You start to build momentum with your hammer.'
+                    'You start to build momentum with your hammer.',
+                    'You are stunned.'
                 }
             },
             {
@@ -804,7 +805,7 @@ core_module.Classes = {
                 Level = 11,
                 AutoSend = true,
                 Alias = 'bash',
-                Attempts = {'Bash whom?', "You don't know how to bash someone."}
+                Attempts = {'Bash whom?', "You don't know how to bash someone.", 'You are stunned.'}
             },
             {
                 SkillType = core_module.SkillType.CombatMove,
@@ -812,7 +813,7 @@ core_module.Classes = {
                 Level = 50,
                 AutoSend = true,
                 Alias = 'sap',
-                Attempts = {'Sap whom?', "You don't know how to sap someone."}
+                Attempts = {'Sap whom?', "You don't know how to sap someone.", 'You are stunned.'}
             },
             {
                 SkillType = core_module.SkillType.CombatMove,
@@ -820,7 +821,7 @@ core_module.Classes = {
                 Level = 60,
                 AutoSend = true,
                 Alias = 'scalp',
-                Attempts = {'Scalp whom?', "You don't know how to scalp someone."}
+                Attempts = {'Scalp whom?', "You don't know how to scalp someone.", 'You are stunned.'}
             },
             {
                 SkillType = core_module.SkillType.CombatMove,
@@ -828,7 +829,7 @@ core_module.Classes = {
                 Level = 88,
                 AutoSend = true,
                 Alias = 'mighty assault',
-                Attempts = {'Assault whom?', "You don't know how to assault someone."}
+                Attempts = {'Assault whom?', "You don't know how to assault someone.", 'You are stunned.'}
             },
             {
                 SkillType = core_module.SkillType.CombatMove,
@@ -836,7 +837,7 @@ core_module.Classes = {
                 Level = 101,
                 AutoSend = true,
                 Alias = 'uppercut',
-                Attempts = {'Uppercut whom?', "You don't know how to uppercut someone."}
+                Attempts = {'Uppercut whom?', "You don't know how to uppercut someone.", 'You are stunned.'}
             },
             {
                 SkillType = core_module.SkillType.CombatMove,
@@ -844,7 +845,7 @@ core_module.Classes = {
                 Level = 137,
                 AutoSend = true,
                 Alias = 'stomp',
-                Attempts = {'Stomp whom?', "You don't know how to stomp someone."}
+                Attempts = {'Stomp whom?', "You don't know how to stomp someone.", 'You are stunned.'}
             },
             {
                 SkillType = core_module.SkillType.CombatMove,
@@ -852,7 +853,7 @@ core_module.Classes = {
                 Level = 151,
                 AutoSend = true,
                 Alias = 'bodycheck',
-                Attempts = {'Bodycheck whom?', "You don't know how to bodycheck someone."}
+                Attempts = {'Bodycheck whom?', "You don't know how to bodycheck someone.", 'You are stunned.'}
             },
             {
                 SkillType = core_module.SkillType.CombatMove,
@@ -860,7 +861,7 @@ core_module.Classes = {
                 Level = 165,
                 AutoSend = true,
                 Alias = 'cleave',
-                Attempts = {'Cleave whom?', "You don't know how to cleave."}
+                Attempts = {'Cleave whom?', "You don't know how to cleave.", 'You are stunned.'}
             },
             {
                 SkillType = core_module.SkillType.CombatMove,
@@ -868,7 +869,7 @@ core_module.Classes = {
                 Level = 178,
                 AutoSend = true,
                 Alias = 'hammering blow',
-                Attempts = {'Hammering Blow whom?', "You sit down and sing 'If I had a hammer!'."}
+                Attempts = {'Hammering Blow whom?', "You sit down and sing 'If I had a hammer!'.", 'You are stunned.'}
             }
         }
     }

@@ -17,7 +17,8 @@ local showAreaIndex = 0
 -- draw tabs
 local tabs = {
     [0] = 'Fights',
-    [1] = 'Areas'
+    [1] = 'Areas',
+    [2] = 'Session'
 }
 
 SkillFeature = {
@@ -1793,6 +1794,10 @@ function ShowContextMenu(flags, hotspot_id)
     end
     if (result == 'Fights') then
         windowTab = 0
+        SetVariable('xp_mon_tab', windowTab)
+    end
+    if (result == 'Session') then
+        windowTab = 2
         SetVariable('xp_mon_tab', windowTab)
     end
 

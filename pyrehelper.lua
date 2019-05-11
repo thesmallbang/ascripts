@@ -10,6 +10,11 @@ Version = '1.2.21'
 local Features = {}
 local VersionData = {}
 function Helper.LoadFeatures()
+    if (#Features == 0) then
+        Pyre.Log("No features are installed. Type 'pyre features ' for a list")
+        return
+    end
+
     for _, feature in ipairs(Features) do
         Helper.LoadFeature(feature)
     end
@@ -56,7 +61,7 @@ function OnFeatureDownloaded(retval, page, status, headers, full_status, request
     if status == 200 then
         local fileName = getFileName(request_url)
         saveFile('lua/' .. fileName, page)
-        Helper.LoadFeature({name = getFeatureName(fileName)})
+        Helper.AddNewFeature({name = getFeatureName(fileName)})
     else
         Pyre.Log('Unable to download ' .. request_url, Pyre.LogLevel.ERROR)
     end
@@ -298,6 +303,52 @@ function OnSetting(name, line, wildcards)
     Pyre.ChangeSetting(setting, p1, p2, p3, p4)
 end
 
+function OnFeatures()
+    local logTable = {}
+
+    Pyre.Each(
+        VersionData.features,
+        function(f)
+            local installed =
+                Pyre.Any(
+                Features,
+                function(feat)
+                    return (feat.name == f.name)
+                end
+            )
+
+            local versionColumn = f.version
+            if not (installed) then
+                versionColumn = 'Not Installed'
+            end
+
+            table.insert(
+                logTable,
+                {
+                    {
+                        Value = f.name,
+                        Color = 'orange',
+                        Tooltip = f.description,
+                        Action = 'pyre install ' .. f.name
+                    },
+                    {Value = f.description},
+                    {Value = versionColumn}
+                }
+            )
+        end
+    )
+
+    Pyre.LogTable(
+        'Features: ',
+        'teal',
+        {'Name', 'Description', 'Status'},
+        logTable,
+        1,
+        true,
+        'usage: pyre install <name>'
+    )
+end
+
 function OnFeatureInstall(name, line, wildcards)
     Pyre.Log('OnFeatureInstall', Pyre.LogLevel.DEBUG)
 
@@ -352,6 +403,13 @@ function Helper.Setup()
         '',
         alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
         'OnFeatureInstall'
+    )
+    AddAlias(
+        'ph_featurelist',
+        '^pyre features$',
+        '',
+        alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
+        'OnFeatures'
     )
 
     -- enemy died trigger

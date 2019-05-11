@@ -42,7 +42,7 @@ function Feature.FeatureHelp()
         }
     }
 
-    Pyre.LogTable('Plugin: Scanner ', 'teal', {'Command', 'Description'}, logTable, 1, true, 'usage: pyre <command>')
+    Pyre.LogTable('Feature: Scanner ', 'teal', {'Command', 'Description'}, logTable, 1, true, 'usage: pyre <command>')
 end
 function Feature.FeatureSave()
 end

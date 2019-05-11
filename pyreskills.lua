@@ -2412,7 +2412,7 @@ function SkillsSetup()
 
     AddTriggerEx(
         'ph_qff',
-        "^You don't have that potion.$",
+        "^(You don't have that potion.|A powerful force quenches your magic.|The magic in .* is too strong for you.)$",
         '',
         trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
         -1,

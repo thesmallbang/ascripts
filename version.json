@@ -4,10 +4,12 @@
     "note": "Something about release"
   },
   "dependencies": [{
+      "name": "updaterplugin",
       "url": "https://raw.githubusercontent.com/thesmallbang/ascripts/master/Pyre_Updater.xml",
       "version": "1.0"
     },
     {
+      "name": "pyrecore",
       "url": "https://raw.githubusercontent.com/thesmallbang/ascripts/master/pyrecore.lua",
       "version": "1.0"
     }

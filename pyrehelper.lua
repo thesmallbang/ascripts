@@ -339,13 +339,13 @@ function OnFeatures()
     )
 
     Pyre.LogTable(
-        'Features: ',
+        'Features ',
         'teal',
         {'Name', 'Description', 'Status'},
         logTable,
         1,
         true,
-        'usage: pyre install <name>'
+        'usage: pyre install <name> '
     )
 end
 

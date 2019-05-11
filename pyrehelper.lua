@@ -52,20 +52,22 @@ function getFeatureName(path)
     local extParts = csplit(fileName, '.')
     return extParts[1]
 end
-function saveFeatureDownload(retval, page, status, headers, full_status, request_url)
+function OnFeatureDownloaded(retval, page, status, headers, full_status, request_url)
     if status == 200 then
         local fileName = getFileName(request_url)
+        Pyre.Log('Downloaded Feature ' .. fileName)
         saveFile('lua/' .. fileName, page)
         Helper.LoadFeature({name = getFeatureName(fileName)})
     else
-        print('error downloading feature')
+        Pyre.Log('Unable to download ' .. request_url, Pyre.LogLevel.ERROR)
     end
 end
 
 function Helper.DownloadFeature(feature)
+    Pyre.Log('Downloading feature' .. feature.name)
     async.doAsyncRemoteRequest(
         'https://raw.githubusercontent.com/thesmallbang/ascripts/v2/' .. feature.filename,
-        saveFeatureDownload,
+        OnFeatureDownloaded,
         'HTTPS',
         120
     )

@@ -55,7 +55,6 @@ end
 function OnFeatureDownloaded(retval, page, status, headers, full_status, request_url)
     if status == 200 then
         local fileName = getFileName(request_url)
-        Pyre.Log('Downloaded Feature ' .. fileName)
         saveFile('lua/' .. fileName, page)
         Helper.LoadFeature({name = getFeatureName(fileName)})
     else

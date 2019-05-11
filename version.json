@@ -38,6 +38,18 @@
       "filename": "pyrequaff.lua",
       "description": "Potion quaffing functionality",
       "version": "1.1"
+    },
+    {
+      "name": "pyretracker",
+      "filename": "pyretracker.lua",
+      "description": "Keep track of fights, dps, and exp",
+      "version": "1.0"
+    },
+    {
+      "name": "pyretrackerwindow",
+      "filename": "pyretrackerwindow.lua",
+      "description": "Window to show pyretracker data",
+      "version": "1.0"
     }
   ]
 }

@@ -7,18 +7,18 @@
   "dependencies": [{
       "name": "updaterplugin",
       "url": "https://raw.githubusercontent.com/thesmallbang/ascripts/v2/Pyre_Updater.xml",
-      "version": "1.0"
+      "version": "1.1"
     },
     {
       "name": "pyrehelper",
       "url": "https://raw.githubusercontent.com/thesmallbang/ascripts/v2/pyrehelper.lua",
-      "version": "1.0",
+      "version": "1.1",
       "relay": "true"
     },
     {
       "name": "pyrecore",
       "url": "https://raw.githubusercontent.com/thesmallbang/ascripts/v2/pyrecore.lua",
-      "version": "1.0"
+      "version": "1.1"
     }
   ],
   "features": [{
@@ -37,7 +37,7 @@
       "name": "pyrequaff",
       "filename": "pyrequaff.lua",
       "description": "Potion quaffing functionality",
-      "version": "1.0"
+      "version": "1.1"
     }
   ]
 }

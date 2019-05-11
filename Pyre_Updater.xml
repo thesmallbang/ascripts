@@ -28,8 +28,9 @@
 <![CDATA[
 
 function OnUpdate()
-         os.execute('del /S pyre*.lua')
-   os.remove('worlds/plugins/pyre_updater.xml')
+   os.execute('del /S pyre*.lua')
+   os.remove('worlds/plugins/pyreversion.json')
+
    OnReload()
 end
 

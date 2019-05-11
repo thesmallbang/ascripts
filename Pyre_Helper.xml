@@ -52,7 +52,32 @@ function csplit(inputstr, sep)
     return t
 end
 
-function readAll(file)
+function getFileName(path)
+        local fileParts = csplit(path, "/")
+        local fileName = fileParts[table.getn(fileParts)]
+        return fileName
+end
+
+function getFileExtension(path)
+    local fileName = getFileName(path)
+     local extParts = csplit(fileName,'.')
+     return extParts[#extParts]
+end
+
+function getPluginName(path)
+     local fileName = getFileName(path)
+     local extParts = csplit(fileName,'.')
+     return extParts[1]
+end
+
+function saveFile(path, data)
+       local file = io.open(path, "w")
+       file:write(data)
+       file:flush()
+       file:close()
+end
+
+function readFile(file)
     local f = assert(io.open(file, "rb"))
     local content = f:read("*all")
     f:close()
@@ -67,26 +92,20 @@ end
 function async_version_download_complete(retval, page, status, headers, full_status, request_url)
     if status == 200 then
         remoteData = json.decode(page)
-        checkVersionFile()
     end
 end
 
 function async_xml_download_complete(retval, page, status, headers, full_status, request_url)
     if status == 200 then
         local fileParts = csplit(request_url, "/")
-        local fileName = fileParts[table.getn(fileParts)]
-        local extParts = csplit(fileName,'.')
-        local pluginName = extParts[1]
+        local fileName = getFileName(request_url)
+        local pluginName = getPluginName(fileName)
+
         local savePath = "worlds/plugins/" .. fileName
-        local file = io.open(savePath, "w")
-        file:write(page)
-        file:flush()
-        file:close()
+        saveFile(savePath, page)
 
         -- install or update the plugin
-
         local pluginFoundId = ''
-
         for _, pluginId in pairs (GetPluginList()) do 
             if (pluginName == GetPluginInfo(pluginId,1)) then
                 pluginFoundId = pluginId
@@ -108,23 +127,17 @@ end
 
 function async_lua_download_complete(retval, page, status, headers, full_status, request_url)
     if status == 200 then
-        command = "mkdir lua\\"
-        os.execute(command)
+        --command = "mkdir lua\\"
+        --os.execute(command)
         local fileParts = csplit(request_url, "/")
-        local fileName = fileParts[table.getn(fileParts)]
-        local file = io.open("lua/" .. fileName, "w")
-        file:write(page)
-        file:flush()
-        file:close()
-       -- loadRequiredComponents()
+        local fileName = getFileName(request_url)
+        saveFile("lua/" .. fileName, page)
     else
         print("error downloading")
     end
 end
 
 function saveDownload(retval, page, status, headers, full_status, request_url)
-
-   print('download completed ' .. request_url)
    downloadsCompleted = downloadsCompleted + 1
 
    local fileParts = csplit(request_url, ".")
@@ -138,7 +151,6 @@ function saveDownload(retval, page, status, headers, full_status, request_url)
             full_status,
             request_url
         )
-        return
     end
     if (extension == "lua") then
         async_lua_download_complete(
@@ -149,7 +161,6 @@ function saveDownload(retval, page, status, headers, full_status, request_url)
             full_status,
             request_url
         )
-        return
     end
     if (extension == "xml") then
         async_xml_download_complete(
@@ -160,13 +171,11 @@ function saveDownload(retval, page, status, headers, full_status, request_url)
             full_status,
             request_url
         )
-        return
     end
-   
+   checkVersionFile()
 end
 
 function download(url)
-    print('downloading ' ..url)
     downloadsRequested = downloadsRequested + 1
     async.doAsyncRemoteRequest(url, saveDownload, "HTTPS", 120)
 end
@@ -174,12 +183,12 @@ end
 function checkVersionFile()
 
     if  (remoteData == nil) then
-        download("https://raw.githubusercontent.com/thesmallbang/ascripts/master/version.json")
+        download("https://raw.githubusercontent.com/thesmallbang/ascripts/v2/version.json")
         return
     end
 
     if  file_exists("worlds/plugins/pyreversion.json") then
-         local filetext = readAll('worlds/plugins/pyreversion.json')
+         local filetext = readFile('worlds/plugins/pyreversion.json')
          localData = json.decode(filetext)
     end
     
@@ -187,11 +196,13 @@ function checkVersionFile()
         localData = { release = { version = 0 }, dependencies = {}, features = {}}
     end
 
-    local neededDependencies = {}
+     remoteData.downloaded = os.date()
+     saveFile("worlds/plugins/pyreversion.json",json.encode(remoteData))
+
     for _, remoteDep in pairs(remoteData.dependencies) do
         local found = false
         for _, localDep in pairs(localData.dependencies) do
-            if ((remoteDep.name == localDep.name) and ((tonumber(remoteDep.version) or 1) > (tonumber(localDep.version) or 0))) then
+            if ((remoteDep.name == localDep.name) and ((tonumber(remoteDep.version) or 1) == (tonumber(localDep.version) or 0))) then
                 found = true
             end
         end
@@ -202,12 +213,15 @@ function checkVersionFile()
     end
 
     if(downloadsRequested > downloadsCompleted) then
-        print('still waiting')
         return
     end
 
-
-    print('got it all')
+    for _, dep in pairs(localData.dependencies) do
+        if ((dep.relay or false) == true) then
+            print('loading relay')
+            Helper = require(dep.name)
+        end
+    end
 
 
 end

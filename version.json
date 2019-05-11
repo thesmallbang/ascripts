@@ -10,6 +10,12 @@
       "version": "1.0"
     },
     {
+      "name": "pyrehelper",
+      "url": "https://raw.githubusercontent.com/thesmallbang/ascripts/v2/pyrehelper.lua",
+      "version": "1.0",
+      "relay": "true"
+    },
+    {
       "name": "pyrecore",
       "url": "https://raw.githubusercontent.com/thesmallbang/ascripts/v2/pyrecore.lua",
       "version": "1.0"

@@ -16,7 +16,6 @@ function Helper.LoadFeatures()
 end
 
 function Helper.LoadFeature(feature)
-    print('loading feature: ' .. feature.name)
     feature.Feature = require(feature.name)
     feature.Feature.FeatureStart()
     Pyre.Log('Loaded Feature ' .. feature.name, Pyre.LogLevel.DEBUG)
@@ -261,10 +260,7 @@ function OnHelp()
     Pyre.ShowSettings()
 
     for _, feat in ipairs(Features) do
-        if (feat.Encapsulated == true) then
-            Pyre.Log('')
-            feat.Feature.FeatureHelp()
-        end
+        feat.Feature.FeatureHelp()
     end
 end
 
@@ -305,8 +301,6 @@ function OnFeatureInstall(name, line, wildcards)
     Pyre.Log('OnFeatureInstall', Pyre.LogLevel.DEBUG)
 
     local featureParam = wildcards[1]
-    print(featureParam)
-    print(Pyre.ToString(VersionData))
     local feature =
         Pyre.First(
         VersionData.features,

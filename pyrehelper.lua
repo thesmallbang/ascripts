@@ -64,7 +64,12 @@ function saveFeatureDownload(retval, page, status, headers, full_status, request
 end
 
 function Helper.DownloadFeature(feature)
-    async.doAsyncRemoteRequest(url, saveFeatureDownload, 'HTTPS', 120)
+    async.doAsyncRemoteRequest(
+        'https://raw.githubusercontent.com/thesmallbang/ascripts/v2/' .. feature.filename,
+        saveFeatureDownload,
+        'HTTPS',
+        120
+    )
 end
 
 --------------------------------------------------------------------------------------
@@ -89,9 +94,7 @@ function Helper.OnStop()
 
     for _, feat in ipairs(Features) do
         if (not (feat == nil) and not (feat.Feature == nil)) then
-            if (feat.Encapsulated == true) then
-                feat.Feature.FeatureStop()
-            end
+            feat.Feature.FeatureStop()
         end
     end
 end
@@ -302,7 +305,8 @@ function OnFeatureInstall(name, line, wildcards)
     Pyre.Log('OnFeatureInstall', Pyre.LogLevel.DEBUG)
 
     local featureParam = wildcards[1]
-
+    print(featureParam)
+    print(Pyre.ToString(VersionData))
     local feature =
         Pyre.First(
         VersionData.features,
@@ -313,6 +317,7 @@ function OnFeatureInstall(name, line, wildcards)
 
     if (feature == nil) then
         Pyre.Log('Feature not found')
+        return
     end
 
     Helper.DownloadFeature(feature)

@@ -39,6 +39,7 @@ function OnReload()
    UnloadPlugin("Pyre_Updater")
 end
 
+
      AddAlias(
         "ph_update",
         "^pyre update$",

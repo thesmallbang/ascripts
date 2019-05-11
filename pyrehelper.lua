@@ -29,6 +29,18 @@ function Helper.AddNewFeature(feature)
     Helper.LoadFeature(feature)
     table.insert(Features, feature)
 end
+function Helper.RemoveFeature(feature)
+    Features =
+        Pyre.Filter(
+        Features,
+        function(f)
+            return (f.name ~= feature.name)
+        end
+    )
+    os.remove('lua/' .. feature.name .. '.lua')
+
+    Pyre.Log('Uninstalled Feature ' .. feature.name)
+end
 
 function csplit(inputstr, sep)
     if sep == nil then
@@ -240,33 +252,87 @@ function Helper.OnGMCP(text)
     end
 end
 
-function OnHelp()
-    local logTable = {
-        {
+function OnHelp(name, line, wildcards)
+    local logTable = {}
+    local topic = wildcards[1] or ''
+
+    if (topic == '') then
+        logTable = {
             {
-                Value = 'update',
-                Color = 'orange',
-                Tooltip = 'Update features to latest versions',
-                Action = 'pyre update'
+                {
+                    Value = 'reloader',
+                    Color = 'orange',
+                    Tooltip = 'click for: Reloader Plugin Help',
+                    Action = 'pyre help reloader'
+                }
             },
-            {Value = 'Update features to latest versions'}
-        },
-        {
             {
-                Value = 'reload',
-                Color = 'orange',
-                Action = 'pyre reload'
-            },
-            {Value = 'Reload the plugin'}
+                {
+                    Value = 'core',
+                    Color = 'orange',
+                    Tooltip = 'click for: Core Help',
+                    Action = 'pyre help core'
+                }
+            }
         }
-    }
 
-    Pyre.LogTable('Plugin: Reloader ', 'teal', {'Command', 'Description'}, logTable, 1, true, 'usage: pyre <command>')
+        for _, feat in ipairs(Features) do
+            table.insert(
+                logTable,
+                {
+                    {
+                        Value = feat.name,
+                        Color = 'orange',
+                        Tooltip = 'click for feature help',
+                        Action = 'pyre help ' .. feat.name
+                    }
+                }
+            )
+        end
 
-    Pyre.ShowSettings()
+        Pyre.LogTable('Pyre Help', 'teal', {'Topic'}, logTable, 3, true, 'usage: pyre help <topic>')
+    end
+
+    if (topic == 'reloader') then
+        logTable = {
+            {
+                {
+                    Value = 'update',
+                    Color = 'orange',
+                    Tooltip = 'Update features to latest versions',
+                    Action = 'pyre update'
+                },
+                {Value = 'Update features to latest versions'}
+            },
+            {
+                {
+                    Value = 'reload',
+                    Color = 'orange',
+                    Action = 'pyre reload'
+                },
+                {Value = 'Reload the plugin'}
+            }
+        }
+
+        Pyre.LogTable(
+            'Plugin: Reloader ',
+            'teal',
+            {'Command', 'Description'},
+            logTable,
+            1,
+            true,
+            'usage: pyre <command>'
+        )
+    end
+
+    if (topic == 'core') then
+        Pyre.ShowSettings()
+    end
 
     for _, feat in ipairs(Features) do
-        feat.Feature.FeatureHelp()
+        if (topic == feat.name) then
+            feat.Feature.FeatureHelp()
+        end
     end
 end
 
@@ -345,7 +411,7 @@ function OnFeatures()
         logTable,
         1,
         true,
-        'usage: pyre install <name> '
+        'usage: pyre install/uninstall <name> '
     )
 end
 
@@ -369,6 +435,26 @@ function OnFeatureInstall(name, line, wildcards)
     Helper.DownloadFeature(feature)
 end
 
+function OnFeatureUninstall(name, line, wildcards)
+    Pyre.Log('OnFeatureUninstall', Pyre.LogLevel.DEBUG)
+
+    local featureParam = wildcards[1]
+    local feature =
+        Pyre.First(
+        Features,
+        function(f)
+            return (f.name == featureParam)
+        end
+    )
+
+    if (feature == nil) then
+        Pyre.Log('Feature not installed')
+        return
+    end
+
+    Helper.RemoveFeature(feature)
+end
+
 function OnEnemyDied()
     Pyre.Log('Event enemydied', Pyre.LogLevel.DEBUG)
     Pyre.ShareEvent(Pyre.Event.EnemyDied, {})
@@ -382,7 +468,7 @@ function Helper.Setup()
     -- add help alias
     AddAlias(
         'ph_help',
-        '^pyre help$',
+        '^pyre help\\s?(.*)?$',
         '',
         alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
         'OnHelp'
@@ -404,6 +490,15 @@ function Helper.Setup()
         alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
         'OnFeatureInstall'
     )
+
+    AddAlias(
+        'ph_featureuninstall',
+        '^pyre uninstall (.*)$',
+        '',
+        alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
+        'OnFeatureUninstall'
+    )
+
     AddAlias(
         'ph_featurelist',
         '^pyre features$',

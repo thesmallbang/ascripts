@@ -1,6 +1,6 @@
 {
   "release": {
-    "version": "1.0",
+    "version": "2.0",
     "url": "https://raw.githubusercontent.com/thesmallbang/ascripts/v2/Pyre_Helper.xml",
     "note": "Something about release"
   },
@@ -34,9 +34,9 @@
       "version": "1.0"
     },
     {
-      "name": "pyretracker",
-      "filename": "pyretracker.lua",
-      "description": "Track combat stats with reporting and a window",
+      "name": "pyrequaff",
+      "filename": "pyrequaff.lua",
+      "description": "Potion quaffing functionality",
       "version": "1.0"
     }
   ]

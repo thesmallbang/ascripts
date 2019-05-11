@@ -7,21 +7,64 @@ Pyre.Log('helper.lua loaded', Pyre.LogLevel.DEBUG)
 local Helper = {}
 
 Version = '1.2.21'
-local Features = {
-    {Name = 'skills', Feature = {}, Encapsulated = true},
-    {Name = 'scanner', Feature = {}, Encapsulated = true}
-}
-
+local Features = {}
+local VersionData = {}
 function Helper.LoadFeatures()
-    for _, feat in ipairs(Features) do
-        if (feat.Encapsulated == true) then
-            feat.Feature = require('pyre' .. feat.Name)
-            feat.Feature.FeatureStart()
-        else
-            require('pyre' .. feat.Name)
-        end
-        Pyre.Log('Loaded Feature ' .. feat.Name, Pyre.LogLevel.DEBUG)
+    for _, feature in ipairs(Features) do
+        Helper.LoadFeature(feature)
     end
+end
+
+function Helper.LoadFeature(feature)
+    print('loading feature: ' .. feature.name)
+    feature.Feature = require(feature.name)
+    feature.Feature.FeatureStart()
+    Pyre.Log('Loaded Feature ' .. feature.name, Pyre.LogLevel.DEBUG)
+end
+function Helper.AddNewFeature(feature)
+    Helper.LoadFeature(feature)
+    table.insert(Features, feature)
+end
+
+function csplit(inputstr, sep)
+    if sep == nil then
+        sep = '%s'
+    end
+    local t = {}
+    for str in string.gmatch(inputstr, '([^' .. sep .. ']+)') do
+        table.insert(t, str)
+    end
+    return t
+end
+
+function getFileName(path)
+    local fileParts = csplit(path, '/')
+    local fileName = fileParts[table.getn(fileParts)]
+    return fileName
+end
+function saveFile(path, data)
+    local file = io.open(path, 'w')
+    file:write(data)
+    file:flush()
+    file:close()
+end
+function getFeatureName(path)
+    local fileName = getFileName(path)
+    local extParts = csplit(fileName, '.')
+    return extParts[1]
+end
+function saveFeatureDownload(retval, page, status, headers, full_status, request_url)
+    if status == 200 then
+        local fileName = getFileName(request_url)
+        saveFile('lua/' .. fileName, page)
+        Helper.LoadFeature({name = getFeatureName(fileName)})
+    else
+        print('error downloading feature')
+    end
+end
+
+function Helper.DownloadFeature(feature)
+    async.doAsyncRemoteRequest(url, saveFeatureDownload, 'HTTPS', 120)
 end
 
 --------------------------------------------------------------------------------------
@@ -30,8 +73,12 @@ end
 
 --------------------------------------------------------------------------------------
 
-function Helper.OnStart()
+function Helper.OnStart(data, features)
+    Version = data.release.version
+    VersionData = data
+    Features = features
     Pyre.CleanLog('[' .. Version .. '] Loaded. (pyre help)', nil, nil, Pyre.LogLevel.INFO)
+
     Helper.Setup()
     Pyre.Status.Started = true
 end
@@ -251,6 +298,26 @@ function OnSetting(name, line, wildcards)
     Pyre.ChangeSetting(setting, p1, p2, p3, p4)
 end
 
+function OnFeatureInstall(name, line, wildcards)
+    Pyre.Log('OnFeatureInstall', Pyre.LogLevel.DEBUG)
+
+    local featureParam = wildcards[1]
+
+    local feature =
+        Pyre.First(
+        VersionData.features,
+        function(f)
+            return (f.name == featureParam)
+        end
+    )
+
+    if (feature == nil) then
+        Pyre.Log('Feature not found')
+    end
+
+    Helper.DownloadFeature(feature)
+end
+
 function OnEnemyDied()
     Pyre.Log('Event enemydied', Pyre.LogLevel.DEBUG)
     Pyre.ShareEvent(Pyre.Event.EnemyDied, {})
@@ -276,6 +343,15 @@ function Helper.Setup()
         '',
         alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
         'OnSetting'
+    )
+
+    -- install new features
+    AddAlias(
+        'ph_featureinstall',
+        '^pyre install (.*)$',
+        '',
+        alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
+        'OnFeatureInstall'
     )
 
     -- enemy died trigger
@@ -315,7 +391,5 @@ end
 --                  PLUGIN EXPORTS
 
 --------------------------------------------------------------------------------------
-
-Helper.OnStart()
 
 return Helper

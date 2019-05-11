@@ -216,13 +216,21 @@ function checkVersionFile()
         return
     end
 
+    local features = {}
+
     for _, dep in pairs(localData.dependencies) do
-        if ((dep.relay or false) == true) then
-            print('loading relay')
+        if ((dep.relay ~= nil) and (dep.relay == "true")) then
             Helper = require(dep.name)
         end
     end
 
+    for _, feature in pairs(localData.features) do
+        if file_exists('lua//' .. feature.filename) then
+            table.insert(features,feature)
+        end
+    end
+    
+    Helper.OnStart(localData, features)
 
 end
 
@@ -235,7 +243,7 @@ end
 
 function OnPluginSaveState() if Helper then Helper.Save() end end
 
-function OnPluginInstall() if Helper then Helper.OnInstall() end end
+function OnPluginInstall() if Helper then Helper.OnInstall(localData) end end
 
 function OnPluginBroadcast(msg, id, name, text)
     if Helper then Helper.OnPluginBroadcast(msg, id, name, text) end

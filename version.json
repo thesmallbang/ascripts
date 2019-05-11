@@ -22,20 +22,20 @@
     }
   ],
   "features": [{
-      "name": "skills",
-      "filename": "skills.lua",
+      "name": "pyreskills",
+      "filename": "pyreskills.lua",
       "description": "Track skill expirations + pyre attack command",
       "version": "1.0"
     },
     {
-      "name": "scanner",
-      "filename": "scanner.lua",
+      "name": "pyrescanner",
+      "filename": "pyrescanner.lua",
       "description": "automatically scan at an interval and report command with filtering",
       "version": "1.0"
     },
     {
-      "name": "stattracker",
-      "filename": "stattracker.lua",
+      "name": "pyretracker",
+      "filename": "pyretracker.lua",
       "description": "Track combat stats with reporting and a window",
       "version": "1.0"
     }

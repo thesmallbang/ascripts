@@ -18,7 +18,7 @@ end
 function Helper.LoadFeature(feature)
     feature.Feature = require(feature.name)
     feature.Feature.FeatureStart()
-    Pyre.Log('Loaded Feature ' .. feature.name, Pyre.LogLevel.DEBUG)
+    Pyre.Log('Loaded Feature ' .. feature.name)
 end
 function Helper.AddNewFeature(feature)
     Helper.LoadFeature(feature)

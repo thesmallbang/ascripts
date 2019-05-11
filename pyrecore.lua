@@ -19,7 +19,7 @@ end
 -------------------------------------
 -- Output a message to the console. These may or may not show depending on the user's Settings.LogLevel
 -- @param msg Message to show the user
--- @param loglevel  Pyre.LogLevel
+-- @param loglevel  core_module.LogLevel
 -------------------------------------
 function core_module.Log(msg, loglevel)
     core_module.ColorLog(msg, 'white', '', loglevel)
@@ -359,6 +359,120 @@ core_module.Status = {
     MaxMoves = 0,
     RawMoves = 0
 }
+
+-------------------------------------
+--  Action Queue
+-------------------------------------
+core_module.ActionQueue = {}
+core_module.LastSkillExecute = 0
+core_module.LastSkillUniqueId = 0
+
+function core_module.QueueCleanExpired()
+    core_module.Log('QueueCleanExpired', core_module.LogLevel.VERBOSE)
+
+    i = 0
+    for _, item in pairs(core_module.ActionQueue) do
+        i = i + 1
+        if not (item.Expiration == nil) then
+            if (socket.gettime() > item.Expiration) then
+                core_module.Log('Queue had expiration: ' .. item.Skill.Name, core_module.LogLevel.DEBUG)
+
+                if (core_module.ActionQueue == nil) then
+                    return
+                end
+                core_module.ActionQueue =
+                    core_module.Except(
+                    core_module.ActionQueue,
+                    function(v)
+                        return (v.Skill.Name == item.Skill.Name)
+                    end,
+                    1
+                )
+                return
+            end
+        end
+    end
+end
+function core_module.QueueProcessNext()
+    core_module.Log('QueueProcessNext', core_module.LogLevel.VERBOSE)
+
+    item =
+        core_module.First(
+        core_module.ActionQueue,
+        function()
+            return true
+        end
+    )
+    if (item == nil) then
+        return
+    end
+
+    -- our pending skill hasnt been cleared via expiration or detection
+    local lastId = core_module.LastSkillUniqueId or 0
+    if ((item.uid or 0) == lastId and (lastId ~= 0)) then
+        print('still waiting last ' .. item.uid)
+        return
+    end
+
+    print('checking wait times..')
+    -- check that we are not execeting too quickly for combat types
+    local waitTime = 2.5
+    if (item.Skill.SkillType == core_module.SkillType.CombatInitiate) then
+        waitTime = waitTime + 2
+    end
+    if
+        (((item.Skill.SkillType == core_module.SkillType.CombatInitiate) or
+            (item.Skill.SkillType == core_module.SkillType.CombatMove)) and
+            ((socket.gettime() - core_module.LastSkillExecute) < waitTime))
+     then
+        core_module.Log('Queue Wait ' .. core_module.TableLength(core_module.ActionQueue), core_module.LogLevel.DEBUG)
+        return
+    end
+
+    -- this may be silly but i wasn't sure how objects were handled and if 2 identical commands would equal the same object
+    -- and just did it in case
+    local newUniqueId = math.random(1, 1000000)
+    item.uid = newUniqueId
+    item.Execute(item.Skill, item)
+    core_module.Log(
+        'Queue Length (Including This Still until detected) : ' .. core_module.TableLength(core_module.ActionQueue),
+        core_module.LogLevel.VERBOSE
+    )
+    core_module.LastSkillUniqueId = item.uid
+    core_module.LastSkillExecute = socket.gettime()
+end
+-- Reset queue leaves potions alone
+function core_module.QueueReset()
+    core_module.Log('Resetting queue', core_module.LogLevel.VERBOSE)
+    SkillFeature.SkillFail = nil
+    SkillFeature.LastSkill = nil
+    core_module.ActionQueue =
+        core_module.Filter(
+        core_module.ActionQueue,
+        function(v)
+            return ((v.Skill.SkillType == core_module.SkillType.QuaffHeal) or
+                (v.Skill.SkillType == core_module.SkillType.QuaffMana) or
+                (v.Skill.SkillType == core_module.SkillType.QuaffMove))
+        end
+    )
+end
+
+-------------------------------------
+--  AFK Functionality
+-------------------------------------
+
+function CheckForAFK()
+    if (core_module.IsAFK == true) then
+        return
+    end
+
+    local afkTime = socket.gettime() - (3 * 60) -- 3 minutes = afk
+    core_module.IsAFK = ((lastRoomChanged <= afkTime) and (core_module.Status.State == core_module.States.IDLE))
+
+    if (core_module.IsAFK == true) then
+        core_module.Log('AFK - Some features will have limited or no functionality.')
+    end
+end
 
 -------------------------------------
 --  HELPER FUNCTIONS

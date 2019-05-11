@@ -110,7 +110,7 @@ function Helper.OnStop()
     Pyre.Status.Started = false
 
     for _, feat in ipairs(Features) do
-        if (not (feat == nil) and not (feat.Feature == nil)) then
+        if ((feat ~= nil) and (feat.Feature ~= nil) and feat.Feature.FeatureStop ~= nil) then
             feat.Feature.FeatureStop()
         end
     end
@@ -123,10 +123,8 @@ function Helper.Save()
     Pyre.Log('Saving', Pyre.LogLevel.DEBUG)
     Pyre.SaveSettings()
     for _, feat in ipairs(Features) do
-        if (not (feat == nil) and not (feat.Feature == nil)) then
-            if (feat.Encapsulated == true) then
-                feat.Feature.FeatureSave()
-            end
+        if ((feat ~= nil) and (feat.Feature ~= nil) and feat.Feature.FeatureSave ~= nil) then
+            feat.Feature.FeatureSave()
         end
     end
 
@@ -330,7 +328,7 @@ function OnHelp(name, line, wildcards)
     end
 
     for _, feat in ipairs(Features) do
-        if (topic == feat.name) then
+        if ((topic == feat.name) and (feat.Feature ~= nil) and (feat.Feature.FeatureHelp ~= nil)) then
             feat.Feature.FeatureHelp()
         end
     end
@@ -361,7 +359,7 @@ function OnSetting(name, line, wildcards)
     end
 
     for _, feat in ipairs(Features) do
-        if (feat.Encapsulated == true) then
+        if ((feat ~= nil) and (feat.Feature ~= nil) and feat.Feature.FeatureSettingHandle ~= nil) then
             feat.Feature.FeatureSettingHandle(setting, p1, p2, p3, p4)
         end
     end
@@ -528,11 +526,12 @@ function Tick()
         return
     end
 
+    Pyre.QueueCleanExpired()
+    Pyre.QueueProcessNext()
+
     for _, feat in ipairs(Features) do
-        if (not (feat == nil) and not (feat.Feature == nil)) then
-            if (feat.Encapsulated == true) then
-                feat.Feature.FeatureTick()
-            end
+        if ((feat ~= nil) and (feat.Feature ~= nil) and (feat.Feature.FeatureTick ~= nil)) then
+            feat.Feature.FeatureTick()
         end
     end
 

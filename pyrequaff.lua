@@ -276,7 +276,7 @@ function Quaff.FeatureHelp()
     )
 end
 
-function SkillFeature.FeatureSave()
+function Quaff.FeatureSave()
     Quaff:Save()
 end
 
@@ -486,7 +486,7 @@ function OnQuaffUsed(name, line, wildcards)
     end
 
     potion.Stat.Failed = false
-    SkillFeature.LastQuaff = socket.gettime()
+    Quaff.LastQuaff = socket.gettime()
     Pyre.ActionQueue =
         Pyre.Except(
         Pyre.ActionQueue,

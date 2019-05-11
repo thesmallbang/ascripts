@@ -1,0 +1,8 @@
+{
+  "release" : { version: "1.0", note:"Something about release" }
+  "features": [
+    {name: "skills", filename: "skills.lua", description: "Track skill expirations + pyre attack command", version: "1.0"},
+    {name: "scanner", filename: "scanner.lua", description: "automatically scan at an interval and report command with filtering", version: "1.0"},
+    {name: "stattracker", filename: "stattracker.lua", description: "Track combat stats with reporting and a window", version: "1.0"}
+  ]
+}

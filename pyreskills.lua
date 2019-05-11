@@ -283,12 +283,18 @@ Quaff = {
         q.Mp:Save()
         q.Mv:Save()
     end,
+    ResetRoomFailed = function(q)
+        q.Hp.RoomFailed = false
+        q.Mp.RoomFailed = false
+        q.Mv.RoomFailed = false
+    end,
     Enabled = tonumber(GetVariable('quaff_enabled')) or 0,
     Topoff = tonumber(GetVariable('quaff_topoff')) or 0,
     Container = GetVariable('quaff_container') or '',
     Hp = {
         Name = 'Hp',
         Failed = false,
+        RoomFailed = false,
         Percent = tonumber(GetVariable('Quaff_hp_percent')) or 50,
         TopOffPercent = tonumber(GetVariable('Quaff_hp_topoff_percent')) or 50,
         Item = GetVariable('quaff_hp_item') or 'heal',
@@ -299,7 +305,7 @@ Quaff = {
             SetVariable('Quaff_hp_percent', stat.Percent or 50)
         end,
         Needed = function(stat)
-            if (stat.Failed == true) then
+            if (stat.Failed == true or stat.RoomFailed == true) then
                 return false
             end
 
@@ -311,6 +317,7 @@ Quaff = {
     Mp = {
         Name = 'Mp',
         Failed = false,
+        RoomFailed = false,
         Percent = tonumber(GetVariable('Quaff_mp_percent')) or 50,
         TopOffPercent = tonumber(GetVariable('Quaff_mp_topoff_percent')) or 50,
         Item = GetVariable('quaff_mp_item') or 'lotus',
@@ -321,7 +328,7 @@ Quaff = {
             SetVariable('Quaff_mp_percent', stat.Percent or 50)
         end,
         Needed = function(stat)
-            if (stat.Failed == true) then
+            if (stat.Failed == true or stat.RoomFailed == true) then
                 return false
             end
             local inCombat = (Pyre.Status.State == Pyre.States.COMBAT)
@@ -332,6 +339,7 @@ Quaff = {
     Mv = {
         Name = 'Mv',
         Failed = false,
+        RoomFailed = false,
         Percent = tonumber(GetVariable('Quaff_mv_percent')) or 50,
         TopOffPercent = tonumber(GetVariable('Quaff_mv_topoff_percent')) or 50,
         Item = GetVariable('quaff_mv_item') or 'move',
@@ -342,7 +350,7 @@ Quaff = {
             SetVariable('Quaff_mv_percent', stat.Percent or 50)
         end,
         Needed = function(stat)
-            if (stat.Failed == true) then
+            if (stat.Failed == true or stat.RoomFailed == true) then
                 return false
             end
             local inCombat = (Pyre.Status.State == Pyre.States.COMBAT)
@@ -2204,12 +2212,21 @@ function OnQuaffFailed(name, line, wildcards)
         return
     end
 
-    potion.Stat.Failed = true
+    if (wildcards[1] == 'A powerful force quenches your magic.') then
+        potion.Stat.RoomFailed = true
+        Pyre.Log(
+            'Quaff RoomDisabled for ' .. potion.Stat.Name .. " type 'pyre setting quaff clear' to reset",
+            Pyre.LogLevel.INFO
+        )
+    else
+        potion.Stat.Failed = true
+        Pyre.Log(
+            'Quaff Disabled for ' .. potion.Stat.Name .. " type 'pyre setting quaff clear' to reset",
+            Pyre.LogLevel.INFO
+        )
+    end
+
     SkillFeature.LastQuaff = 0
-    Pyre.Log(
-        'Quaff Disabled for ' .. potion.Stat.Name .. " type 'pyre setting quaff clear' to reset",
-        Pyre.LogLevel.INFO
-    )
     SkillFeature.AttackQueue =
         Pyre.Except(
         SkillFeature.AttackQueue,
@@ -2369,7 +2386,7 @@ end
 function OnRoomChanged(changeInfo)
     lastRoomChanged = socket.gettime()
     ResetAttackQueue()
-
+    Quaff:ResetRoomFailed()
     if (isafk == true) then
         isafk = false
         Pyre.Log('AFK OFF - Full features were enabled again')

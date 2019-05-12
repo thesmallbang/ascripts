@@ -332,12 +332,15 @@ function OnHelp(name, line, wildcards)
         )
     end
 
-    if (topic == 'core') then
+    if (topic == 'core' or topic == 'pyrecore') then
         Pyre.ShowSettings()
     end
 
     for _, feat in ipairs(Features) do
-        if ((topic == feat.name) and (feat.Feature ~= nil) and (feat.Feature.FeatureHelp ~= nil)) then
+        if
+            ((topic == feat.name or ('pyre' .. topic == feat.name)) and (feat.Feature ~= nil) and
+                (feat.Feature.FeatureHelp ~= nil))
+         then
             feat.Feature.FeatureHelp()
         end
     end

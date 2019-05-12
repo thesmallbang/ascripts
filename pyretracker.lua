@@ -36,32 +36,35 @@ Tracker.Settings = {
         name = 'fightsize',
         description = 'How many previous fights to keep data on',
         value = tonumber(GetVariable('fightsize')) or 10,
-        setValue = function(val)
+        setValue = function(setting, val)
             local parsed = tonumber(val) or 0
-            value = parsed
+            setting.value = parsed
+            SetVariable('fightsize', value)
         end
     },
     {
         name = 'areasize',
         description = 'How many previous areas to keep data on',
         value = tonumber(GetVariable('areasize')) or 10,
-        setValue = function(val)
+        setValue = function(setting, val)
             local parsed = tonumber(val) or 0
-            value = parsed
+            setting.value = parsed
+            SetVariable('areasize', value)
         end
     },
     {
         name = 'sessionsize',
         description = 'How fights to limit the session to',
         value = tonumber(GetVariable('sessionsize')) or 100000,
-        setValue = function(val)
+        setValue = function(setting, val)
             local parsed = tonumber(val) or 100000
-            value = parsed
+            setting.value = parsed
+            SetVariable('sessionsize', value)
         end
     }
 }
 
-Factory = {
+Tracker.Factory = {
     NewSession = function()
         return {
             StartTime = socket.gettime(),
@@ -344,7 +347,7 @@ function Tracker.FeatureSettingHandle(settingName, p1, p2, p3, p4)
     end
     for _, setting in ipairs(Tracker.Settings) do
         if (string.lower(setting.name) == string.lower(p1)) then
-            setting.setValue(p2)
+            setting:setValue(p2)
             Pyre.Log(settingName .. ' ' .. setting.name .. ' : ' .. setting.value)
         end
     end
@@ -405,20 +408,20 @@ function Tracker.ArchiveCurrentFight()
     -- if the fight has anything useful then we archive it
     if ((Tracker.FightTracker.Current.Area or '') ~= '') then
         table.insert(Tracker.FightTracker.History, Tracker.FightTracker.Current)
-        Tracker.FightTracker.Current = Factory.EndFight(Tracker.FightTracker.Current)
+        Tracker.FightTracker.Current = Tracker.Factory.EndFight(Tracker.FightTracker.Current)
 
         -- create a new area on the first fight to start the timer after activity
         if (Tracker.AreaTracker.Current.Fights == nil or #Tracker.AreaTracker.Current.Fights == 0) then
-            Tracker.AreaTracker.Current = Factory.NewArea()
+            Tracker.AreaTracker.Current = Tracker.Factory.NewArea()
             Tracker.AreaTracker.Current.StartTime = Tracker.FightTracker.Current.StartTime
         end
         -- add area data
 
-        table.insert(Tracker.AreaTracker.Current.Fights, Factory.NewAreaFightData(Tracker.FightTracker.Current))
+        table.insert(Tracker.AreaTracker.Current.Fights, Tracker.Factory.NewAreaFightData(Tracker.FightTracker.Current))
 
         -- add session data
         if (Tracker.Session.Fights == nil) then
-            Tracker.Session = Factory.NewSession()
+            Tracker.Session = Tracker.Factory.NewSession()
         end
         table.insert(Tracker.Session.Fights, Tracker.FightTracker.Current)
 
@@ -435,7 +438,7 @@ end
 
 function TrackerOnStateChanged(stateObject)
     if (stateObject.New == Pyre.States.COMBAT) then
-        Tracker.FightTracker.Current = Factory.NewFight()
+        Tracker.FightTracker.Current = Tracker.Factory.NewFight()
     else
         Tracker.ArchiveCurrentFight()
     end
@@ -448,7 +451,7 @@ end
 function OnResetFightData()
     Pyre.Log('Resetting fight data', Pyre.LogLevel.INFO)
     if (Pyre.Status.State == Pyre.States.COMBAT) then
-        Tracker.FightTracker.Current = Factory.NewFight()
+        Tracker.FightTracker.Current = Tracker.Factory.NewFight()
     else
         Tracker.FightTracker.Current = {}
     end
@@ -463,7 +466,7 @@ end
 function OnResetAreaData()
     Pyre.Log('Resetting area data', Pyre.LogLevel.INFO)
     if (Pyre.Status.State == Pyre.States.COMBAT) then
-        Tracker.AreaTracker.Current = Factory.NewArea()
+        Tracker.AreaTracker.Current = Tracker.Factory.NewArea()
     else
         Tracker.AreaTracker.Current = {}
     end
@@ -477,7 +480,7 @@ end
 
 function OnResetSessionData()
     Pyre.Log('Resetting all session data', Pyre.LogLevel.INFO)
-    Tracker.Session = Factory.NewSession()
+    Tracker.Session = Tracker.Factory.NewSession()
 end
 
 function OnReportFightData()
@@ -540,7 +543,7 @@ function OnReportSessionXPData()
         return
     end
 
-    local summary = Factory.CreateSessionSummary(session)
+    local summary = Tracker.Factory.CreateSessionSummary(session)
 
     local normal = summary.Normal
     local combat = summary.Combat
@@ -575,7 +578,7 @@ function OnReportSessionXPCData()
         return
     end
 
-    local summary = Factory.CreateSessionSummary(session)
+    local summary = Tracker.Factory.CreateSessionSummary(session)
 
     local normal = summary.Normal
     local combat = summary.Combat
@@ -613,7 +616,7 @@ function OnReportSessionDPSData()
         return
     end
 
-    local summary = Factory.CreateSessionSummary(session)
+    local summary = Tracker.Factory.CreateSessionSummary(session)
 
     local normal = summary.Normal
     local combat = summary.Combat

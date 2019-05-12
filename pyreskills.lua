@@ -26,30 +26,33 @@ SkillFeature.Settings = {
         name = 'onlyleaderinitiate',
         description = 'Do not hammerswing not leading group',
         value = tonumber(GetVariable('onlyleaderinitiate')) or 0,
-        setValue = function(val)
+        setValue = function(setting, val)
             local parsed = tonumber(val) or 0
             if (parsed > 1 or parsed < 0) then
                 parsed = 0
             end
-            value = parsed
+            setting.value = parsed
+            SetVariable('onlyleaderinitiate', value)
         end
     },
     {
         name = 'expirationwarn',
         description = 'How many seconds out to start warning about skill expiration',
         value = tonumber(GetVariable('skillexpirationwarn')) or 10,
-        setValue = function(val)
+        setValue = function(setting, val)
             local parsed = tonumber(val) or 0
-            value = parsed
+            setting.value = parsed
+            SetVariable('expirationwarn', value)
         end
     },
     {
         name = 'alignmentbuffer',
         description = 'How much alignment to recover after a slip before locking',
         value = tonumber(GetVariable('alignmentbuffer')) or 500,
-        setValue = function(val)
+        setValue = function(setting, val)
             local parsed = tonumber(val) or 0
-            value = parsed
+            setting.value = parsed
+            SetVariable('alignmentbuffer', value)
         end
     }
 
@@ -328,7 +331,7 @@ function SkillFeature.FeatureSettingHandle(settingName, p1, p2, p3, p4)
 
     for _, setting in ipairs(SkillFeature.Settings) do
         if (string.lower(setting.name) == string.lower(p1)) then
-            setting.setValue(p2)
+            setting:setValue(p2)
             Pyre.Log(settingName .. ' ' .. setting.name .. ' : ' .. setting.value)
         end
     end

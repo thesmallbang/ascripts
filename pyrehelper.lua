@@ -24,7 +24,7 @@ function Helper.LoadFeature(feature)
     feature.Feature = require(feature.name)
 
     if (feature.Feature.FeatureStart ~= nil) then
-        feature.Feature.FeatureStart()
+        feature.Feature.FeatureStart(Features)
     end
     Pyre.Log('Loaded Feature ' .. feature.name)
 end

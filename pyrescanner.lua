@@ -47,12 +47,6 @@ end
 function Feature.FeatureSave()
 end
 
-function Feature.OnBroadCast(msgId, pluginId, pluginName, msg)
-    if (pluginId == GetPluginID()) then
-        print('there was a broadcast: ' .. tostring(msgId) .. ' : ' .. tostring(msg))
-    end
-end
-
 function Feature.Setup() -- add our alias / triggers
     Pyre.Log('Scanner Setup', Pyre.LogLevel.DEBUG)
 

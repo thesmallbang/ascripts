@@ -145,8 +145,8 @@ function core_module.SaveSettings()
 
     SetVariable('SkillExpirationWarn', core_module.Settings.SkillExpirationWarn or 30)
     SetVariable('OnlyLeaderInitiate', core_module.Settings.OnlyLeaderInitiate or 0)
-    SetVariable('AttackDelay', core_module.Settings.AttackDelay or 0)
-    SetVariable('AttackMaxQueue', core_module.Settings.AttackMaxQueue or 2)
+    SetVariable('AddToQueueDelay', core_module.Settings.AddToQueueDelay or 0)
+    SetVariable('QueueSize', core_module.Settings.QueueSize or 2)
 end
 
 function core_module.ChangeSetting(setting, settingValue)
@@ -175,14 +175,14 @@ function core_module.ChangeSetting(setting, settingValue)
         core_module.Log('OnlyLeaderInitiate : ' .. core_module.Settings.OnlyLeaderInitiate)
     end
 
-    if (string.lower(setting) == 'attackdelay') then
-        core_module.Settings.AttackDelay = tonumber(settingValue) or 0
-        core_module.Log('AttackDelay : ' .. core_module.Settings.AttackDelay)
+    if (string.lower(setting) == 'addtoqueuedelay') then
+        core_module.Settings.AddToQueueDelay = tonumber(settingValue) or 0
+        core_module.Log('AddToQueueDelay : ' .. core_module.Settings.AddToQueueDelay)
     end
 
-    if (string.lower(setting) == 'attackmaxqueue') then
-        core_module.Settings.AttackMaxQueue = tonumber(settingValue) or 2
-        core_module.Log('AttackMaxQueue : ' .. core_module.Settings.AttackMaxQueue)
+    if (string.lower(setting) == 'queuesize') then
+        core_module.Settings.QueueSize = tonumber(settingValue) or 2
+        core_module.Log('QueueSize : ' .. core_module.Settings.QueueSize)
     end
 end
 
@@ -197,13 +197,6 @@ function core_module.ShowSettings()
         },
         {
             {
-                Value = 'AlignmentBuffer',
-                Tooltip = 'After you slip an alignment how far into the correct alignment to get before auto locking again.'
-            },
-            {Value = core_module.Settings.AlignmentBuffer}
-        },
-        {
-            {
                 Value = 'LogLevel',
                 Tooltip = '0 = OFF, 1 = VERBOSE, 2 = DEBUG, 3 = INFO (default), 4 = ERRORONLY'
             },
@@ -211,31 +204,17 @@ function core_module.ShowSettings()
         },
         {
             {
-                Value = 'SkillExpirationWarn',
-                Tooltip = 'The skills feature uses this duration to notify when a clan skill will expire. 0 = OFF'
-            },
-            {Value = core_module.Settings.SkillExpirationWarn}
-        },
-        {
-            {
-                Value = 'OnlyLeaderInitiate',
-                Tooltip = 'pyre attack will not use hammerswing if the player is not the group leader.'
-            },
-            {Value = core_module.Settings.OnlyLeaderInitiate}
-        },
-        {
-            {
-                Value = 'AttackDelay',
+                Value = 'AddToQueueDelay',
                 Tooltip = 'At this point it is really a Queue delay.How long between adding to the queue.'
             },
-            {Value = core_module.Settings.AttackDelay}
+            {Value = core_module.Settings.AddToQueueDelay}
         },
         {
             {
-                Value = 'AttackMaxQueue',
+                Value = 'QueueSize',
                 Tooltip = 'How big is the "Attack Queue" allowed to get (potions can still get added when full)'
             },
-            {Value = core_module.Settings.AttackMaxQueue}
+            {Value = core_module.Settings.QueueSize}
         }
     }
 
@@ -246,7 +225,7 @@ function core_module.ShowSettings()
         logTable,
         1,
         true,
-        'usage: pyre setting <setting> <value>'
+        'usage: pyre set <setting> <value>'
     )
 end
 
@@ -410,11 +389,9 @@ function core_module.QueueProcessNext()
     -- our pending skill hasnt been cleared via expiration or detection
     local lastId = core_module.LastSkillUniqueId or 0
     if ((item.uid or 0) == lastId and (lastId ~= 0)) then
-        print('still waiting last ' .. item.uid)
         return
     end
 
-    print('checking wait times..')
     -- check that we are not execeting too quickly for combat types
     local waitTime = 2.5
     if (item.Skill.SkillType == core_module.SkillType.CombatInitiate) then
@@ -869,12 +846,9 @@ end
 
 core_module.Settings = {
     Channel = GetVariable('Channel') or 'echo',
-    AlignmentBuffer = tonumber(GetVariable('AlignmentBuffer')) or 300,
     LogLevel = tonumber(GetVariable('LogLevel')) or core_module.LogLevel.INFO,
-    SkillExpirationWarn = tonumber(GetVariable('SkillExpirationWarn')) or 10,
-    OnlyLeaderInitiate = tonumber(GetVariable('OnlyLeaderInitiate')) or 1,
-    AttackDelay = tonumber(GetVariable('AttackDelay')) or 0,
-    AttackMaxQueue = tonumber(GetVariable('AttackMaxQueue')) or 2
+    AddToQueueDelay = tonumber(GetVariable('AddToQueueDelay')) or 0,
+    QueueSize = tonumber(GetVariable('QueueSize')) or 30
 }
 
 core_module.SkillType = {

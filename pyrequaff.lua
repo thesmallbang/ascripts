@@ -103,80 +103,81 @@ function Quaff.FeatureStart()
 end
 
 function Quaff.FeatureSettingHandle(settingName, p1, p2, p3, p4)
-    Pyre.Switch(string.lower(settingName)) {
-        ['quaff'] = function()
-            if (p2 == nil) then
-                return
-            end
-            local stat = nil
-            Pyre.Switch(string.lower(p1)) {
-                ['clear'] = function()
-                    ClearFailedPots()
-                end,
-                ['enabled'] = function()
-                    Quaff.Enabled = tonumber(p2) or 0
-                    if (Quaff.Enabled < 0 or Quaff.Enabled > 1) then
-                        Quaf.Enabled = 0
-                    end
-                    Pyre.Log('quaff enabled: ' .. Quaff.Enabled)
-                end,
-                ['container'] = function()
-                    Quaff.Container = tostring(p2) or ''
-                    Pyre.Log('quaff container: ' .. Quaff.Container)
-                end,
-                ['topoff'] = function()
-                    Quaff.Topoff = tonumber(p2) or 0
-                    if (Quaff.Topoff < 0 or Quaff.Topoff > 1) then
-                        Quaf.Topoff = 0
-                    end
-                    Pyre.Log('quaff topoff: ' .. Quaff.Topoff)
-                end,
-                ['hp'] = function()
-                    stat = Quaff.Hp
-                end,
-                ['mp'] = function()
-                    stat = Quaff.Mp
-                end,
-                ['mv'] = function()
-                    stat = Quaff.Mv
-                end
-            }
+    if (string.lower(settingName) ~= 'quaff') then
+        return
+    end
 
-            if not (stat == nil) then
-                Pyre.Switch(string.lower(p2)) {
-                    ['percent'] = function()
-                        stat.Percent = tonumber(p3) or 50
-                        if (stat.Percent < 0) then
-                            stat.Percent = 0
-                        end
-                        if (stat.Percent > 99) then
-                            stat.Percent = 99
-                        end
-                        Pyre.Log('quaff ' .. stat.Name .. ' percent : ' .. tostring(stat.Percent))
-                    end,
-                    ['topoffpercent'] = function()
-                        stat.TopOffPercent = tonumber(p3) or 50
-                        if (stat.TopOffPercent < 0) then
-                            stat.TopOffPercent = 0
-                        end
-                        if (stat.TopOffPercent > 99) then
-                            stat.TopOffPercent = 99
-                        end
-                        Pyre.Log('quaff ' .. stat.Name .. ' topoff percent : ' .. tostring(stat.TopOffPercent))
-                    end,
-                    ['item'] = function()
-                        local i = stat.DefaultItem
-                        if not (p3 == '') then
-                            i = p3
-                        end
-                        stat.Item = i
-                        Pyre.Log('quaff ' .. stat.Name .. ' item : ' .. tostring(stat.Item))
-                    end
-                }
+    if (p2 == nil) then
+        return
+    end
+
+    local stat = nil
+    Pyre.Switch(string.lower(p1)) {
+        ['clear'] = function()
+            ClearFailedPots()
+        end,
+        ['enabled'] = function()
+            Quaff.Enabled = tonumber(p2) or 0
+            if (Quaff.Enabled < 0 or Quaff.Enabled > 1) then
+                Quaf.Enabled = 0
             end
-            Quaff:Save()
+            Pyre.Log('quaff enabled: ' .. Quaff.Enabled)
+        end,
+        ['container'] = function()
+            Quaff.Container = tostring(p2) or ''
+            Pyre.Log('quaff container: ' .. Quaff.Container)
+        end,
+        ['topoff'] = function()
+            Quaff.Topoff = tonumber(p2) or 0
+            if (Quaff.Topoff < 0 or Quaff.Topoff > 1) then
+                Quaf.Topoff = 0
+            end
+            Pyre.Log('quaff topoff: ' .. Quaff.Topoff)
+        end,
+        ['hp'] = function()
+            stat = Quaff.Hp
+        end,
+        ['mp'] = function()
+            stat = Quaff.Mp
+        end,
+        ['mv'] = function()
+            stat = Quaff.Mv
         end
     }
+
+    if (stat ~= nil) then
+        Pyre.Switch(string.lower(p2)) {
+            ['percent'] = function()
+                stat.Percent = tonumber(p3) or 50
+                if (stat.Percent < 0) then
+                    stat.Percent = 0
+                end
+                if (stat.Percent > 99) then
+                    stat.Percent = 99
+                end
+                Pyre.Log('quaff ' .. stat.Name .. ' percent : ' .. tostring(stat.Percent))
+            end,
+            ['topoffpercent'] = function()
+                stat.TopOffPercent = tonumber(p3) or 50
+                if (stat.TopOffPercent < 0) then
+                    stat.TopOffPercent = 0
+                end
+                if (stat.TopOffPercent > 99) then
+                    stat.TopOffPercent = 99
+                end
+                Pyre.Log('quaff ' .. stat.Name .. ' topoff percent : ' .. tostring(stat.TopOffPercent))
+            end,
+            ['item'] = function()
+                local i = stat.DefaultItem
+                if not (p3 == '') then
+                    i = p3
+                end
+                stat.Item = i
+                Pyre.Log('quaff ' .. stat.Name .. ' item : ' .. tostring(stat.Item))
+            end
+        }
+    end
+    Quaff:Save()
 end
 
 function Quaff.FeatureTick()
@@ -184,7 +185,7 @@ function Quaff.FeatureTick()
     --  ALLOWED TO RUN WHILE AFK
     --
 
-    if (isafk) then
+    if (Pyre.IsAFK) then
         return
     end
     --

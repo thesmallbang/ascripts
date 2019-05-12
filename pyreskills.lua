@@ -1,34 +1,59 @@
 local Pyre = require('pyrecore')
 require('socket')
 
-Pyre.Log('skills.lua loaded', Pyre.LogLevel.DEBUG)
-
--- ------------------------
---  THESE ARE USING socket.gettime() instead of os.time() for millisecond accuracy
---  LastAttack / AttackQueue.QueuedTime
--- ------------------------
-
-local isafk = false
-local lastRoomChanged = socket.gettime()
-local windowTab = tonumber(GetVariable('xp_mon_tab')) or 1
 local lastAreaDelayed = 0
 local areaLastDuration = 0
-local showAreaIndex = 0
--- draw tabs
-local tabs = {
-    [0] = 'Fights',
-    [1] = 'Areas',
-    [2] = 'Session'
-}
 
 SkillFeature = {
     SkillFail = nil,
     LastSkill = nil,
     LastAttack = 0,
-    AttackQueue = {},
     LastUnqueue = 0,
     LastSkillExecute = 0,
     LastSkillUniqueId = 0
+}
+
+SkillFeature.Commands = {
+    {
+        name = 'pyre attack',
+        description = 'Queue up a single pyre attack',
+        callback = 'OnPyreAttack'
+    }
+}
+
+SkillFeature.Settings = {
+    {
+        name = 'onlyleaderinitiate',
+        description = 'Do not hammerswing not leading group',
+        value = tonumber(GetVariable('onlyleaderinitiate')) or 0,
+        setValue = function(val)
+            local parsed = tonumber(val) or 0
+            if (parsed > 1 or parsed < 0) then
+                parsed = 0
+            end
+            value = parsed
+        end
+    },
+    {
+        name = 'expirationwarn',
+        description = 'How many seconds out to start warning about skill expiration',
+        value = tonumber(GetVariable('skillexpirationwarn')) or 10,
+        setValue = function(val)
+            local parsed = tonumber(val) or 0
+            value = parsed
+        end
+    },
+    {
+        name = 'alignmentbuffer',
+        description = 'How much alignment to recover after a slip before locking',
+        value = tonumber(GetVariable('alignmentbuffer')) or 500,
+        setValue = function(val)
+            local parsed = tonumber(val) or 0
+            value = parsed
+        end
+    }
+
+    --AlignmentBuffer
 }
 
 ClanSkills = {
@@ -277,9 +302,37 @@ local adjustingAlignment = false
 
 function SkillFeature.FeatureStart()
     SkillsSetup()
+
+    -- create an alias for each of our PyreTracker.Commands
+    Pyre.Each(
+        SkillFeature.Commands,
+        function(cmd)
+            if (cmd.callback ~= nil) then
+                local safename = cmd.name:gsub('%s+', '')
+                AddAlias(
+                    'ph_skillcmd_' .. safename,
+                    '^' .. cmd.name .. '$',
+                    '',
+                    alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
+                    cmd.callback
+                )
+            end
+        end
+    )
 end
 
 function SkillFeature.FeatureSettingHandle(settingName, p1, p2, p3, p4)
+    if (settingName ~= 'skills') then
+        return
+    end
+
+    for _, setting in ipairs(SkillFeature.Settings) do
+        if (string.lower(setting.name) == string.lower(p1)) then
+            setting.setValue(p2)
+            Pyre.Log(settingName .. ' ' .. setting.name .. ' : ' .. setting.value)
+        end
+    end
+
     for _, skill in ipairs(ClanSkills) do
         if (string.lower(skill.Name) == string.lower(p1)) then
             skill.Setting = skill.ParseSetting(p2)
@@ -295,7 +348,7 @@ function SkillFeature.FeatureTick()
     CheckSkillExpirations()
     CheckClanSkills()
 
-    if (isafk) then
+    if (Pyre.IsAFK) then
         return
     end
 
@@ -305,23 +358,49 @@ function SkillFeature.FeatureTick()
 end
 
 function SkillFeature.FeatureHelp()
-    local logTable = {
-        {
-            {
-                Value = 'pyre attack',
-                Tooltip = 'Execute a hammerswing or best bash skill for combat.',
-                Color = 'orange',
-                Action = 'pyre attack'
-            },
-            {Value = 'Execute a hammerswing or best bash skill for combat.'}
-        },
-        {
-            -- blank row for spacing after commands
-            {Value = ''},
-            {Value = ''}
-        }
-    }
+    local logTable = {}
 
+    Pyre.Each(
+        SkillFeature.Commands,
+        function(command)
+            table.insert(
+                logTable,
+                {
+                    {
+                        Value = command.name,
+                        Tooltip = command.description,
+                        Color = 'orange',
+                        Action = command.name
+                    },
+                    {Value = ''}
+                }
+            )
+        end
+    )
+
+    -- spacer
+    table.insert(logTable, {{Value = ''}})
+
+    Pyre.Each(
+        SkillFeature.Settings,
+        function(setting)
+            table.insert(
+                logTable,
+                {
+                    {
+                        Value = setting.name,
+                        Tooltip = setting.description
+                    },
+                    {Value = setting.value}
+                }
+            )
+        end
+    )
+
+    -- spacer
+    table.insert(logTable, {{Value = ''}})
+
+    -- add clan skills
     for _, skill in ipairs(ClanSkills) do
         table.insert(
             logTable,
@@ -339,7 +418,7 @@ function SkillFeature.FeatureHelp()
         logTable,
         1,
         true,
-        'usage: pyre setting skill <setting> <value>'
+        'usage: pyre set skills <setting> <value>'
     )
 end
 
@@ -363,7 +442,17 @@ function CheckClanSkills()
 end
 
 function CheckSkillExpirations()
-    if (Pyre.Settings.SkillExpirationWarn < 1) then
+    local warnSetting =
+        Pyre.First(
+        SkillFeature.Settings,
+        function(s)
+            return (s.name == 'expirationwarn')
+        end
+    )
+
+    local expirationWarn = warnSetting.value or 10
+
+    if (expirationWarn < 1) then
         return
     end
 
@@ -373,10 +462,7 @@ function CheckSkillExpirations()
 
             local expiringSeconds = os.difftime(skill.Expiration, socket.gettime())
             local divider = skill.DidWarn + 1
-            if
-                expiringSeconds > 0 and
-                    (skill.DidWarn < 2 and expiringSeconds < (Pyre.Settings.SkillExpirationWarn / divider))
-             then
+            if expiringSeconds > 0 and (skill.DidWarn < 2 and expiringSeconds < (expirationWarn / divider)) then
                 Pyre.CleanLog(
                     skill.Name .. ' will expire in [' .. expiringSeconds .. '] seconds',
                     'white',
@@ -393,9 +479,23 @@ function CheckSkillExpirations()
 end
 
 function CheckSkillDuration(skill)
-    Pyre.Log('CheckSkillDuration ' .. skill.Name .. ' ' .. Pyre.Settings.SkillExpirationWarn, Pyre.LogLevel.VERBOSE)
+    local warnSetting =
+        Pyre.First(
+        SkillFeature.Settings,
+        function(s)
+            return (s.name == 'expirationwarn')
+        end
+    )
 
-    if (Pyre.Settings.SkillExpirationWarn < 1) then
+    local expirationWarn = warnSetting.value or 10
+
+    if (expirationWarn < 1) then
+        return
+    end
+
+    Pyre.Log('CheckSkillDuration ' .. skill.Name .. ' ' .. expirationWarn, Pyre.LogLevel.VERBOSE)
+
+    if (expirationWarn < 1) then
         return
     end
 
@@ -490,6 +590,7 @@ end
 function OnClassSkillAttempted(name, line, wildcards)
     Pyre.Log('OnClassSkillAttempted ' .. name, Pyre.LogLevel.VERBOSE)
     local skillName = string.sub(name, 6)
+
     local skill = Pyre.GetClassSkillByName(skillName)
     if (skill == nil) then
         return
@@ -547,7 +648,8 @@ function OnClanSkillFailed(name, line, wildcards)
 end
 
 function OnClassSkillUsed(name, line, wildcards)
-    local skill = Pyre.GetClassSkillByName(damageType)
+    local match = wildcards[1]
+    local skill = Pyre.GetClassSkillByName(match)
     if (skill == nil) then
         return
     end
@@ -584,13 +686,13 @@ function OnPyreAttack()
         return
     end
 
-    local difftime = (SkillFeature.LastAttack + tonumber(Pyre.Settings.AttackDelay)) - socket.gettime()
+    local difftime = (SkillFeature.LastAttack + tonumber(Pyre.Settings.AddToQueueDelay)) - socket.gettime()
     if (tonumber(difftime) > 0) then
         Pyre.Log('Attack delay not met', Pyre.LogLevel.DEBUG)
         return
     end
 
-    if (Pyre.Settings.AttackMaxQueue > 0 and Pyre.TableLength(Pyre.ActionQueue) >= Pyre.Settings.AttackMaxQueue) then
+    if (Pyre.Settings.QueueSize > 0 and Pyre.TableLength(Pyre.ActionQueue) >= Pyre.Settings.QueueSize) then
         Pyre.Log('Attack Queue is full', Pyre.LogLevel.DEBUG)
         return
     end
@@ -703,14 +805,6 @@ function SkillsSetup()
     table.insert(Pyre.Events[Pyre.Event.StateChanged], OnStateChange)
     table.insert(Pyre.Events[Pyre.Event.RoomChanged], OnRoomChanged)
     table.insert(Pyre.Events[Pyre.Event.ZoneChanged], OnZoneChanged)
-
-    AddAlias(
-        'ph_skills_attack',
-        '^pyre attack$',
-        '',
-        alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
-        'OnPyreAttack'
-    )
 
     AddTriggerEx(
         'ph_classskillused',

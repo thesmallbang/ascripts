@@ -271,6 +271,14 @@ function OnHelp(name, line, wildcards)
                     Tooltip = 'click for: Core Help',
                     Action = 'pyre help core'
                 }
+            },
+            {
+                {
+                    Value = 'features',
+                    Color = 'orange',
+                    Tooltip = 'click for a list of features',
+                    Action = 'pyre features'
+                }
             }
         }
 
@@ -281,14 +289,14 @@ function OnHelp(name, line, wildcards)
                     {
                         Value = feat.name,
                         Color = 'orange',
-                        Tooltip = 'click for feature help',
+                        Tooltip = 'click for ' .. feat.name .. ' specific help/settings',
                         Action = 'pyre help ' .. feat.name
                     }
                 }
             )
         end
 
-        Pyre.LogTable('Pyre Help', 'teal', {'Topic'}, logTable, 3, true, 'usage: pyre help <topic>')
+        Pyre.LogTable('Pyre Help', 'teal', {'Topic'}, logTable, 3, true, 'usage: pyre help <topic> or pyre features')
     end
 
     if (topic == 'reloader') then

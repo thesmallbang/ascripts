@@ -28,7 +28,7 @@ end
 function core_module.ReportToChannel(reportType, msg)
     local channel = core_module.Settings.Channel or 'echo'
     if (channel == 'echo') then
-        Pyre.Log(msg, Pyre.LogLevel.INFO)
+        core_module.Log(msg, core_module.LogLevel.INFO)
     else
         Execute(channel .. ' @cPR ' .. reportType .. '@w ' .. msg)
     end
@@ -391,6 +391,7 @@ function core_module.QueueProcessNext()
             return true
         end
     )
+
     if (item == nil) then
         return
     end

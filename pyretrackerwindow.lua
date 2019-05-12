@@ -1,0 +1,3 @@
+local WindowFeature = {}
+
+return WindowFeature

@@ -22,7 +22,10 @@ end
 
 function Helper.LoadFeature(feature)
     feature.Feature = require(feature.name)
-    feature.Feature.FeatureStart()
+
+    if (feature.Feature.FeatureStart ~= nil) then
+        feature.Feature.FeatureStart()
+    end
     Pyre.Log('Loaded Feature ' .. feature.name)
 end
 function Helper.AddNewFeature(feature)

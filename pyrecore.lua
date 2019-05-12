@@ -431,8 +431,6 @@ end
 -- Reset queue leaves potions alone
 function core_module.QueueReset()
     core_module.Log('Resetting queue', core_module.LogLevel.VERBOSE)
-    SkillFeature.SkillFail = nil
-    SkillFeature.LastSkill = nil
     core_module.ActionQueue =
         core_module.Filter(
         core_module.ActionQueue,

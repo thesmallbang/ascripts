@@ -788,23 +788,8 @@ function OnPyreAttack()
     end
 end
 
-function OnStateChange(stateObject)
-    if (stateObject.New ~= Pyre.States.COMBAT) then
-        -- remove all except for pending potions
-        Pyre.QueueReset()
-    end
-end
-
-function OnRoomChanged(changeInfo)
-    Pyre.QueueReset()
-end
-
 function SkillsSetup()
     Pyre.Log('SkillsSetup (alias+triggers)', Pyre.LogLevel.DEBUG)
-    -- subscribe to some core events
-    table.insert(Pyre.Events[Pyre.Event.StateChanged], OnStateChange)
-    table.insert(Pyre.Events[Pyre.Event.RoomChanged], OnRoomChanged)
-    table.insert(Pyre.Events[Pyre.Event.ZoneChanged], OnZoneChanged)
 
     AddTriggerEx(
         'ph_classskillused',

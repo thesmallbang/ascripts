@@ -547,13 +547,13 @@ function OnQuaffFailed(name, line, wildcards)
     )
 end
 
-function OnStateChange(stateObject)
+function QuaffOnStateChanged(stateObject)
     if (stateObject.New == Pyre.States.IDLE) then
         CheckForQuaff()
     end
 end
 
-function OnRoomChanged(changeInfo)
+function QuaffOnRoomChanged(changeInfo)
     lastRoomChanged = socket.gettime()
     Quaff:ResetRoomFailed()
 end
@@ -561,8 +561,8 @@ end
 function Quaff.Setup()
     Pyre.Log('Quaff.Setup (alias+triggers)', Pyre.LogLevel.DEBUG)
     -- subscribe to some core events
-    table.insert(Pyre.Events[Pyre.Event.StateChanged], OnStateChange)
-    table.insert(Pyre.Events[Pyre.Event.RoomChanged], OnRoomChanged)
+    table.insert(Pyre.Events[Pyre.Event.StateChanged], QuaffOnStateChanged)
+    table.insert(Pyre.Events[Pyre.Event.RoomChanged], QuaffOnRoomChanged)
 
     AddTriggerEx(
         'ph_qff',

@@ -466,8 +466,21 @@ function OnEnemyDied()
     Pyre.ShareEvent(Pyre.Event.EnemyDied, {})
 end
 
+function CoreOnStateChange(stateObject)
+    if (stateObject.New ~= Pyre.States.COMBAT) then
+        Pyre.QueueReset()
+    end
+end
+
+function CoreOnRoomChanged(changeInfo)
+    Pyre.QueueReset()
+end
+
 function Helper.Setup()
     Helper.LoadFeatures()
+
+    table.insert(Pyre.Events[Pyre.Event.StateChanged], CoreOnStateChange)
+    table.insert(Pyre.Events[Pyre.Event.RoomChanged], CoreOnRoomChanged)
 
     AddTimer('ph_tick', 0, 0, 0.5, '', timer_flag.Enabled + timer_flag.Replace + timer_flag.Temporary, 'Tick')
 

@@ -21,7 +21,14 @@ Tracker.Commands = {
     {name = 'resetareas', description = 'Reset all area tracking data', callback = 'OnResetAreasData'},
     {name = 'reportfight', description = 'Report the current fight', callback = 'OnReportFightData'},
     {name = 'reportarea', description = 'Report the current area', callback = 'OnReportAreaData'},
-    {name = 'reportsession', description = 'Report the current session', callback = 'OnReportSessionData'}
+    {name = 'reportareac', description = 'Report the current area', callback = 'OnReportAreaCData'},
+    {name = 'reportsessionxp', description = 'Report the current session xp rates', callback = 'OnReportSessionXPData'},
+    {
+        name = 'reportsessionxpc',
+        description = 'Report the current session xp rates while in combat',
+        callback = 'OnReportSessionXPCData'
+    },
+    {name = 'reportsessiondps', description = 'Report the current session dps', callback = 'OnReportSessionDPSData'}
 }
 
 Tracker.Settings = {
@@ -116,31 +123,115 @@ Factory = {
         return fightData
     end,
     CreateSessionSummary = function(session)
+        local exp =
+            Pyre.Sum(
+            session.Fights,
+            function(f)
+                return f.XP.Normal + f.XP.Rare + f.XP.Bonus
+            end
+        ) or 0
+
+        local normalExp =
+            Pyre.Sum(
+            session.Fights,
+            function(f)
+                return f.XP.Normal
+            end
+        ) or 0
+        local rareExp =
+            Pyre.Sum(
+            session.Fights,
+            function(f)
+                return f.XP.Rare
+            end
+        ) or 0
+        local bonusExp =
+            Pyre.Sum(
+            session.Fights,
+            function(f)
+                return f.XP.Bonus
+            end
+        ) or 0
+        local playerDamage =
+            Pyre.Sum(
+            session.Fights,
+            function(f)
+                return f.Damage.Player
+            end
+        ) or 0
+
+        local enemyDamage =
+            Pyre.Sum(
+            session.Fights,
+            function(f)
+                return f.Damage.Enemy
+            end
+        ) or 0
+
+        local combatDuration =
+            Pyre.Round(
+            Pyre.Sum(
+                session.Fights,
+                function(f)
+                    return f.Duration
+                end
+            ),
+            1
+        )
+
+        local duration = Pyre.Round((socket.gettime() - session.StartTime), 1)
+
+        if (duration < combatDuration) then
+            duration = combatDuration
+        end
+
         local summary = {
             StartDate = os.date('%H:%M:%S - %d/%m/%Y', session.StartTime),
             EndDate = os.date('%H:%M:%S - %d/%m/%Y', socket.gettime()),
+            PlayerDamage = Pyre.Round(playerDamage, 1),
+            EnemyDamage = Pyre.Round(enemyDamage, 1),
+            Experience = Pyre.Round(exp, 1),
+            NormalExperience = Pyre.Round(normalExp, 1),
+            RareExperience = Pyre.Round(rareExp, 1),
+            BonusExperience = Pyre.Round(bonusExp, 1),
             Normal = {
-                Duration = Pyre.Round((socket.gettime() - session.StartTime), 1)
+                Duration = duration,
+                ExpPerMinute = Pyre.Round((((exp or 0) / duration) * 60) or 0, 1),
+                ExpPerSecond = Pyre.Round(((exp or 0) / duration) or 0, 1),
+                NormalPerMinute = Pyre.Round((((normalExp or 0) / duration) * 60) or 0, 1),
+                NormalPerSecond = Pyre.Round(((normalExp or 0) / duration) or 0, 1),
+                RarePerMinute = Pyre.Round((((rareExp or 0) / duration) * 60) or 0, 1),
+                RarePerSecond = Pyre.Round(((rareExp or 0) / duration) or 0, 1),
+                BonusPerMinute = Pyre.Round((((bonusExp or 0) / duration) * 60) or 0, 1),
+                BonusPerSecond = Pyre.Round(((bonusExp or 0) / duration) or 0, 1),
+                PlayerDps = Pyre.Round((playerDamage / duration) or 0, 1),
+                EnemyDps = Pyre.Round((enemyDamage / duration) or 0, 1)
             },
             Combat = {
-                Duration = Pyre.Round(
-                    Pyre.Sum(
-                        session.Fights,
-                        function(f)
-                            return f.Duration
-                        end
-                    ),
-                    1
-                )
+                Duration = combatDuration,
+                ExpPerMinute = Pyre.Round((((exp or 0) / combatDuration) * 60) or 0, 1),
+                ExpPerSecond = Pyre.Round(((exp or 0) / combatDuration) or 0, 1),
+                NormalPerMinute = Pyre.Round((((normalExp or 0) / combatDuration) * 60) or 0, 1),
+                NormalPerSecond = Pyre.Round(((normalExp or 0) / combatDuration) or 0, 1),
+                RarePerMinute = Pyre.Round((((rareExp or 0) / combatDuration) * 60) or 0, 1),
+                RarePerSecond = Pyre.Round(((rareExp or 0) / combatDuration) or 0, 1),
+                BonusPerMinute = Pyre.Round((((bonusExp or 0) / combatDuration) * 60) or 0, 1),
+                BonusPerSecond = Pyre.Round(((bonusExp or 0) / combatDuration) or 0, 1),
+                PlayerDps = Pyre.Round((playerDamage / combatDuration) or 0, 1),
+                EnemyDps = Pyre.Round((enemyDamage / combatDuration) or 0, 1)
             },
             Souls = Pyre.Sum(
                 session.Fights,
                 function(f)
-                    print(f.Enemies)
                     return f.Enemies
                 end
             )
         }
+        return summary
+    end,
+    CreateAreaSummary = function(area)
+        local summary = {}
+
         return summary
     end
 }
@@ -319,6 +410,7 @@ function Tracker.ArchiveCurrentFight()
         -- create a new area on the first fight to start the timer after activity
         if (Tracker.AreaTracker.Current.Fights == nil or #Tracker.AreaTracker.Current.Fights == 0) then
             Tracker.AreaTracker.Current = Factory.NewArea()
+            Tracker.AreaTracker.Current.StartTime = Tracker.FightTracker.Current.StartTime
         end
         -- add area data
 
@@ -435,11 +527,12 @@ function OnReportAreaData()
         Pyre.Log('no current or last area to report', Pyre.LogLevel.ERROR)
         return
     end
-    Pyre.ReportToChannel('Area', '..area data')
+
+    Pyre.ReportToChannel('Area Report', 'Duration: ' .. Pyre.SecondsToClock(area.Duration))
 end
 
-function OnReportSessionData()
-    Pyre.Log('Reporting session data', Pyre.LogLevel.DEBUG)
+function OnReportSessionXPData()
+    Pyre.Log('Reporting session xp', Pyre.LogLevel.DEBUG)
 
     local session = Tracker.Session
     if (session.StartTime == nil) then
@@ -448,8 +541,95 @@ function OnReportSessionData()
     end
 
     local summary = Factory.CreateSessionSummary(session)
-    print(Pyre.ToString(summary))
-    Pyre.ReportToChannel('Session', '..session data')
+
+    local normal = summary.Normal
+    local combat = summary.Combat
+
+    Pyre.ReportToChannel('Session XP Report', 'Duration: ' .. Pyre.SecondsToClock(normal.Duration))
+    Pyre.ReportToChannel(
+        'TOTAL',
+        'XP: ' ..
+            summary.Experience ..
+                ' Normal: ' ..
+                    summary.NormalExperience ..
+                        ' Rare: ' .. summary.RareExperience .. ' Bonus: ' .. summary.BonusExperience
+    )
+
+    Pyre.ReportToChannel(
+        'PERMIN',
+        'Normal: ' .. normal.NormalPerMinute .. ' Rare: ' .. normal.RarePerMinute .. ' Bonus: ' .. normal.BonusPerMinute
+    )
+
+    Pyre.ReportToChannel(
+        'PERSEC',
+        'Normal: ' .. normal.NormalPerSecond .. ' Rare: ' .. normal.RarePerSecond .. ' Bonus: ' .. normal.BonusPerSecond
+    )
+end
+
+function OnReportSessionXPCData()
+    Pyre.Log('Reporting session xp', Pyre.LogLevel.DEBUG)
+
+    local session = Tracker.Session
+    if (session.StartTime == nil) then
+        Pyre.Log('No session data to report', Pyre.LogLevel.ERROR)
+        return
+    end
+
+    local summary = Factory.CreateSessionSummary(session)
+
+    local normal = summary.Normal
+    local combat = summary.Combat
+
+    Pyre.ReportToChannel(
+        'Session XP Combat Report',
+        'Duration: ' .. Pyre.SecondsToClock(normal.Duration) .. ' Combat: ' .. Pyre.SecondsToClock(combat.Duration)
+    )
+    Pyre.ReportToChannel(
+        'TOTAL',
+        'XP: ' ..
+            summary.Experience ..
+                ' Normal: ' ..
+                    summary.NormalExperience ..
+                        ' Rare: ' .. summary.RareExperience .. ' Bonus: ' .. summary.BonusExperience
+    )
+
+    Pyre.ReportToChannel(
+        'PERMIN',
+        'Normal: ' .. combat.NormalPerMinute .. ' Rare: ' .. combat.RarePerMinute .. ' Bonus: ' .. combat.BonusPerMinute
+    )
+
+    Pyre.ReportToChannel(
+        'PERSEC',
+        'Normal: ' .. combat.NormalPerSecond .. ' Rare: ' .. combat.RarePerSecond .. ' Bonus: ' .. combat.BonusPerSecond
+    )
+end
+
+function OnReportSessionDPSData()
+    Pyre.Log('Reporting session dps', Pyre.LogLevel.DEBUG)
+
+    local session = Tracker.Session
+    if (session.StartTime == nil) then
+        Pyre.Log('No session data to report', Pyre.LogLevel.ERROR)
+        return
+    end
+
+    local summary = Factory.CreateSessionSummary(session)
+
+    local normal = summary.Normal
+    local combat = summary.Combat
+
+    Pyre.ReportToChannel(
+        'Session DPS Report',
+        'Duration: ' .. Pyre.SecondsToClock(normal.Duration) .. ' Combat: ' .. Pyre.SecondsToClock(combat.Duration)
+    )
+    Pyre.ReportToChannel(
+        'Player ',
+        'Damage: ' .. summary.PlayerDamage .. ' DPS: ' .. normal.PlayerDps .. ' DPCS: ' .. combat.PlayerDps
+    )
+    Pyre.ReportToChannel(
+        'Enemies',
+        'Damage: ' .. summary.EnemyDamage .. ' DPS: ' .. normal.EnemyDps .. ' DPCS: ' .. combat.EnemyDps
+    )
 end
 
 return Tracker

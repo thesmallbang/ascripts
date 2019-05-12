@@ -198,6 +198,19 @@ function Quaff.FeatureHelp()
     local logTable = {
         {
             {
+                Value = 'clear',
+                Color = 'orange',
+                Tooltip = 'Clear potion failures',
+                Action = 'pyre set quaff clear'
+            },
+            {Value = ''}
+        },
+        {
+            {Value = ''},
+            {Value = ''}
+        },
+        {
+            {
                 Value = 'enabled',
                 Tooltip = 'Enable automatically quaffing potions'
             },

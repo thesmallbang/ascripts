@@ -421,7 +421,7 @@ function SkillFeature.FeatureHelp()
         logTable,
         1,
         true,
-        'usage: pyre set skills <setting> <value>'
+        'usage: pyre set skills <setting> <value> '
     )
 end
 

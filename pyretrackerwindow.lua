@@ -20,6 +20,16 @@ WindowFeature.Settings = {
             setting.value = parsed
             SetVariable('trackerwindow_interval', setting.value)
         end
+    },
+    {
+        name = 'view',
+        description = 'What data to display Session,Area, or Fight',
+        value = tonumber(GetVariable('trackerwindow_view')) or 0,
+        setValue = function(setting, val)
+            local parsed = tonumber(val) or 0
+            setting.value = parsed
+            SetVariable('trackerwindow_view', setting.value)
+        end
     }
 }
 

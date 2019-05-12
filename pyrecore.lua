@@ -147,13 +147,7 @@ end
 
 function core_module.SaveSettings()
     SetVariable('Channel', core_module.Settings.Channel or 'echo')
-
-    SetVariable('AlignmentBuffer', core_module.Settings.AlignmentBuffer or 300)
-
     SetVariable('LogLevel', core_module.Settings.LogLevel or core_module.LogLevel.INFO)
-
-    SetVariable('SkillExpirationWarn', core_module.Settings.SkillExpirationWarn or 30)
-    SetVariable('OnlyLeaderInitiate', core_module.Settings.OnlyLeaderInitiate or 0)
     SetVariable('AddToQueueDelay', core_module.Settings.AddToQueueDelay or 0)
     SetVariable('QueueSize', core_module.Settings.QueueSize or 2)
 end
@@ -164,24 +158,9 @@ function core_module.ChangeSetting(setting, settingValue)
         core_module.Log('Channel : ' .. core_module.Settings.Channel)
     end
 
-    if (string.lower(setting) == 'alignmentbuffer') then
-        core_module.Settings.AlignmentBuffer = tonumber(settingValue) or 300
-        core_module.Log('AlignmentBuffer : ' .. core_module.Settings.AlignmentBuffer)
-    end
-
     if (string.lower(setting) == 'loglevel') then
         core_module.Settings.LogLevel = tonumber(settingValue) or core_module.LogLevel.INFO
         core_module.Log('LogLevel : ' .. core_module.Settings.LogLevel)
-    end
-
-    if (string.lower(setting) == 'skillexpirationwarn') then
-        core_module.Settings.SkillExpirationWarn = tonumber(settingValue) or 30
-        core_module.Log('SkillExpirationWarn : ' .. core_module.Settings.SkillExpirationWarn)
-    end
-
-    if (string.lower(setting) == 'onlyleaderinitiate') then
-        core_module.Settings.OnlyLeaderInitiate = tonumber(settingValue) or 0
-        core_module.Log('OnlyLeaderInitiate : ' .. core_module.Settings.OnlyLeaderInitiate)
     end
 
     if (string.lower(setting) == 'addtoqueuedelay') then

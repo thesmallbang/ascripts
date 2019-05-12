@@ -6,7 +6,7 @@ Pyre.Log('helper.lua loaded', Pyre.LogLevel.DEBUG)
 
 local Helper = {}
 
-Version = '1.2.21'
+Version = '0.0'
 local Features = {}
 local VersionData = {}
 function Helper.LoadFeatures()
@@ -28,6 +28,7 @@ end
 function Helper.AddNewFeature(feature)
     Helper.LoadFeature(feature)
     table.insert(Features, feature)
+    Execute('pyre help ' .. feature.name)
 end
 function Helper.RemoveFeature(feature)
     Features =
@@ -438,6 +439,7 @@ function OnFeatureInstall(name, line, wildcards)
         return
     end
 
+    Helper.RemoveFeature(feature)
     Helper.DownloadFeature(feature)
 end
 
@@ -454,7 +456,6 @@ function OnFeatureUninstall(name, line, wildcards)
     )
 
     if (feature == nil) then
-        Pyre.Log('Feature not installed')
         return
     end
 

@@ -182,10 +182,10 @@ function OnZoneChanged(changeInfo)
 end
 
 function OnResetFightData()
-    Pyre.Log('OnResetFightData', Pyre.LogLevel.DEBUG)
+    Pyre.Log('Resetting fight data', Pyre.LogLevel.INFO)
 end
 function OnResetFightsData()
-    Pyre.Log('OnResetFightsData', Pyre.LogLevel.DEBUG)
+    Pyre.Log('Resetting all fight data', Pyre.LogLevel.INFO)
 end
 
 function OnReportFightData()

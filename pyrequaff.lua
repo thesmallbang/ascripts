@@ -103,7 +103,7 @@ function Quaff.FeatureStart()
 end
 
 function Quaff.FeatureSettingHandle(settingName, p1, p2, p3, p4)
-    if (string.lower(settingName) ~= 'quaff') then
+    if (string.lower(settingName) ~= 'quaff' and string.lower(settingName) ~= 'quaf') then
         return
     end
 
@@ -273,7 +273,7 @@ function Quaff.FeatureHelp()
         logTable,
         1,
         true,
-        'usage: pyre setting quaff <setting> <value>'
+        'usage: pyre set quaff <setting> <value>'
     )
 end
 

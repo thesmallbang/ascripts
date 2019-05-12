@@ -32,7 +32,7 @@ SkillFeature.Settings = {
                 parsed = 0
             end
             setting.value = parsed
-            SetVariable('onlyleaderinitiate', value)
+            SetVariable('onlyleaderinitiate', setting.value)
         end
     },
     {
@@ -42,7 +42,7 @@ SkillFeature.Settings = {
         setValue = function(setting, val)
             local parsed = tonumber(val) or 0
             setting.value = parsed
-            SetVariable('expirationwarn', value)
+            SetVariable('expirationwarn', setting.value)
         end
     },
     {
@@ -52,7 +52,7 @@ SkillFeature.Settings = {
         setValue = function(setting, val)
             local parsed = tonumber(val) or 0
             setting.value = parsed
-            SetVariable('alignmentbuffer', value)
+            SetVariable('alignmentbuffer', setting.value)
         end
     }
 

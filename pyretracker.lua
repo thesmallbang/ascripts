@@ -39,7 +39,7 @@ Tracker.Settings = {
         setValue = function(setting, val)
             local parsed = tonumber(val) or 0
             setting.value = parsed
-            SetVariable('fightsize', value)
+            SetVariable('fightsize', setting.value)
         end
     },
     {
@@ -49,7 +49,7 @@ Tracker.Settings = {
         setValue = function(setting, val)
             local parsed = tonumber(val) or 0
             setting.value = parsed
-            SetVariable('areasize', value)
+            SetVariable('areasize', setting.value)
         end
     },
     {
@@ -59,7 +59,7 @@ Tracker.Settings = {
         setValue = function(setting, val)
             local parsed = tonumber(val) or 100000
             setting.value = parsed
-            SetVariable('sessionsize', value)
+            SetVariable('sessionsize', setting.value)
         end
     }
 }

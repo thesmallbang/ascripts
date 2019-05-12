@@ -2,14 +2,20 @@ local Pyre = require('pyrecore')
 local PyreTracker = {}
 
 Factory = {
+    NewSession = function()
+        return {
+            StartTime = socket.gettime(),
+            Fights = {}
+        }
+    end,
     NewFight = function()
         return {
             Area = Pyre.Status.Zone,
             StartTime = socket.gettime(),
             EndTime = 0,
-            XpMessages = {}, -- { Value, Type (Normal, Rare, Double) }
-            DmgMessages = {}, -- { Value , SourceType (Player,Enemy) , IsCritical,  }
-            HealMessages = {} -- { Value , SourceType (Player,Quaff) }
+            Enemies = 0,
+            Xp = {Normal = 0, Rare = 0, Bonus = 0},
+            Damage = {Enemy = 0, Player = 0}
         }
     end,
     NewArea = function()
@@ -17,8 +23,7 @@ Factory = {
             Area = Pyre.Status.Zone,
             StartTime = socket.gettime(),
             EndTime = 0,
-            XP = {}, -- { Type = (Normal, Rare, Bonus), Value = 0, Date = socket.gettime(), Duration = 0 },
-            Damage = {} -- { Source = (Player, Enemy), Duration = 0, Value = 0, bestDmg = 'bash'  }
+            Fights = {XP = {}, Damage = {}, Date = socket.gettime(), Duration = 0}
         }
     end,
     NewAreaXp = function(type, value, startTime, stopTime)
@@ -41,6 +46,7 @@ PyreTracker.AreaTracker = {
 }
 
 PyreTracker.Commands = {
+    {name = 'resetsession', description = 'Reset the current session tracking data', callback = 'OnResetSessionData'},
     {name = 'resetfight', description = 'Reset the current fight data', callback = 'OnResetFightData'},
     {name = 'resetfights', description = 'Reset the all fight data', callback = 'OnResetFightsData'},
     {name = 'resetarea', description = 'Reset the current area tracking data', callback = 'OnResetAreaData'},
@@ -67,12 +73,21 @@ PyreTracker.Settings = {
             local parsed = tonumber(val) or 0
             value = parsed
         end
+    },
+    {
+        name = 'sessionsize',
+        description = 'How fights to limit the session to',
+        value = tonumber(GetVariable('sessionsize')) or 100000,
+        setValue = function(val)
+            local parsed = tonumber(val) or 100000
+            value = parsed
+        end
     }
 }
 
 function PyreTracker.FeatureStart()
-    table.insert(Pyre.Events[Pyre.Event.StateChanged], OnStateChange)
-    table.insert(Pyre.Events[Pyre.Event.ZoneChanged], OnZoneChanged)
+    table.insert(Pyre.Events[Pyre.Event.StateChanged], TrackerOnStateChanged)
+    table.insert(Pyre.Events[Pyre.Event.ZoneChanged], TrackerOnZoneChanged)
 
     -- create an alias for each of our PyreTracker.Commands
     Pyre.Each(
@@ -169,7 +184,7 @@ function PyreTracker.ArchiveCurrentArea()
     end
 end
 
-function OnStateChange(stateObject)
+function TrackerOnStateChanged(stateObject)
     if (stateObject.New == Pyre.States.COMBAT) then
         PyreTracker.FightTracker.Current = Factory.NewFight()
     else
@@ -177,7 +192,7 @@ function OnStateChange(stateObject)
     end
 end
 
-function OnZoneChanged(changeInfo)
+function TrackerOnZoneChanged(changeInfo)
     PyreTracker.ArchiveCurrentArea()
 end
 
@@ -195,6 +210,10 @@ function OnReportFightData()
         return
     end
     print(PyreTracker.FightTracker.Current.Area .. ' report some fight')
+end
+
+function OnResetSessionData()
+    Pyre.Log('Resetting all session data', Pyre.LogLevel.INFO)
 end
 
 return PyreTracker

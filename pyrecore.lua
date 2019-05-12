@@ -25,6 +25,15 @@ function core_module.Log(msg, loglevel)
     core_module.ColorLog(msg, 'white', '', loglevel)
 end
 
+function core_module.ReportToChannel(reportType, msg)
+    local channel = core_module.Settings.Channel or 'echo'
+    if (channel == 'echo') then
+        Pyre.Log(msg, Pyre.LogLevel.INFO)
+    else
+        Execute(channel .. ' @cPR ' .. reportType .. '@w ' .. msg)
+    end
+end
+
 function core_module.ToString(o)
     return json.encode(o)
 end

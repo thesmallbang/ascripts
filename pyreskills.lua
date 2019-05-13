@@ -174,9 +174,7 @@ ClanSkills = {
         end,
         OnSuccess = function(skill)
             skill.Queued = false
-
             skill.LastAttempt = nil
-
             skill.DidWarn = 0
         end,
         OnFailure = function(skill)

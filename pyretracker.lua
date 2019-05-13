@@ -642,6 +642,13 @@ function Tracker.ArchiveCurrentFight()
             -- add session data
             table.insert(Tracker.Session.Fights, 1, Tracker.FightTracker.Current)
 
+            if (Tracker.FightIndex > 0) then
+                Tracker.FightIndex = Tracker.FightIndex + 1
+                if (Tracker.FightIndex > #Tracker.Session.Fights) then
+                    Tracker.FightIndex = #Tracker.Session.Fights
+                end
+            end
+
             local maxSessionFights = Pyre.GetSettingValue(Tracker.Settings, 'sessionsize')
             if (#Tracker.Session.Fights > maxSessionFights) then
                 -- trim our session data
@@ -671,6 +678,13 @@ function Tracker.ArchiveCurrentArea()
      then
         Tracker.AreaTracker.Current = Tracker.Factory.EndArea(Tracker.AreaTracker.Current)
         table.insert(Tracker.AreaTracker.History, 1, Tracker.AreaTracker.Current)
+
+        if (Tracker.AreaIndex > 0) then
+            Tracker.AreaIndex = Tracker.AreaIndex + 1
+            if (Tracker.AreaIndex > #Tracker.AreaTracker.History) then
+                Tracker.AreaIndex = #Tracker.AreaTracker.History
+            end
+        end
 
         local maxSize = Pyre.GetSettingValue(Tracker.Settings, 'areasize')
         local difference = (maxSize - #Tracker.AreaTracker.History)

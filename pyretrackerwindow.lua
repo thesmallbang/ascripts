@@ -192,7 +192,14 @@ function WindowFeature.FeatureTick()
         local areaIndex = Tracker.AreaIndex
         local area = Tracker.GetAreaByIndex(areaIndex)
         if (area ~= nil and area.StartTime ~= nil) then
-            WindowFeature.areaCache = Tracker.Factory.CreateAreaSummary(area)
+            -- dont bother continuing to ask for summary on a history item
+            if
+                not (WindowFeature.areaCache ~= nil and WindowFeature.lastAreaCacheIndex > 0 and
+                    WindowFeature.lastAreaCacheIndex == areaIndex)
+             then
+                WindowFeature.areaCache = Tracker.Factory.CreateAreaSummary(area)
+            end
+
             WindowFeature.lastAreaCacheUpdate = socket.gettime()
             WindowFeature.lastAreaCacheIndex = areaIndex
         else
@@ -217,7 +224,14 @@ function WindowFeature.FeatureTick()
         end
 
         if (fight ~= nil and fight.StartTime ~= nil) then
-            WindowFeature.fightCache = Tracker.Factory.CreateFightSummary(fight)
+            -- dont bother continuing to ask for summary on a history item
+            if
+                not (WindowFeature.fightCache ~= nil and WindowFeature.lastFightCacheIndex > 0 and
+                    WindowFeature.lastFightCacheIndex == Tracker.FightIndex)
+             then
+                WindowFeature.fightCache = Tracker.Factory.CreateFightSummary(fight)
+            end
+
             WindowFeature.lastFightCacheUpdate = socket.gettime()
             WindowFeature.lastFightCacheIndex = fightIndex
         else

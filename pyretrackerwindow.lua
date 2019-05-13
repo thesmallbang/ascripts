@@ -768,7 +768,6 @@ function OnTrackerWindowPagerNewer()
 end
 function OnTrackerWindowPagerOlder()
     local view = Pyre.GetSettingValue(WindowFeature.Settings, 'view')
-    print(view)
     if (view == 1) then
         Execute('pyre tracker olderarea')
     else

@@ -637,7 +637,10 @@ function Tracker.ArchiveCurrentFight()
                 Tracker.FightTracker.Current.Damage.Player == 0)
          then
             -- add area data
-            table.insert(Tracker.AreaTracker.Current.Fights, 1, Tracker.FightTracker.Current)
+
+            if (Tracker.AreaTracker.Current ~= nil and Tracker.AreaTracker.Current.Fights ~= nil) then
+                table.insert(Tracker.AreaTracker.Current.Fights, 1, Tracker.FightTracker.Current)
+            end
 
             -- add session data
             table.insert(Tracker.Session.Fights, 1, Tracker.FightTracker.Current)

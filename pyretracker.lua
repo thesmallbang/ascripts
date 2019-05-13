@@ -15,12 +15,25 @@ local Tracker = {
 
 Tracker.Commands = {
     {name = 'setarea', description = 'Nav to specific area', callback = 'OnTrackerSetAreaIndex'},
-    {name = 'currentarea', description = 'Nav to current area', callback = 'OnTrackerSetAreaIndexCurrent'},
-    {name = 'previousarea', description = 'Nav to newer area', callback = 'OnTrackerSetAreaIndexPrevious'},
-    {name = 'nextarea', description = 'Nav to older area', callback = 'OnTrackerSetAreaIndexNext'},
-    {name = 'oldestarea', description = 'Nav to oldest area', callback = 'OnTrackerSetAreaIndexOldest'},
-    {name = 'setfight', description = 'Nav to more recent area', callback = 'OnResetSessionData'},
-    {name = 'resetsession', description = 'Reset the current session tracking data', callback = 'OnResetSessionData'},
+    {name = 'firstarea', description = 'Nav to current area', callback = 'OnTrackerSetAreaIndexFirst'},
+    {name = 'newerarea', description = 'Nav to newer area', callback = 'OnTrackerSetAreaIndexNewer'},
+    {name = 'olderarea', description = 'Nav to older area', callback = 'OnTrackerSetAreaIndexOlder'},
+    {name = 'lastarea', description = 'Nav to oldest area', callback = 'OnTrackerSetAreaIndexLast'},
+    {name = 'setfight', description = 'Nav to specific fight', callback = 'OnTrackerSetFightIndex'},
+    {name = 'firstfight', description = 'Nav to current fight', callback = 'OnTrackerSetFightIndexFirst'},
+    {name = 'newerfight', description = 'Nav to newer fight', callback = 'OnTrackerSetFightIndexNewer'},
+    {name = 'olderfight', description = 'Nav to older fight', callback = 'OnTrackerSetFightIndexOlder'},
+    {name = 'lastfight', description = 'Nav to oldest fight', callback = 'OnTrackerSetFightIndexLast'},
+    {
+        name = 'resetfights',
+        description = 'Reset the all fight data (same as resetsession)',
+        callback = 'OnResetSessionData'
+    },
+    {
+        name = 'resetsession',
+        description = 'Reset the all session data (same as resetfights)',
+        callback = 'OnResetSessionData'
+    },
     {name = 'resetfight', description = 'Reset the current fight data', callback = 'OnResetFightData'},
     {name = 'resetarea', description = 'Reset the current area tracking data', callback = 'OnResetAreaData'},
     {name = 'resetareas', description = 'Reset all area tracking data', callback = 'OnResetAreasData'},
@@ -37,16 +50,6 @@ Tracker.Commands = {
 }
 
 Tracker.Settings = {
-    {
-        name = 'fightsize',
-        description = 'How many previous fights to keep data on',
-        value = tonumber(GetVariable('fightsize')) or 10,
-        setValue = function(setting, val)
-            local parsed = tonumber(val) or 0
-            setting.value = parsed
-            SetVariable('fightsize', setting.value)
-        end
-    },
     {
         name = 'areasize',
         description = 'How many previous areas to keep data on',
@@ -107,7 +110,8 @@ Tracker.Factory = {
         if (area == nil or area.Area == nil or area.StartTime == nil) then
             return
         end
-        area.Duration = socket.gettime() - area.StartTime
+        area.EndTime = socket.gettime()
+        area.Duration = area.EndTime - area.StartTime
         return area
     end,
     CreateSessionSummary = function(session)
@@ -628,25 +632,30 @@ function Tracker.ArchiveCurrentFight()
     if ((Tracker.FightTracker.Current.Area or '') ~= '') then
         Tracker.FightTracker.Current = Tracker.Factory.EndFight(Tracker.FightTracker.Current)
 
-        -- add area data
-        table.insert(Tracker.AreaTracker.Current.Fights, Tracker.FightTracker.Current)
+        if
+            not (Tracker.FightTracker.Current.XP.Normal == 0 and Tracker.FightTracker.Current.Damage.Enemy == 0 and
+                Tracker.FightTracker.Current.Damage.Player == 0)
+         then
+            -- add area data
+            table.insert(Tracker.AreaTracker.Current.Fights, 1, Tracker.FightTracker.Current)
 
-        -- add session data
-        table.insert(Tracker.Session.Fights, Tracker.FightTracker.Current)
+            -- add session data
+            table.insert(Tracker.Session.Fights, 1, Tracker.FightTracker.Current)
 
-        local maxSessionFights = Pyre.GetSettingValue(Tracker.Settings, 'sessionsize')
-        if (#Tracker.Session.Fights > maxSessionFights) then
-            -- trim our session data
-            local difference = (maxSessionFights - #Tracker.Session.Fights)
-            if (difference > 0) then
-                Tracker.Session.Fights =
-                    Pyre.Except(
-                    Tracker.Session.Fights,
-                    function()
-                        return true
-                    end,
-                    difference
-                )
+            local maxSessionFights = Pyre.GetSettingValue(Tracker.Settings, 'sessionsize')
+            if (#Tracker.Session.Fights > maxSessionFights) then
+                -- trim our session data
+                local difference = (maxSessionFights - #Tracker.Session.Fights)
+                if (difference > 0) then
+                    Tracker.Session.Fights =
+                        Pyre.Filter(
+                        Tracker.Session.Fights,
+                        function()
+                            return true
+                        end,
+                        maxSessionFights
+                    )
+                end
             end
         end
 
@@ -655,10 +664,29 @@ function Tracker.ArchiveCurrentFight()
 end
 
 function Tracker.ArchiveCurrentArea()
-    if (Tracker.AreaTracker.Current ~= {}) then
-        table.insert(Tracker.AreaTracker.History, Tracker.AreaTracker.Current)
-        Tracker.AreaTracker.Current = Tracker.Factory.NewArea()
+    if
+        (Tracker.AreaTracker.Current ~= nil and Tracker.AreaTracker.Current.Area ~= nil and
+            Tracker.AreaTracker.Current.Area ~= '' and
+            #Tracker.AreaTracker.Current.Fights > 0)
+     then
+        Tracker.AreaTracker.Current = Tracker.Factory.EndArea(Tracker.AreaTracker.Current)
+        table.insert(Tracker.AreaTracker.History, 1, Tracker.AreaTracker.Current)
+
+        local maxSize = Pyre.GetSettingValue(Tracker.Settings, 'areasize')
+        local difference = (maxSize - #Tracker.AreaTracker.History)
+        if (difference > 0) then
+            Tracker.AreaTracker.History =
+                Pyre.Filter(
+                Tracker.AreaTracker.History,
+                function()
+                    return true
+                end,
+                maxSize
+            )
+        end
     end
+
+    Tracker.AreaTracker.Current = Tracker.Factory.NewArea()
 end
 
 function TrackerOnStateChanged(stateObject)
@@ -671,6 +699,86 @@ end
 
 function TrackerOnZoneChanged(changeInfo)
     Tracker.ArchiveCurrentArea()
+end
+
+function OnTrackerSetFightIndex()
+    local i = Pyre.AskIfEmpty(nil, 'Fight Index', Tracker.FightIndex)
+    if (i ~= nil and i ~= '') then
+        Tracker.FightIndex = tonumber(i) or 0
+        if (Tracker.FightIndex > #Tracker.Session.Fights) then
+            Tracker.FightIndex = #Tracker.Session.Fights
+        end
+        if (Tracker.FightIndex < 0) then
+            Tracker.FightIndex = 0
+        end
+        Pyre.Log('Fight index set to ' .. (Tracker.FightIndex or 0) .. ' of ' .. (#Tracker.Session.Fights or 0))
+    end
+end
+
+function OnTrackerSetFightIndexFirst()
+    Tracker.FightIndex = 0
+    Pyre.Log('Fight index set to ' .. (Tracker.FightIndex or 0) .. ' of ' .. (#Tracker.Session.Fights or 0))
+end
+
+function OnTrackerSetFightIndexNewer()
+    Tracker.FightIndex = Tracker.FightIndex - 1
+    if (Tracker.FightIndex < 0) then
+        Tracker.FightIndex = 0
+    end
+    Pyre.Log('Fight index set to ' .. (Tracker.FightIndex or 0) .. ' of ' .. (#Tracker.Session.Fights or 0))
+end
+
+function OnTrackerSetFightIndexOlder()
+    Tracker.FightIndex = Tracker.FightIndex + 1
+    if (Tracker.FightIndex > #Tracker.Session.Fights) then
+        Tracker.FightIndex = #Tracker.Session.Fights
+    end
+    Pyre.Log('Fight index set to ' .. (Tracker.FightIndex or 0) .. ' of ' .. (#Tracker.Session.Fights or 0))
+end
+
+function OnTrackerSetFightIndexLast()
+    Tracker.FightIndex = #Tracker.Session.Fights or 0
+    Pyre.Log('Fight index set to ' .. (Tracker.FightIndex or 0) .. ' of ' .. (#Tracker.Session.Fights or 0))
+end
+
+function OnTrackerSetAreaIndex()
+    local i = Pyre.AskIfEmpty(nil, 'Area Index', Tracker.AreaIndex)
+    if (i ~= nil and i ~= '') then
+        Tracker.AreaIndex = tonumber(i) or 0
+        if (Tracker.AreaIndex > #Tracker.AreaTracker.History) then
+            Tracker.AreaIndex = #Tracker.AreaTracker.History
+        end
+        if (Tracker.AreaIndex < 0) then
+            Tracker.AreaIndex = 0
+        end
+        Pyre.Log('Area index set to ' .. (Tracker.AreaIndex or 0) .. ' of ' .. (#Tracker.AreaTracker.History or 0))
+    end
+end
+
+function OnTrackerSetAreaIndexFirst()
+    Tracker.AreaIndex = 0
+    Pyre.Log('Area index set to ' .. (Tracker.AreaIndex or 0) .. ' of ' .. (#Tracker.AreaTracker.History or 0))
+end
+
+function OnTrackerSetAreaIndexNewer()
+    Tracker.AreaIndex = Tracker.AreaIndex - 1
+    if (Tracker.AreaIndex < 0) then
+        Tracker.AreaIndex = 0
+    end
+    Pyre.Log('Area index set to ' .. (Tracker.AreaIndex or 0) .. ' of ' .. (#Tracker.AreaTracker.History or 0))
+end
+
+function OnTrackerSetAreaIndexOlder()
+    Tracker.AreaIndex = Tracker.AreaIndex + 1
+    if (Tracker.AreaIndex > #Tracker.AreaTracker.History) then
+        Tracker.AreaIndex = #Tracker.AreaTracker.History
+    end
+    Pyre.Log('Area index set to ' .. (Tracker.AreaIndex or 0) .. ' of ' .. (#Tracker.AreaTracker.History or 0))
+end
+
+function OnTrackerSetAreaIndexLast()
+    Tracker.AreaIndex = #Tracker.AreaTracker.History or 0
+    Pyre.Log('Area index set to ' .. (Tracker.AreaIndex or 0) .. ' of ' .. (#Tracker.AreaTracker.History or 0))
 end
 
 function OnResetFightData()

@@ -212,7 +212,8 @@ function WindowFeature.FeatureTick()
         local fightIndex = Tracker.FightIndex
         local fight = Tracker.GetFightByIndex(fightIndex)
         if ((fight == nil or fight.StartTime == nil) and fightIndex == 0) then
-            fight = Tracker.GetFightByIndex(1)
+            fightIndex = 1
+            fight = Tracker.GetFightByIndex(fightIndex)
         end
 
         if (fight ~= nil and fight.StartTime ~= nil) then
@@ -577,6 +578,8 @@ function WindowFeature.DrawAreaView()
 
     WindowFeature.DrawTextLine(7, 'EDPCS', 280)
     WindowFeature.DrawTextLine(7, area.Combat.EnemyDps, 320)
+
+    WindowFeature.DrawPager(WindowFeature.lastAreaCacheIndex, #Tracker.AreaTracker.History)
 end
 
 -- draw our fight data on the window
@@ -588,6 +591,7 @@ function WindowFeature.DrawFightView()
         return
     end
 
+    WindowFeature.DrawTextLine(2, 'FIGHT', nil, ColourNameToRGB('teal'), 'm')
     WindowFeature.DrawTextLine(2, Pyre.SecondsToClock(fight.Normal.Duration), 340, ColourNameToRGB('teal'), 'm')
 
     WindowFeature.DrawTextLine(3, 'Exp')
@@ -602,29 +606,182 @@ function WindowFeature.DrawFightView()
     WindowFeature.DrawTextLine(4, 'Norm')
     WindowFeature.DrawTextLine(4, fight.NormalExperience, 50)
 
+    WindowFeature.DrawTextLine(4, 'DPS', 140)
+    WindowFeature.DrawTextLine(4, fight.Normal.PlayerDps, 180)
+
+    WindowFeature.DrawTextLine(4, 'EDPS', 280)
+    WindowFeature.DrawTextLine(4, fight.Normal.EnemyDps, 320)
+
     WindowFeature.DrawTextLine(5, 'XPM')
     WindowFeature.DrawTextLine(5, fight.Normal.ExpPerMinute, 50)
 
-    -- WindowFeature.DrawTextLine(5, 'XPCM', 140)
-    -- WindowFeature.DrawTextLine(5, fight.Combat.ExpPerMinute, 180)
+    WindowFeature.DrawTextLine(5, 'Dmg', 140)
+    WindowFeature.DrawTextLine(5, fight.PlayerDamage, 180)
 
-    WindowFeature.DrawTextLine(6, 'Dmg')
-    WindowFeature.DrawTextLine(6, fight.PlayerDamage, 50)
+    WindowFeature.DrawTextLine(5, 'EDmg', 280)
+    WindowFeature.DrawTextLine(5, fight.EnemyDamage, 320)
 
-    WindowFeature.DrawTextLine(6, 'DPS', 140)
-    WindowFeature.DrawTextLine(6, fight.Normal.PlayerDps, 180)
+    -- Draw Fight Pager
+    WindowFeature.DrawPager(WindowFeature.lastFightCacheIndex, #Tracker.Session.Fights)
+end
 
-    -- WindowFeature.DrawTextLine(6, 'DPCS', 280)
-    -- WindowFeature.DrawTextLine(6, fight.Combat.PlayerDps, 320)
+function WindowFeature.DrawPager(i, max)
+    if (max == nil or max == 0) then
+        return
+    end
 
-    WindowFeature.DrawTextLine(7, 'EDmg')
-    WindowFeature.DrawTextLine(7, fight.EnemyDamage, 50)
+    if (i > 0) then
+        WindowText(
+            WindowFeature.windowId,
+            'su',
+            '<<',
+            10,
+            (WindowInfo(WindowFeature.windowId, 4) - WindowFeature.handleHeight) - 4,
+            0,
+            0,
+            ColourNameToRGB('white')
+        )
 
-    WindowFeature.DrawTextLine(7, 'EDPS', 140)
-    WindowFeature.DrawTextLine(7, fight.Normal.EnemyDps, 180)
+        WindowAddHotspot(
+            WindowFeature.windowId,
+            'pagerfirst_hs',
+            10,
+            (WindowInfo(WindowFeature.windowId, 4) - WindowFeature.handleHeight) - 4,
+            29,
+            WindowInfo(WindowFeature.windowId, 4) - 1,
+            '',
+            '',
+            'OnTrackerWindowPagerFirst',
+            '',
+            '',
+            'View Current',
+            1, -- hand cursor
+            0
+        )
 
-    -- WindowFeature.DrawTextLine(7, 'EDPCS', 280)
-    -- WindowFeature.DrawTextLine(7, fight.Combat.EnemyDps, 320)
+        WindowText(
+            WindowFeature.windowId,
+            'su',
+            '<',
+            30,
+            (WindowInfo(WindowFeature.windowId, 4) - WindowFeature.handleHeight) - 4,
+            0,
+            0,
+            ColourNameToRGB('white')
+        )
+        WindowAddHotspot(
+            WindowFeature.windowId,
+            'pagernewer_hs',
+            30,
+            (WindowInfo(WindowFeature.windowId, 4) - WindowFeature.handleHeight) - 4,
+            50,
+            WindowInfo(WindowFeature.windowId, 4) - 1,
+            '',
+            '',
+            'OnTrackerWindowPagerNewer',
+            '',
+            '',
+            'View Newer',
+            1, -- hand cursor
+            0
+        )
+    end
+
+    if (i < max) then
+        WindowText(
+            WindowFeature.windowId,
+            'su',
+            '>',
+            WindowInfo(WindowFeature.windowId, 3) - 35,
+            (WindowInfo(WindowFeature.windowId, 4) - WindowFeature.handleHeight) - 4,
+            0,
+            0,
+            ColourNameToRGB('white')
+        )
+        WindowAddHotspot(
+            WindowFeature.windowId,
+            'navarea_older_hs',
+            WindowInfo(WindowFeature.windowId, 3) - 35,
+            (WindowInfo(WindowFeature.windowId, 4) - WindowFeature.handleHeight) - 4,
+            WindowInfo(WindowFeature.windowId, 3) - 14,
+            WindowInfo(WindowFeature.windowId, 4) - 1, -- rectangle
+            '',
+            '',
+            'OnTrackerWindowPagerOlder',
+            '',
+            '',
+            'View Older',
+            1, -- hand cursor
+            0
+        )
+        WindowText(
+            WindowFeature.windowId,
+            'su',
+            '>>',
+            WindowInfo(WindowFeature.windowId, 3) - 15,
+            (WindowInfo(WindowFeature.windowId, 4) - WindowFeature.handleHeight) - 4,
+            0,
+            0,
+            ColourNameToRGB('white')
+        )
+        WindowAddHotspot(
+            WindowFeature.windowId,
+            'navarea_oldest_hs',
+            WindowInfo(WindowFeature.windowId, 3) - 15,
+            (WindowInfo(WindowFeature.windowId, 4) - WindowFeature.handleHeight) - 4,
+            WindowInfo(WindowFeature.windowId, 3) - 1,
+            WindowInfo(WindowFeature.windowId, 4) - 1,
+            '',
+            '',
+            'OnTrackerWindowPagerLast',
+            '',
+            '',
+            'View Oldest',
+            1, -- hand cursor
+            0
+        )
+    end
+
+    local msg = i .. '/' .. max
+    local titleWidth = WindowTextWidth(WindowFeature.windowId, 'm', msg, false)
+    local windowWidth = WindowInfo(WindowFeature.windowId, 3)
+    local left = (windowWidth / 2) - (titleWidth / 2)
+
+    WindowFeature.DrawTextLine(10, msg, left, ColourNameToRGB('white'))
+end
+
+function OnTrackerWindowPagerFirst()
+    local view = Pyre.GetSettingValue(WindowFeature.Settings, 'view')
+    if (view == 1) then
+        Execute('pyre tracker firstarea')
+    else
+        Execute('pyre tracker firstfight')
+    end
+end
+function OnTrackerWindowPagerNewer()
+    local view = Pyre.GetSettingValue(WindowFeature.Settings, 'view')
+    if (view == 1) then
+        Execute('pyre tracker newerarea')
+    else
+        Execute('pyre tracker newerfight')
+    end
+end
+function OnTrackerWindowPagerOlder()
+    local view = Pyre.GetSettingValue(WindowFeature.Settings, 'view')
+    print(view)
+    if (view == 1) then
+        Execute('pyre tracker olderarea')
+    else
+        Execute('pyre tracker olderfight')
+    end
+end
+function OnTrackerWindowPagerLast()
+    local view = Pyre.GetSettingValue(WindowFeature.Settings, 'view')
+    if (view == 1) then
+        Execute('pyre tracker lastarea')
+    else
+        Execute('pyre tracker lastfight')
+    end
 end
 
 function OnTrackerWindowShow()

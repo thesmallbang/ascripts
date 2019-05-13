@@ -375,7 +375,7 @@ function SkillFeature.FeatureHelp()
                         Color = 'orange',
                         Action = command.name
                     },
-                    {Value = ''}
+                    {Value = command.description, Tooltip = command.description}
                 }
             )
         end

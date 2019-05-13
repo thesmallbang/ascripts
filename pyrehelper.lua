@@ -383,7 +383,7 @@ function OnSetting(name, line, wildcards)
     p3 = all_trim(p3)
     p4 = all_trim(p4)
 
-    if (setting == nil or setting == '' or p1 == '') then
+    if (setting == nil or setting == '') then
         return
     end
 

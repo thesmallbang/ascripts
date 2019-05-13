@@ -145,6 +145,33 @@ function core_module.AlignmentCategoryToString(category)
     return setting
 end
 
+function core_module.GetSettingValue(settings, settingName, default)
+    if (default == nil) then
+        default = 0
+    end
+    local setting = core_module.GetSetting(settings, settingName)
+    if (setting == nil) then
+        return default
+    end
+
+    return setting.value
+end
+
+function core_module.GetSetting(settings, settingName)
+    local setting =
+        core_module.First(
+        settings,
+        function(s)
+            return s.name == settingName
+        end
+    )
+    if (setting == nil) then
+        core_module.Log('Attempted to get missing setting [' .. settingName .. ']', core_module.LogLevel.ERROR)
+        return default
+    end
+    return setting
+end
+
 function core_module.SaveSettings()
     SetVariable('Channel', core_module.Settings.Channel or 'echo')
     SetVariable('LogLevel', core_module.Settings.LogLevel or core_module.LogLevel.INFO)
@@ -152,9 +179,34 @@ function core_module.SaveSettings()
     SetVariable('QueueSize', core_module.Settings.QueueSize or 2)
 end
 
+function core_module.AskIfEmpty(settingValue, settingName, default)
+    if (settingValue ~= nil and settingValue ~= '') then
+        return settingValue
+    end
+
+    local result =
+        utils.inputbox(
+        'You left the ' ..
+            settingName .. ' value blank. If you meant to leave it blank click cancel. Otherwise enter a value below',
+        'Set Channel',
+        default,
+        'Courier',
+        9
+    )
+    if (result == '') then
+        result = nil
+    end
+    if (result == nil) then
+        result = default
+    end
+
+    return result
+end
+
 function core_module.ChangeSetting(setting, settingValue)
     if (string.lower(setting) == 'channel') then
-        core_module.Settings.Channel = settingValue or 'echo'
+        settingValue = core_module.AskIfEmpty(settingValue, settingName, core_module.Settings.Channel)
+        core_module.Settings.Channel = settingValue
         core_module.Log('Channel : ' .. core_module.Settings.Channel)
     end
 

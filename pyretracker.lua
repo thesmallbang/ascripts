@@ -475,12 +475,12 @@ function Tracker.FeatureStart()
         'ph_trackerpdmg',
         '^(\\*)?\\[.*\\]?\\s?Your (\\w*) -?<?(.*)>?-? (.*)! \\[(.*)\\]$',
         '',
-        trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
+        trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.KeepEvaluating + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
         -1,
         0,
         '',
         'OnTrackerPlayerDamage',
-        0
+        2
     )
 
     AddTriggerEx(

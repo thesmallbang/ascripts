@@ -651,13 +651,15 @@ function OnClanSkillFailed(name, line, wildcards)
 end
 
 function OnClassSkillUsed(name, line, wildcards)
-    Pyre.Log('OnClanSkillSuccess ' .. name, Pyre.LogLevel.VERBOSE)
+    Pyre.Log('OnClassSkillUsed ' .. name, Pyre.LogLevel.VERBOSE)
+
     local match = wildcards[2]
     local skill = Pyre.GetClassSkillByName(match)
     if (skill == nil) then
-        return
+        return true
     end
     SkillFeature.AttackDequeue(skill)
+    return true
 end
 
 function OnClanSkillSuccess(name, line, wildcards)
@@ -799,12 +801,13 @@ function SkillsSetup()
         'ph_clsskillused',
         '^(\\*)?\\[.*\\]?\\s?Your\\s(\\w*) -?<?(.*)>?-? (.*)! \\[(.*)\\]$',
         '',
-        trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
+        trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.KeepEvaluating + trigger_flag.Replace +
+            trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
         -1,
         0,
         '',
         'OnClassSkillUsed',
-        0
+        1
     )
 
     AddTriggerEx(

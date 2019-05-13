@@ -1,33 +1,56 @@
 {
   "release": {
-    "version": "1.0",
+    "version": "2.0",
+    "url": "https://raw.githubusercontent.com/thesmallbang/ascripts/master/Pyre_Helper.xml",
     "note": "Something about release"
   },
-  "dependencies": [{
-      "url": "https://raw.githubusercontent.com/thesmallbang/ascripts/v2/Pyre_Updater.xml",
-      "version": "1.0"
+  "dependencies": [
+    {
+      "name": "updaterplugin",
+      "url": "https://raw.githubusercontent.com/thesmallbang/ascripts/master/Pyre_Updater.xml",
+      "version": "1.1"
     },
     {
-      "url": "https://raw.githubusercontent.com/thesmallbang/ascripts/v2/pyrecore.lua",
-      "version": "1.0"
+      "name": "pyrehelper",
+      "url": "https://raw.githubusercontent.com/thesmallbang/ascripts/master/pyrehelper.lua",
+      "version": "1.1",
+      "relay": "true"
+    },
+    {
+      "name": "pyrecore",
+      "url": "https://raw.githubusercontent.com/thesmallbang/ascripts/master/pyrecore.lua",
+      "version": "1.1"
     }
   ],
-  "features": [{
-      "name": "skills",
-      "filename": "skills.lua",
+  "features": [
+    {
+      "name": "pyreskills",
+      "filename": "pyreskills.lua",
       "description": "Track skill expirations + pyre attack command",
       "version": "1.0"
     },
     {
-      "name": "scanner",
-      "filename": "scanner.lua",
+      "name": "pyrescanner",
+      "filename": "pyrescanner.lua",
       "description": "automatically scan at an interval and report command with filtering",
       "version": "1.0"
     },
     {
-      "name": "stattracker",
-      "filename": "stattracker.lua",
-      "description": "Track combat stats with reporting and a window",
+      "name": "pyrequaff",
+      "filename": "pyrequaff.lua",
+      "description": "Potion quaffing functionality",
+      "version": "1.1"
+    },
+    {
+      "name": "pyretracker",
+      "filename": "pyretracker.lua",
+      "description": "Keep track of fights, dps, and exp",
+      "version": "1.0"
+    },
+    {
+      "name": "pyretrackerwindow",
+      "filename": "pyretrackerwindow.lua",
+      "description": "Window to show pyretracker data (requires pyretracker install first)",
       "version": "1.0"
     }
   ]

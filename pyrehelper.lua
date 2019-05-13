@@ -6,22 +6,106 @@ Pyre.Log('helper.lua loaded', Pyre.LogLevel.DEBUG)
 
 local Helper = {}
 
-Version = '1.2.21'
-local Features = {
-    {Name = 'skills', Feature = {}, Encapsulated = true},
-    {Name = 'scanner', Feature = {}, Encapsulated = true}
-}
-
+Version = '0.0'
+local Features = {}
+local VersionData = {}
 function Helper.LoadFeatures()
-    for _, feat in ipairs(Features) do
-        if (feat.Encapsulated == true) then
-            feat.Feature = require('pyre' .. feat.Name)
-            feat.Feature.FeatureStart()
-        else
-            require('pyre' .. feat.Name)
-        end
-        Pyre.Log('Loaded Feature ' .. feat.Name, Pyre.LogLevel.DEBUG)
+    if (#Features == 0) then
+        Pyre.Log("No features are installed. Type 'pyre features ' for a list")
+        return
     end
+
+    for _, feature in ipairs(Features) do
+        Helper.LoadFeature(feature)
+    end
+end
+
+function Helper.LoadFeature(feature)
+    feature.Feature = require(feature.name)
+
+    if (feature.Feature.FeatureStart ~= nil) then
+        feature.Feature.FeatureStart(Features, VersionData)
+    end
+    Pyre.Log('Loaded Feature ' .. feature.name, Pyre.LogLevel.DEBUG)
+end
+
+function Helper.RestartFeatures()
+    Pyre.Each(
+        Features,
+        function(feature)
+            if (feature.Feature.FeatureStart ~= nil) then
+                feature.Feature.FeatureStart(Features, VersionData)
+            end
+        end
+    )
+end
+
+function Helper.AddNewFeature(feature)
+    Helper.LoadFeature(feature)
+    table.insert(Features, feature)
+    Execute('pyre help ' .. feature.name)
+end
+function Helper.RemoveFeature(feature)
+    if (feature ~= nil and feature.Feature ~= nil and feature.Feature.FeatureStop ~= nil) then
+        feature.Feature.FeatureStop()
+    end
+    Features =
+        Pyre.Filter(
+        Features,
+        function(f)
+            return (f.name ~= feature.name)
+        end
+    )
+
+    os.remove('lua/' .. feature.name .. '.lua')
+    Pyre.Log('Uninstalled Feature ' .. feature.name)
+end
+
+function csplit(inputstr, sep)
+    if sep == nil then
+        sep = '%s'
+    end
+    local t = {}
+    for str in string.gmatch(inputstr, '([^' .. sep .. ']+)') do
+        table.insert(t, str)
+    end
+    return t
+end
+
+function getFileName(path)
+    local fileParts = csplit(path, '/')
+    local fileName = fileParts[table.getn(fileParts)]
+    return fileName
+end
+function saveFile(path, data)
+    local file = io.open(path, 'w')
+    file:write(data)
+    file:flush()
+    file:close()
+end
+function getFeatureName(path)
+    local fileName = getFileName(path)
+    local extParts = csplit(fileName, '.')
+    return extParts[1]
+end
+function OnFeatureDownloaded(retval, page, status, headers, full_status, request_url)
+    if status == 200 then
+        local fileName = getFileName(request_url)
+        saveFile('lua/' .. fileName, page)
+        Helper.AddNewFeature({name = getFeatureName(fileName)})
+    else
+        Pyre.Log('Unable to download ' .. request_url, Pyre.LogLevel.ERROR)
+    end
+end
+
+function Helper.DownloadFeature(feature)
+    Pyre.Log('Downloading feature' .. feature.name)
+    async.doAsyncRemoteRequest(
+        'https://raw.githubusercontent.com/thesmallbang/ascripts/master/' .. feature.filename,
+        OnFeatureDownloaded,
+        'HTTPS',
+        120
+    )
 end
 
 --------------------------------------------------------------------------------------
@@ -30,21 +114,25 @@ end
 
 --------------------------------------------------------------------------------------
 
-function Helper.OnStart()
+function Helper.OnStart(data, features)
+    Version = data.release.version
+    VersionData = data
+    Features = features
     Pyre.CleanLog('[' .. Version .. '] Loaded. (pyre help)', nil, nil, Pyre.LogLevel.INFO)
+
     Helper.Setup()
     Pyre.Status.Started = true
 end
 
 function Helper.OnStop()
     Pyre.Log('OnStop', Pyre.LogLevel.DEBUG)
+
     Pyre.Status.Started = false
+    Pyre.Status.State = Pyre.States.NONE
 
     for _, feat in ipairs(Features) do
-        if (not (feat == nil) and not (feat.Feature == nil)) then
-            if (feat.Encapsulated == true) then
-                feat.Feature.FeatureStop()
-            end
+        if ((feat ~= nil) and (feat.Feature ~= nil) and feat.Feature.FeatureStop ~= nil) then
+            feat.Feature.FeatureStop()
         end
     end
 end
@@ -56,10 +144,8 @@ function Helper.Save()
     Pyre.Log('Saving', Pyre.LogLevel.DEBUG)
     Pyre.SaveSettings()
     for _, feat in ipairs(Features) do
-        if (not (feat == nil) and not (feat.Feature == nil)) then
-            if (feat.Encapsulated == true) then
-                feat.Feature.FeatureSave()
-            end
+        if ((feat ~= nil) and (feat.Feature ~= nil) and feat.Feature.FeatureSave ~= nil) then
+            feat.Feature.FeatureSave()
         end
     end
 
@@ -185,34 +271,96 @@ function Helper.OnGMCP(text)
     end
 end
 
-function OnHelp()
-    local logTable = {
-        {
+function OnHelp(name, line, wildcards)
+    local logTable = {}
+    local topic = wildcards[1] or ''
+
+    if (topic == '') then
+        logTable = {
             {
-                Value = 'update',
-                Color = 'orange',
-                Tooltip = 'Update features to latest versions',
-                Action = 'pyre update'
+                {
+                    Value = 'reloader',
+                    Color = 'orange',
+                    Tooltip = 'click for: Reloader Plugin Help',
+                    Action = 'pyre help reloader'
+                }
             },
-            {Value = 'Update features to latest versions'}
-        },
-        {
             {
-                Value = 'reload',
-                Color = 'orange',
-                Action = 'pyre reload'
+                {
+                    Value = 'core',
+                    Color = 'orange',
+                    Tooltip = 'click for: Core Help',
+                    Action = 'pyre help core'
+                }
             },
-            {Value = 'Reload the plugin'}
+            {
+                {
+                    Value = 'features',
+                    Color = 'orange',
+                    Tooltip = 'click for a list of features',
+                    Action = 'pyre features'
+                }
+            }
         }
-    }
 
-    Pyre.LogTable('Plugin: Reloader ', 'teal', {'Command', 'Description'}, logTable, 1, true, 'usage: pyre <command>')
+        for _, feat in ipairs(Features) do
+            table.insert(
+                logTable,
+                {
+                    {
+                        Value = feat.name,
+                        Color = 'orange',
+                        Tooltip = 'click for ' .. feat.name .. ' specific help/settings',
+                        Action = 'pyre help ' .. feat.name
+                    }
+                }
+            )
+        end
 
-    Pyre.ShowSettings()
+        Pyre.LogTable('Pyre Help', 'teal', {'Topic'}, logTable, 3, true, 'usage: pyre help <topic> or pyre features')
+    end
+
+    if (topic == 'reloader') then
+        logTable = {
+            {
+                {
+                    Value = 'update',
+                    Color = 'orange',
+                    Tooltip = 'Update features to latest versions',
+                    Action = 'pyre update'
+                },
+                {Value = 'Update features to latest versions'}
+            },
+            {
+                {
+                    Value = 'reload',
+                    Color = 'orange',
+                    Action = 'pyre reload'
+                },
+                {Value = 'Reload the plugin'}
+            }
+        }
+
+        Pyre.LogTable(
+            'Plugin: Reloader ',
+            'teal',
+            {'Command', 'Description'},
+            logTable,
+            1,
+            true,
+            'usage: pyre <command>'
+        )
+    end
+
+    if (topic == 'core' or topic == 'pyrecore') then
+        Pyre.ShowSettings()
+    end
 
     for _, feat in ipairs(Features) do
-        if (feat.Encapsulated == true) then
-            Pyre.Log('')
+        if
+            ((topic == feat.name or ('pyre' .. topic == feat.name)) and (feat.Feature ~= nil) and
+                (feat.Feature.FeatureHelp ~= nil))
+         then
             feat.Feature.FeatureHelp()
         end
     end
@@ -238,12 +386,12 @@ function OnSetting(name, line, wildcards)
     p3 = all_trim(p3)
     p4 = all_trim(p4)
 
-    if (setting == nil or setting == '' or p1 == '') then
+    if (setting == nil or setting == '') then
         return
     end
 
     for _, feat in ipairs(Features) do
-        if (feat.Encapsulated == true) then
+        if ((feat ~= nil) and (feat.Feature ~= nil) and feat.Feature.FeatureSettingHandle ~= nil) then
             feat.Feature.FeatureSettingHandle(setting, p1, p2, p3, p4)
         end
     end
@@ -251,20 +399,122 @@ function OnSetting(name, line, wildcards)
     Pyre.ChangeSetting(setting, p1, p2, p3, p4)
 end
 
+function OnFeatures()
+    local logTable = {}
+
+    Pyre.Each(
+        VersionData.features,
+        function(f)
+            local installed =
+                Pyre.Any(
+                Features,
+                function(feat)
+                    return (feat.name == f.name)
+                end
+            )
+
+            local versionColumn = f.version
+            if not (installed) then
+                versionColumn = 'Not Installed'
+            end
+
+            table.insert(
+                logTable,
+                {
+                    {
+                        Value = f.name,
+                        Color = 'orange',
+                        Tooltip = f.description,
+                        Action = 'pyre install ' .. f.name
+                    },
+                    {Value = f.description},
+                    {Value = versionColumn}
+                }
+            )
+        end
+    )
+
+    Pyre.LogTable(
+        'Features ',
+        'teal',
+        {'Name', 'Description', 'Status'},
+        logTable,
+        1,
+        true,
+        'usage: pyre install/uninstall <name> '
+    )
+end
+
+function OnFeatureInstall(name, line, wildcards)
+    Pyre.Log('OnFeatureInstall', Pyre.LogLevel.DEBUG)
+
+    local featureParam = wildcards[1]
+    local feature =
+        Pyre.First(
+        VersionData.features,
+        function(f)
+            return (f.name == featureParam)
+        end
+    )
+
+    if (feature == nil) then
+        Pyre.Log('Feature not found')
+        return
+    end
+
+    Helper.RemoveFeature(feature)
+    Helper.DownloadFeature(feature)
+end
+
+function OnFeatureUninstall(name, line, wildcards)
+    Pyre.Log('OnFeatureUninstall', Pyre.LogLevel.DEBUG)
+
+    local featureParam = wildcards[1]
+    local feature =
+        Pyre.First(
+        Features,
+        function(f)
+            return (f.name == featureParam)
+        end
+    )
+
+    if (feature == nil) then
+        return
+    end
+
+    Helper.RemoveFeature(feature)
+end
+
 function OnEnemyDied()
     Pyre.Log('Event enemydied', Pyre.LogLevel.DEBUG)
     Pyre.ShareEvent(Pyre.Event.EnemyDied, {})
 end
 
+function CoreOnStateChange(stateObject)
+    if (stateObject.New ~= Pyre.States.COMBAT) then
+        Pyre.QueueReset()
+    end
+    if (stateObject.Old == Pyre.States.REQUESTED) then
+        Helper.RestartFeatures()
+    end
+end
+
+function CoreOnRoomChanged(changeInfo)
+    Pyre.QueueReset()
+end
+
 function Helper.Setup()
     Helper.LoadFeatures()
+
+    table.insert(Pyre.Events[Pyre.Event.StateChanged], CoreOnStateChange)
+    table.insert(Pyre.Events[Pyre.Event.RoomChanged], CoreOnRoomChanged)
 
     AddTimer('ph_tick', 0, 0, 0.5, '', timer_flag.Enabled + timer_flag.Replace + timer_flag.Temporary, 'Tick')
 
     -- add help alias
     AddAlias(
         'ph_help',
-        '^pyre help$',
+        '^pyre help\\s?(.*)?$',
         '',
         alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
         'OnHelp'
@@ -276,6 +526,31 @@ function Helper.Setup()
         '',
         alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
         'OnSetting'
+    )
+
+    -- install new features
+    AddAlias(
+        'ph_featureinstall',
+        '^pyre install (.*)$',
+        '',
+        alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
+        'OnFeatureInstall'
+    )
+
+    AddAlias(
+        'ph_featureuninstall',
+        '^pyre uninstall (.*)$',
+        '',
+        alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
+        'OnFeatureUninstall'
+    )
+
+    AddAlias(
+        'ph_featurelist',
+        '^pyre features$',
+        '',
+        alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
+        'OnFeatures'
     )
 
     -- enemy died trigger
@@ -299,15 +574,16 @@ function Tick()
         return
     end
 
+    Pyre.QueueCleanExpired()
+    Pyre.QueueProcessNext()
+
     for _, feat in ipairs(Features) do
-        if (not (feat == nil) and not (feat.Feature == nil)) then
-            if (feat.Encapsulated == true) then
-                feat.Feature.FeatureTick()
-            end
+        if ((feat ~= nil) and (feat.Feature ~= nil) and (feat.Feature.FeatureTick ~= nil)) then
+            feat.Feature.FeatureTick()
         end
     end
 
-    ResetTimer('ph_tick')
+    -- ResetTimer('ph_tick')
 end
 
 --------------------------------------------------------------------------------------
@@ -315,7 +591,5 @@ end
 --                  PLUGIN EXPORTS
 
 --------------------------------------------------------------------------------------
-
-Helper.OnStart()
 
 return Helper

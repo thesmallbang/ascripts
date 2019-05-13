@@ -19,10 +19,19 @@ end
 -------------------------------------
 -- Output a message to the console. These may or may not show depending on the user's Settings.LogLevel
 -- @param msg Message to show the user
--- @param loglevel  Pyre.LogLevel
+-- @param loglevel  core_module.LogLevel
 -------------------------------------
 function core_module.Log(msg, loglevel)
     core_module.ColorLog(msg, 'white', '', loglevel)
+end
+
+function core_module.ReportToChannel(reportType, msg)
+    local channel = core_module.Settings.Channel or 'echo'
+    if (channel == 'echo') then
+        core_module.Log(msg, core_module.LogLevel.INFO)
+    else
+        Execute(channel .. ' @cPR ' .. reportType .. '@w ' .. msg)
+    end
 end
 
 function core_module.ToString(o)
@@ -136,28 +145,69 @@ function core_module.AlignmentCategoryToString(category)
     return setting
 end
 
+function core_module.GetSettingValue(settings, settingName, default)
+    if (default == nil) then
+        default = 0
+    end
+    local setting = core_module.GetSetting(settings, settingName)
+    if (setting == nil) then
+        return default
+    end
+
+    return setting.value
+end
+
+function core_module.GetSetting(settings, settingName)
+    local setting =
+        core_module.First(
+        settings,
+        function(s)
+            return s.name == settingName
+        end
+    )
+    if (setting == nil) then
+        core_module.Log('Attempted to get missing setting [' .. settingName .. ']', core_module.LogLevel.ERROR)
+        return default
+    end
+    return setting
+end
+
 function core_module.SaveSettings()
     SetVariable('Channel', core_module.Settings.Channel or 'echo')
-
-    SetVariable('AlignmentBuffer', core_module.Settings.AlignmentBuffer or 300)
-
     SetVariable('LogLevel', core_module.Settings.LogLevel or core_module.LogLevel.INFO)
+    SetVariable('AddToQueueDelay', core_module.Settings.AddToQueueDelay or 0)
+    SetVariable('QueueSize', core_module.Settings.QueueSize or 2)
+end
 
-    SetVariable('SkillExpirationWarn', core_module.Settings.SkillExpirationWarn or 30)
-    SetVariable('OnlyLeaderInitiate', core_module.Settings.OnlyLeaderInitiate or 0)
-    SetVariable('AttackDelay', core_module.Settings.AttackDelay or 0)
-    SetVariable('AttackMaxQueue', core_module.Settings.AttackMaxQueue or 2)
+function core_module.AskIfEmpty(settingValue, settingName, default)
+    if (settingValue ~= nil and settingValue ~= '') then
+        return settingValue
+    end
+
+    local result =
+        utils.inputbox(
+        'Enter a value for ' ..
+            settingName .. '. If you meant to leave it blank click cancel. Otherwise enter a value below',
+        'Set Value for ' .. settingName,
+        default,
+        'Courier',
+        9
+    )
+    if (result == '') then
+        result = nil
+    end
+    if (result == nil) then
+        result = default
+    end
+
+    return result
 end
 
 function core_module.ChangeSetting(setting, settingValue)
     if (string.lower(setting) == 'channel') then
-        core_module.Settings.Channel = settingValue or 'echo'
+        settingValue = core_module.AskIfEmpty(settingValue, settingName, core_module.Settings.Channel)
+        core_module.Settings.Channel = settingValue
         core_module.Log('Channel : ' .. core_module.Settings.Channel)
-    end
-
-    if (string.lower(setting) == 'alignmentbuffer') then
-        core_module.Settings.AlignmentBuffer = tonumber(settingValue) or 300
-        core_module.Log('AlignmentBuffer : ' .. core_module.Settings.AlignmentBuffer)
     end
 
     if (string.lower(setting) == 'loglevel') then
@@ -165,24 +215,14 @@ function core_module.ChangeSetting(setting, settingValue)
         core_module.Log('LogLevel : ' .. core_module.Settings.LogLevel)
     end
 
-    if (string.lower(setting) == 'skillexpirationwarn') then
-        core_module.Settings.SkillExpirationWarn = tonumber(settingValue) or 30
-        core_module.Log('SkillExpirationWarn : ' .. core_module.Settings.SkillExpirationWarn)
+    if (string.lower(setting) == 'addtoqueuedelay') then
+        core_module.Settings.AddToQueueDelay = tonumber(settingValue) or 0
+        core_module.Log('AddToQueueDelay : ' .. core_module.Settings.AddToQueueDelay)
     end
 
-    if (string.lower(setting) == 'onlyleaderinitiate') then
-        core_module.Settings.OnlyLeaderInitiate = tonumber(settingValue) or 0
-        core_module.Log('OnlyLeaderInitiate : ' .. core_module.Settings.OnlyLeaderInitiate)
-    end
-
-    if (string.lower(setting) == 'attackdelay') then
-        core_module.Settings.AttackDelay = tonumber(settingValue) or 0
-        core_module.Log('AttackDelay : ' .. core_module.Settings.AttackDelay)
-    end
-
-    if (string.lower(setting) == 'attackmaxqueue') then
-        core_module.Settings.AttackMaxQueue = tonumber(settingValue) or 2
-        core_module.Log('AttackMaxQueue : ' .. core_module.Settings.AttackMaxQueue)
+    if (string.lower(setting) == 'queuesize') then
+        core_module.Settings.QueueSize = tonumber(settingValue) or 2
+        core_module.Log('QueueSize : ' .. core_module.Settings.QueueSize)
     end
 end
 
@@ -197,13 +237,6 @@ function core_module.ShowSettings()
         },
         {
             {
-                Value = 'AlignmentBuffer',
-                Tooltip = 'After you slip an alignment how far into the correct alignment to get before auto locking again.'
-            },
-            {Value = core_module.Settings.AlignmentBuffer}
-        },
-        {
-            {
                 Value = 'LogLevel',
                 Tooltip = '0 = OFF, 1 = VERBOSE, 2 = DEBUG, 3 = INFO (default), 4 = ERRORONLY'
             },
@@ -211,31 +244,17 @@ function core_module.ShowSettings()
         },
         {
             {
-                Value = 'SkillExpirationWarn',
-                Tooltip = 'The skills feature uses this duration to notify when a clan skill will expire. 0 = OFF'
-            },
-            {Value = core_module.Settings.SkillExpirationWarn}
-        },
-        {
-            {
-                Value = 'OnlyLeaderInitiate',
-                Tooltip = 'pyre attack will not use hammerswing if the player is not the group leader.'
-            },
-            {Value = core_module.Settings.OnlyLeaderInitiate}
-        },
-        {
-            {
-                Value = 'AttackDelay',
+                Value = 'AddToQueueDelay',
                 Tooltip = 'At this point it is really a Queue delay.How long between adding to the queue.'
             },
-            {Value = core_module.Settings.AttackDelay}
+            {Value = core_module.Settings.AddToQueueDelay}
         },
         {
             {
-                Value = 'AttackMaxQueue',
+                Value = 'QueueSize',
                 Tooltip = 'How big is the "Attack Queue" allowed to get (potions can still get added when full)'
             },
-            {Value = core_module.Settings.AttackMaxQueue}
+            {Value = core_module.Settings.QueueSize}
         }
     }
 
@@ -246,7 +265,7 @@ function core_module.ShowSettings()
         logTable,
         1,
         true,
-        'usage: pyre setting <setting> <value>'
+        'usage: pyre set <setting> <value>'
     )
 end
 
@@ -359,6 +378,117 @@ core_module.Status = {
     MaxMoves = 0,
     RawMoves = 0
 }
+
+-------------------------------------
+--  Action Queue
+-------------------------------------
+core_module.ActionQueue = {}
+core_module.LastSkillExecute = 0
+core_module.LastSkillUniqueId = 0
+
+function core_module.QueueCleanExpired()
+    core_module.Log('QueueCleanExpired', core_module.LogLevel.VERBOSE)
+
+    i = 0
+    for _, item in pairs(core_module.ActionQueue) do
+        i = i + 1
+        if not (item.Expiration == nil) then
+            if (socket.gettime() > item.Expiration) then
+                core_module.Log('Queue had expiration: ' .. item.Skill.Name, core_module.LogLevel.DEBUG)
+
+                if (core_module.ActionQueue == nil) then
+                    return
+                end
+                core_module.ActionQueue =
+                    core_module.Except(
+                    core_module.ActionQueue,
+                    function(v)
+                        return (v.Skill.Name == item.Skill.Name)
+                    end,
+                    1
+                )
+                return
+            end
+        end
+    end
+end
+function core_module.QueueProcessNext()
+    core_module.Log('QueueProcessNext', core_module.LogLevel.VERBOSE)
+
+    item =
+        core_module.First(
+        core_module.ActionQueue,
+        function()
+            return true
+        end
+    )
+
+    if (item == nil) then
+        return
+    end
+
+    -- our pending skill hasnt been cleared via expiration or detection
+    local lastId = core_module.LastSkillUniqueId or 0
+    if ((item.uid or 0) == lastId and (lastId ~= 0)) then
+        return
+    end
+
+    -- check that we are not execeting too quickly for combat types
+    local waitTime = 2.5
+    if (item.Skill.SkillType == core_module.SkillType.CombatInitiate) then
+        waitTime = waitTime + 2
+    end
+    if
+        (((item.Skill.SkillType == core_module.SkillType.CombatInitiate) or
+            (item.Skill.SkillType == core_module.SkillType.CombatMove)) and
+            ((socket.gettime() - core_module.LastSkillExecute) < waitTime))
+     then
+        core_module.Log('Queue Wait ' .. core_module.TableLength(core_module.ActionQueue), core_module.LogLevel.DEBUG)
+        return
+    end
+
+    -- this may be silly but i wasn't sure how objects were handled and if 2 identical commands would equal the same object
+    -- and just did it in case
+    local newUniqueId = math.random(1, 1000000)
+    item.uid = newUniqueId
+    item.Execute(item.Skill, item)
+    core_module.Log(
+        'Queue Length (Including This Still until detected) : ' .. core_module.TableLength(core_module.ActionQueue),
+        core_module.LogLevel.VERBOSE
+    )
+    core_module.LastSkillUniqueId = item.uid
+    core_module.LastSkillExecute = socket.gettime()
+end
+-- Reset queue leaves potions alone
+function core_module.QueueReset()
+    core_module.Log('Resetting queue', core_module.LogLevel.VERBOSE)
+    core_module.ActionQueue =
+        core_module.Filter(
+        core_module.ActionQueue,
+        function(v)
+            return ((v.Skill.SkillType == core_module.SkillType.QuaffHeal) or
+                (v.Skill.SkillType == core_module.SkillType.QuaffMana) or
+                (v.Skill.SkillType == core_module.SkillType.QuaffMove))
+        end
+    )
+end
+
+-------------------------------------
+--  AFK Functionality
+-------------------------------------
+
+function CheckForAFK()
+    if (core_module.IsAFK == true) then
+        return
+    end
+
+    local afkTime = socket.gettime() - (3 * 60) -- 3 minutes = afk
+    core_module.IsAFK = ((lastRoomChanged <= afkTime) and (core_module.Status.State == core_module.States.IDLE))
+
+    if (core_module.IsAFK == true) then
+        core_module.Log('AFK - Some features will have limited or no functionality.')
+    end
+end
 
 -------------------------------------
 --  HELPER FUNCTIONS
@@ -755,12 +885,9 @@ end
 
 core_module.Settings = {
     Channel = GetVariable('Channel') or 'echo',
-    AlignmentBuffer = tonumber(GetVariable('AlignmentBuffer')) or 300,
     LogLevel = tonumber(GetVariable('LogLevel')) or core_module.LogLevel.INFO,
-    SkillExpirationWarn = tonumber(GetVariable('SkillExpirationWarn')) or 10,
-    OnlyLeaderInitiate = tonumber(GetVariable('OnlyLeaderInitiate')) or 1,
-    AttackDelay = tonumber(GetVariable('AttackDelay')) or 0,
-    AttackMaxQueue = tonumber(GetVariable('AttackMaxQueue')) or 2
+    AddToQueueDelay = tonumber(GetVariable('AddToQueueDelay')) or 0,
+    QueueSize = tonumber(GetVariable('QueueSize')) or 30
 }
 
 core_module.SkillType = {

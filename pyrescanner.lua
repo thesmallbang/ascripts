@@ -42,15 +42,9 @@ function Feature.FeatureHelp()
         }
     }
 
-    Pyre.LogTable('Plugin: Scanner ', 'teal', {'Command', 'Description'}, logTable, 1, true, 'usage: pyre <command>')
+    Pyre.LogTable('Feature: Scanner ', 'teal', {'Command', 'Description'}, logTable, 1, true, 'usage: pyre <command>')
 end
 function Feature.FeatureSave()
-end
-
-function Feature.OnBroadCast(msgId, pluginId, pluginName, msg)
-    if (pluginId == GetPluginID()) then
-        print('there was a broadcast: ' .. tostring(msgId) .. ' : ' .. tostring(msg))
-    end
 end
 
 function Feature.Setup() -- add our alias / triggers

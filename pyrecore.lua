@@ -224,6 +224,7 @@ function core_module.ChangeSetting(setting, settingValue)
         core_module.Settings.QueueSize = tonumber(settingValue) or 2
         core_module.Log('QueueSize : ' .. core_module.Settings.QueueSize)
     end
+    core_module.SaveSettings()
 end
 
 function core_module.ShowSettings()
@@ -955,7 +956,7 @@ core_module.Classes = {
                 Name = 'Assault',
                 Level = 88,
                 AutoSend = true,
-                Alias = 'mighty assault',
+                Alias = 'mighty',
                 Attempts = {'Assault whom?', "You don't know how to assault someone.", 'You are stunned.'}
             },
             {

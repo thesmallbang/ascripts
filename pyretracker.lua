@@ -329,7 +329,7 @@ Tracker.Factory = {
 
         local soulsPerFight = Pyre.Round((souls / fightsForMath), 1)
 
-        local duration = Pyre.Round((socket.gettime() - area.StartTime), 1)
+        local duration = Pyre.Round(((area.EndTime or socket.gettime()) - area.StartTime), 1)
 
         if (duration < combatDuration) then
             duration = combatDuration

@@ -165,6 +165,10 @@ function WindowFeature.FeatureSettingHandle(settingName, p1, p2, p3, p4)
 end
 
 function WindowFeature.FeatureTick()
+    if (Pyre == nil or Tracker == nil) then
+        return
+    end
+
     if
         (socket.gettime() >=
             (WindowFeature.lastSessionCacheUpdate + Pyre.GetSettingValue(WindowFeature.Settings, 'interval', 3)))

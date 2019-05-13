@@ -38,7 +38,7 @@ SkillFeature.Settings = {
     {
         name = 'expirationwarn',
         description = 'How many seconds out to start warning about skill expiration',
-        value = tonumber(GetVariable('skillexpirationwarn')) or 10,
+        value = tonumber(GetVariable('expirationwarn')) or 10,
         setValue = function(setting, val)
             local parsed = tonumber(val) or 0
             setting.value = parsed

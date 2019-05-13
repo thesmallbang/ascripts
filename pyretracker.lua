@@ -182,10 +182,41 @@ Tracker.Factory = {
             1
         )
 
+        local fights =
+            Pyre.Sum(
+            session.Fights,
+            function(f)
+                return 1
+            end
+        ) or 0
+
+        local souls =
+            Pyre.Sum(
+            session.Fights,
+            function(f)
+                return f.Enemies
+            end
+        ) or 0
+        local fightsForMath = 1
+
+        if (fights > 0) then
+            fightsForMath = fights
+        end
+
+        local soulsPerFight = Pyre.Round((souls / fightsForMath), 1)
+
         local duration = Pyre.Round((socket.gettime() - session.StartTime), 1)
 
         if (duration < combatDuration) then
             duration = combatDuration
+        end
+
+        if (duration == 0) then
+            duration = 1
+        end
+
+        if (combatDuration == 0) then
+            combatDuration = 1
         end
 
         local summary = {
@@ -197,6 +228,8 @@ Tracker.Factory = {
             NormalExperience = Pyre.Round(normalExp, 1),
             RareExperience = Pyre.Round(rareExp, 1),
             BonusExperience = Pyre.Round(bonusExp, 1),
+            AverageSoulsPerFight = soulsPerFight,
+            Fights = fights,
             Normal = {
                 Duration = duration,
                 ExpPerMinute = Pyre.Round((((exp or 0) / duration) * 60) or 0, 1),
@@ -223,12 +256,7 @@ Tracker.Factory = {
                 PlayerDps = Pyre.Round((playerDamage / combatDuration) or 0, 1),
                 EnemyDps = Pyre.Round((enemyDamage / combatDuration) or 0, 1)
             },
-            Souls = Pyre.Sum(
-                session.Fights,
-                function(f)
-                    return f.Enemies
-                end
-            )
+            Souls = souls
         }
         return summary
     end,
@@ -242,7 +270,7 @@ Tracker.Factory = {
 function Tracker.FeatureStart()
     table.insert(Pyre.Events[Pyre.Event.StateChanged], TrackerOnStateChanged)
     table.insert(Pyre.Events[Pyre.Event.ZoneChanged], TrackerOnZoneChanged)
-
+    Tracker.Session = Tracker.Factory.NewSession()
     -- create an alias for each of our Tracker.Commands
     Pyre.Each(
         Tracker.Commands,
@@ -416,7 +444,6 @@ function Tracker.ArchiveCurrentFight()
             Tracker.AreaTracker.Current.StartTime = Tracker.FightTracker.Current.StartTime
         end
         -- add area data
-
         table.insert(Tracker.AreaTracker.Current.Fights, Tracker.Factory.NewAreaFightData(Tracker.FightTracker.Current))
 
         -- add session data
@@ -432,7 +459,7 @@ end
 function Tracker.ArchiveCurrentArea()
     if (Tracker.AreaTracker.Current ~= {}) then
         table.insert(Tracker.AreaTracker.History, Tracker.AreaTracker.Current)
-        Tracker.AreaTracker.Current = {}
+        Tracker.AreaTracker.Current = Tracker.Factory.NewArea()
     end
 end
 

@@ -414,16 +414,53 @@ end -- Display_Line
 
 -- draw message at center of window that the selected view doesnt have any cached data yet
 function WindowFeature.DrawWaitingForData()
+    WindowFeature.DrawTextLine(4, 'Waiting on data.', 120, ColourNameToRGB('red'), 'm')
 end
 
 -- draw our session data on the window
 function WindowFeature.DrawSessionView()
     local session = WindowFeature.sessionCache
     if (session == nil) then
-        WindowFeature.DrawTextLine(4, 'Waiting on session data.', 120, ColourNameToRGB('red'), 'm')
+        WindowFeature.DrawWaitingForData()
         return
     end
     WindowFeature.DrawTextLine(2, Pyre.SecondsToClock(session.Normal.Duration), nil, ColourNameToRGB('teal'), 'm')
+
+    WindowFeature.DrawTextLine(3, 'Exp')
+    WindowFeature.DrawTextLine(3, session.Experience, 50)
+
+    WindowFeature.DrawTextLine(3, 'Rare', 140)
+    WindowFeature.DrawTextLine(3, session.RareExperience, 180)
+
+    WindowFeature.DrawTextLine(3, 'Bonus', 280)
+    WindowFeature.DrawTextLine(3, session.BonusExperience, 320)
+
+    WindowFeature.DrawTextLine(4, 'Norm')
+    WindowFeature.DrawTextLine(4, session.NormalExperience, 50)
+
+    WindowFeature.DrawTextLine(4, 'Fights', 140)
+    WindowFeature.DrawTextLine(4, session.Fights, 180)
+
+    WindowFeature.DrawTextLine(4, 'Souls', 280)
+    WindowFeature.DrawTextLine(4, session.Souls, 320)
+
+    WindowFeature.DrawTextLine(5, 'XPM')
+    WindowFeature.DrawTextLine(5, session.Normal.ExpPerMinute, 50)
+
+    WindowFeature.DrawTextLine(5, 'XPCM', 140)
+    WindowFeature.DrawTextLine(5, session.Combat.ExpPerMinute, 180)
+
+    WindowFeature.DrawTextLine(5, 'SPF', 280)
+    WindowFeature.DrawTextLine(5, session.AverageSoulsPerFight, 320)
+
+    WindowFeature.DrawTextLine(6, 'Dmg')
+    WindowFeature.DrawTextLine(6, session.PlayerDamage, 50)
+
+    WindowFeature.DrawTextLine(6, 'DPS', 140)
+    WindowFeature.DrawTextLine(6, session.Normal.PlayerDps, 180)
+
+    WindowFeature.DrawTextLine(6, 'DPCS', 280)
+    WindowFeature.DrawTextLine(6, session.Combat.PlayerDps, 320)
 end
 
 -- draw our area data on the window

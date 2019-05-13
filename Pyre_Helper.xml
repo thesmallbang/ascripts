@@ -252,10 +252,6 @@ end
 function OnPluginPacketReceived(sText)
 end
 
-function OnPluginConnect()
- if Helper then end 
-    Helper.OnStop()
- end
 
 function OnPluginClose() if Helper then Helper.OnStop() end end
 

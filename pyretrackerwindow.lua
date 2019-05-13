@@ -206,8 +206,22 @@ function WindowFeature.FeatureTick()
     if
         (socket.gettime() >=
             (WindowFeature.lastFightCacheUpdate + Pyre.GetSettingValue(WindowFeature.Settings, 'interval', 3)) or
-            (Tracker.FightIndex ~= WindowFeature.lastFightCacheIndex))
+            (Tracker.FightIndex ~= WindowFeature.lastFightCacheIndex) or
+            (WindowFeature.fightCache == nil and Tracker.FightIndex == 0))
      then
+        local fightIndex = Tracker.FightIndex
+        local fight = Tracker.GetFightByIndex(fightIndex)
+        if ((fight == nil or fight.StartTime == nil) and fightIndex == 0) then
+            fight = Tracker.GetFightByIndex(1)
+        end
+
+        if (fight ~= nil and fight.StartTime ~= nil) then
+            WindowFeature.fightCache = Tracker.Factory.CreateFightSummary(fight)
+            WindowFeature.lastFightCacheUpdate = socket.gettime()
+            WindowFeature.lastFightCacheIndex = fightIndex
+        else
+            WindowFeature.fightCache = nil
+        end
         if (Pyre.GetSettingValue(WindowFeature.Settings, 'view') == 2) then
             WindowFeature.DrawWindow()
         end
@@ -497,6 +511,15 @@ function WindowFeature.DrawSessionView()
 
     WindowFeature.DrawTextLine(6, 'DPCS', 280)
     WindowFeature.DrawTextLine(6, session.Combat.PlayerDps, 320)
+
+    WindowFeature.DrawTextLine(7, 'EDmg')
+    WindowFeature.DrawTextLine(7, session.EnemyDamage, 50)
+
+    WindowFeature.DrawTextLine(7, 'EDPS', 140)
+    WindowFeature.DrawTextLine(7, session.Normal.EnemyDps, 180)
+
+    WindowFeature.DrawTextLine(7, 'EDPCS', 280)
+    WindowFeature.DrawTextLine(7, session.Combat.EnemyDps, 320)
 end
 
 -- draw our area data on the window
@@ -545,15 +568,63 @@ function WindowFeature.DrawAreaView()
 
     WindowFeature.DrawTextLine(6, 'DPCS', 280)
     WindowFeature.DrawTextLine(6, area.Combat.PlayerDps, 320)
+
+    WindowFeature.DrawTextLine(7, 'EDmg')
+    WindowFeature.DrawTextLine(7, area.EnemyDamage, 50)
+
+    WindowFeature.DrawTextLine(7, 'EDPS', 140)
+    WindowFeature.DrawTextLine(7, area.Normal.EnemyDps, 180)
+
+    WindowFeature.DrawTextLine(7, 'EDPCS', 280)
+    WindowFeature.DrawTextLine(7, area.Combat.EnemyDps, 320)
 end
 
 -- draw our fight data on the window
 function WindowFeature.DrawFightView()
     local fight = WindowFeature.fightCache
+
     if (fight == nil) then
         WindowFeature.DrawWaitingForData()
         return
     end
+
+    WindowFeature.DrawTextLine(2, Pyre.SecondsToClock(fight.Normal.Duration), 340, ColourNameToRGB('teal'), 'm')
+
+    WindowFeature.DrawTextLine(3, 'Exp')
+    WindowFeature.DrawTextLine(3, fight.Experience, 50)
+
+    WindowFeature.DrawTextLine(3, 'Rare', 140)
+    WindowFeature.DrawTextLine(3, fight.RareExperience, 180)
+
+    WindowFeature.DrawTextLine(3, 'Bonus', 280)
+    WindowFeature.DrawTextLine(3, fight.BonusExperience, 320)
+
+    WindowFeature.DrawTextLine(4, 'Norm')
+    WindowFeature.DrawTextLine(4, fight.NormalExperience, 50)
+
+    WindowFeature.DrawTextLine(5, 'XPM')
+    WindowFeature.DrawTextLine(5, fight.Normal.ExpPerMinute, 50)
+
+    -- WindowFeature.DrawTextLine(5, 'XPCM', 140)
+    -- WindowFeature.DrawTextLine(5, fight.Combat.ExpPerMinute, 180)
+
+    WindowFeature.DrawTextLine(6, 'Dmg')
+    WindowFeature.DrawTextLine(6, fight.PlayerDamage, 50)
+
+    WindowFeature.DrawTextLine(6, 'DPS', 140)
+    WindowFeature.DrawTextLine(6, fight.Normal.PlayerDps, 180)
+
+    -- WindowFeature.DrawTextLine(6, 'DPCS', 280)
+    -- WindowFeature.DrawTextLine(6, fight.Combat.PlayerDps, 320)
+
+    WindowFeature.DrawTextLine(7, 'EDmg')
+    WindowFeature.DrawTextLine(7, fight.EnemyDamage, 50)
+
+    WindowFeature.DrawTextLine(7, 'EDPS', 140)
+    WindowFeature.DrawTextLine(7, fight.Normal.EnemyDps, 180)
+
+    -- WindowFeature.DrawTextLine(7, 'EDPCS', 280)
+    -- WindowFeature.DrawTextLine(7, fight.Combat.EnemyDps, 320)
 end
 
 function OnTrackerWindowShow()

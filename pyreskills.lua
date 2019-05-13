@@ -803,7 +803,7 @@ function SkillsSetup()
         0,
         '',
         'OnClassSkillUsed',
-        0
+        1
     )
 
     AddTriggerEx(

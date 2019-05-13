@@ -46,6 +46,9 @@ function Helper.AddNewFeature(feature)
     Execute('pyre help ' .. feature.name)
 end
 function Helper.RemoveFeature(feature)
+    if (feature ~= nil and feature.Feature ~= nil and feature.Feature.FeatureStop ~= nil) then
+        feature.Feature.FeatureStop()
+    end
     Features =
         Pyre.Filter(
         Features,
@@ -53,8 +56,8 @@ function Helper.RemoveFeature(feature)
             return (f.name ~= feature.name)
         end
     )
-    os.remove('lua/' .. feature.name .. '.lua')
 
+    os.remove('lua/' .. feature.name .. '.lua')
     Pyre.Log('Uninstalled Feature ' .. feature.name)
 end
 

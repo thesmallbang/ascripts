@@ -80,6 +80,7 @@ Tracker.Factory = {
         return {
             Area = Pyre.Status.Zone,
             StartTime = socket.gettime(),
+            EndTime = nil,
             Duration = 0,
             Enemies = 0,
             XP = {Normal = 0, Rare = 0, Bonus = 0},
@@ -88,9 +89,10 @@ Tracker.Factory = {
     end,
     EndFight = function(fight)
         if (fight == nil or fight.Area == nil or fight.StartTime == nil) then
-            return
+            return fight
         end
-        fight.Duration = socket.gettime() - fight.StartTime
+        fight.EndTime = socket.gettime()
+        fight.Duration = fight.EndTime - fight.StartTime
         return fight
     end,
     NewArea = function()
@@ -378,10 +380,62 @@ Tracker.Factory = {
             Souls = souls
         }
         return summary
+    end,
+    CreateFightSummary = function(fight)
+        local exp = (fight.XP.Normal + fight.XP.Rare + fight.XP.Bonus) or 0
+
+        local normalExp = fight.XP.Normal or 0
+        local rareExp = fight.XP.Rare or 0
+        local bonusExp = fight.XP.Bonus or 0
+        local playerDamage = fight.Damage.Player or 0
+        local enemyDamage = fight.Damage.Enemy or 0
+        local duration = (fight.EndTime or socket.gettime()) - (fight.StartTime or 0)
+
+        --print(Pyre.ToString(fight))
+        local souls = fight.Enemies or 0
+        duration = Pyre.Round(duration, 1)
+
+        if (duration == 0) then
+            duration = 0.1
+        end
+
+        local summary = {
+            StartDate = os.date('%H:%M:%S - %d/%m/%Y', fight.StartTime),
+            EndDate = os.date('%H:%M:%S - %d/%m/%Y', fight.EndTime or socket.gettime()),
+            PlayerDamage = Pyre.Round(playerDamage, 1),
+            EnemyDamage = Pyre.Round(enemyDamage, 1),
+            Experience = Pyre.Round(exp, 1),
+            NormalExperience = Pyre.Round(normalExp, 1),
+            RareExperience = Pyre.Round(rareExp, 1),
+            BonusExperience = Pyre.Round(bonusExp, 1),
+            AverageSoulsPerFight = soulsPerFight,
+            Fights = fights,
+            Normal = {
+                Duration = duration,
+                ExpPerMinute = Pyre.Round((((exp or 0) / duration) * 60) or 0, 1),
+                ExpPerSecond = Pyre.Round(((exp or 0) / duration) or 0, 1),
+                NormalPerMinute = Pyre.Round((((normalExp or 0) / duration) * 60) or 0, 1),
+                NormalPerSecond = Pyre.Round(((normalExp or 0) / duration) or 0, 1),
+                RarePerMinute = Pyre.Round((((rareExp or 0) / duration) * 60) or 0, 1),
+                RarePerSecond = Pyre.Round(((rareExp or 0) / duration) or 0, 1),
+                BonusPerMinute = Pyre.Round((((bonusExp or 0) / duration) * 60) or 0, 1),
+                BonusPerSecond = Pyre.Round(((bonusExp or 0) / duration) or 0, 1),
+                PlayerDps = Pyre.Round((playerDamage / duration) or 0, 1),
+                EnemyDps = Pyre.Round((enemyDamage / duration) or 0, 1)
+            },
+            Souls = souls
+        }
+        return summary
     end
 }
 
+local started = false
 function Tracker.FeatureStart()
+    if (started == true) then
+        return
+    end
+
+    started = true
     table.insert(Pyre.Events[Pyre.Event.StateChanged], TrackerOnStateChanged)
     table.insert(Pyre.Events[Pyre.Event.ZoneChanged], TrackerOnZoneChanged)
     Tracker.Session = Tracker.Factory.NewSession()
@@ -414,7 +468,7 @@ function Tracker.FeatureStart()
     )
 
     AddTriggerEx(
-        'ph_tracker_playerdmg',
+        'ph_trackerpdmg',
         '^(\\*)?\\[.*\\]?\\s?Your (\\w*) -?<?(.*)>?-? (.*)! \\[(.*)\\]$',
         '',
         trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
@@ -426,7 +480,7 @@ function Tracker.FeatureStart()
     )
 
     AddTriggerEx(
-        'ph_tracker_enemydmg',
+        'ph_tracker_edmg',
         "^(\\*)?\\[.*\\]?\\s?(.*)'s (\\w*) (.*) you[!|\\.] \\[(.*)\\]$",
         '',
         trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
@@ -546,6 +600,17 @@ function Tracker.FeatureHelp()
     )
 end
 
+function Tracker.GetFightByIndex(i)
+    if (i == 0) then
+        return Tracker.FightTracker.Current
+    end
+    local fight = Tracker.Session.Fights[i]
+    if (fight == nil) then
+        return Tracker.FightTracker.Current
+    end
+    return fight
+end
+
 function Tracker.GetAreaByIndex(i)
     if (i == 0) then
         return Tracker.AreaTracker.Current
@@ -566,25 +631,10 @@ function Tracker.ArchiveCurrentFight()
         -- add area data
         table.insert(Tracker.AreaTracker.Current.Fights, Tracker.FightTracker.Current)
 
-        -- trim our session data
-        if (#Tracker.Session.Fights > maxSessionFights) then
-            local difference = (maxSessionFights - #Tracker.Session.Fights)
-            if (difference > 0) then
-                Tracker.Session.Fights =
-                    Pyre.Except(
-                    Tracker.Session.Fights,
-                    function()
-                        return true
-                    end,
-                    difference
-                )
-            end
-        end
-
         -- add session data
         table.insert(Tracker.Session.Fights, Tracker.FightTracker.Current)
 
-        local maxSessionFights = GetSettingValue(Tracker.Settings, 'sessionsize')
+        local maxSessionFights = Pyre.GetSettingValue(Tracker.Settings, 'sessionsize')
         if (#Tracker.Session.Fights > maxSessionFights) then
             -- trim our session data
             local difference = (maxSessionFights - #Tracker.Session.Fights)

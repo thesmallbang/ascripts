@@ -73,7 +73,9 @@ ClanSkills = {
                 (skill.LastAttempt == nil or os.difftime(socket.gettime(), skill.LastAttempt) > 4))
         end,
         Cast = function(skill)
-            if not (Pyre.AlignmentToCategory(Pyre.Status.RawAlignment, adjustingAlignment) == skill.Setting) then
+            local buffer = Pyre.GetSettingValue(SkillFeature.Settings, 'alignmentbuffer')
+
+            if not (Pyre.AlignmentToCategory(Pyre.Status.RawAlignment, buffer, adjustingAlignment) == skill.Setting) then
                 if adjustingAlignment == false then
                     Pyre.CleanLog(
                         'APATHY SKIPPED! Alignment: ' ..

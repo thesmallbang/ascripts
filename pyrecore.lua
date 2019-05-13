@@ -88,7 +88,7 @@ function core_module.ColorLog(msg, color, backcolor, loglevel)
     end
 end
 
-function core_module.AlignmentToCategory(alignment, useBuffer)
+function core_module.AlignmentToCategory(alignment, buffer, useBuffer)
     local setting = 99
     local goodMin = 875
     local evilMin = -875
@@ -100,10 +100,10 @@ function core_module.AlignmentToCategory(alignment, useBuffer)
     end
 
     if useBuffer then
-        goodMin = goodMin + core_module.Settings.AlignmentBuffer
-        evilMin = evilMin - core_module.Settings.AlignmentBuffer
-        neutralMin = neutralMin + core_module.Settings.AlignmentBuffer
-        neutralMax = neutralMax - core_module.Settings.AlignmentBuffer
+        goodMin = goodMin + buffer
+        evilMin = evilMin - buffer
+        neutralMin = neutralMin + buffer
+        neutralMax = neutralMax - buffer
     end
 
     if (alignment >= goodMin) then

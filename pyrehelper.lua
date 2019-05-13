@@ -101,7 +101,7 @@ end
 function Helper.DownloadFeature(feature)
     Pyre.Log('Downloading feature' .. feature.name)
     async.doAsyncRemoteRequest(
-        'https://raw.githubusercontent.com/thesmallbang/ascripts/v2/' .. feature.filename,
+        'https://raw.githubusercontent.com/thesmallbang/ascripts/master/' .. feature.filename,
         OnFeatureDownloaded,
         'HTTPS',
         120

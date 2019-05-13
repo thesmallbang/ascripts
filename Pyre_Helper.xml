@@ -183,7 +183,7 @@ end
 function checkVersionFile()
 
     if  (remoteData == nil) then
-        download("https://raw.githubusercontent.com/thesmallbang/ascripts/v2/version.json")
+        download("https://raw.githubusercontent.com/thesmallbang/ascripts/master/version.json")
         return
     end
 

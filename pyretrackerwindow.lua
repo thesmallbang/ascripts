@@ -1,4 +1,6 @@
 local Pyre = require('pyrecore')
+require('socket')
+
 local WindowFeature = {
     lastSessionCacheUpdate = 0,
     sessionCache = nil,
@@ -59,6 +61,14 @@ function GetSettingValue(settingName, default)
     if (default == nil) then
         default = 0
     end
+    local setting = GetSetting(settingName)
+    if (setting == nil) then
+        return default
+    end
+
+    return setting.value
+end
+function GetSetting(settingName)
     local setting =
         Pyre.First(
         WindowFeature.Settings,
@@ -70,9 +80,8 @@ function GetSettingValue(settingName, default)
         Pyre.Log('Attempted to get missing setting [' .. settingName .. ']', Pyre.LogLevel.ERROR)
         return default
     end
-    return setting.value or default
+    return setting
 end
-
 function WindowFeature.FeatureStart(featuresRunning, versionData)
     WindowFeature.AppVersion = versionData.release.version
     if
@@ -103,6 +112,12 @@ function WindowFeature.FeatureStart(featuresRunning, versionData)
             end
         end
     )
+
+    OnTrackerWindowShow()
+end
+
+function WindowFeature.FeatureStop()
+    OnTrackerWindowHide()
 end
 
 function WindowFeature.FeatureHelp()
@@ -169,10 +184,10 @@ function WindowFeature.FeatureSettingHandle(settingName, p1, p2, p3, p4)
 end
 
 function WindowFeature.FeatureTick()
-    if (os.time() > (WindowFeature.lastSessionCacheUpdate + GetSettingValue('interval', 3))) then
+    if (socket.gettime() >= (WindowFeature.lastSessionCacheUpdate + GetSettingValue('interval', 3))) then
         if (Tracker.Session ~= nil and Tracker.Session.StartTime ~= nil) then
             WindowFeature.sessionCache = Tracker.Factory.CreateSessionSummary(Tracker.Session)
-            WindowFeature.lastSessionCacheUpdate = os.time()
+            WindowFeature.lastSessionCacheUpdate = socket.gettime()
         end
         WindowFeature.DrawWindow()
     end
@@ -184,7 +199,7 @@ end
 
 -- Draw / Redraw our window with the latest information available
 function WindowFeature.DrawWindow()
-    if (WindowFeature.windowMoving or WindowFeature.visible ~= true) then
+    if (WindowFeature.windowMoving == true or WindowFeature.visible ~= true) then
         return
     end
 
@@ -222,10 +237,6 @@ function WindowFeature.DrawWindow()
         0
     )
 
-    WindowFeature.DrawTitle(
-        'PH Tracker v' .. WindowFeature.AppVersion .. ' - ' .. WindowFeature.Tabs[GetSettingValue('view')]
-    )
-
     -- title bar seperator line
     WindowLine(
         WindowFeature.windowId,
@@ -237,6 +248,44 @@ function WindowFeature.DrawWindow()
         0,
         1
     )
+
+    -- title bar drag + text
+    WindowFeature.DrawTitle(
+        'PH Tracker v' .. WindowFeature.AppVersion .. ' - ' .. WindowFeature.Tabs[GetSettingValue('view')]
+    )
+
+    -- draw options + context setup
+    WindowFeature.DrawTextLine(1, 'O', WindowInfo(WindowFeature.windowId, 3) - WindowFeature.handleHeight, nil, 'su')
+    WindowAddHotspot(
+        WindowFeature.windowId,
+        'contextmenu',
+        WindowInfo(WindowFeature.windowId, 3) - WindowFeature.handleHeight,
+        0,
+        WindowInfo(WindowFeature.windowId, 3),
+        WindowFeature.handleHeight,
+        '',
+        '',
+        'OnTrackerWindowShowContextMenu',
+        '',
+        '',
+        'Show Options', -- tooltip text
+        1, -- hand cursor
+        miniwin.hotspot_got_rh_mouse
+    ) -- flags
+
+    -- draw view
+    local view = GetSettingValue('view', 0)
+    Pyre.Switch(view) {
+        [0] = function()
+            WindowFeature.DrawSessionView()
+        end,
+        [1] = function()
+            WindowFeature.DrawAreaView()
+        end,
+        [2] = function()
+            WindowFeature.DrawFightView()
+        end
+    }
 end
 
 -- draw app name / version with draggable hotspot to move window
@@ -265,7 +314,7 @@ function WindowFeature.DrawTitle(title)
         0
     )
 
-    WindowFeature.DrawTextLine(1, title, 'm', ColourNameToRGB('teal'))
+    WindowFeature.DrawTextLine(1, title, nil, ColourNameToRGB('white'))
 end
 
 function OnTrackerWindowTitleMouseDown(flags, hotspot_id)
@@ -298,6 +347,47 @@ function OnTrackerWindowMove(flags, hotspot_id)
     end -- if
 end
 
+function OnTrackerWindowShowContextMenu(flags, hotspot_id)
+    local nameAndCheckedTab = function(name)
+        local checked = ''
+        if (name == 'Session' and GetSettingValue('view') == 0) then
+            checked = '+'
+        end
+        if (name == 'Area' and GetSettingValue('view') == 1) then
+            checked = '+'
+        end
+        if (name == 'Fight' and GetSettingValue('view') == 2) then
+            checked = '+'
+        end
+        return checked .. name
+    end
+
+    result =
+        WindowMenu(
+        WindowFeature.windowId,
+        WindowInfo(WindowFeature.windowId, 14), -- x
+        WindowInfo(WindowFeature.windowId, 15), -- y
+        '>View|' ..
+            nameAndCheckedTab('Session') ..
+                '|' .. nameAndCheckedTab('Area') .. '|' .. nameAndCheckedTab('Fight') .. '|<|Help'
+    )
+
+    if (result == 'Help') then
+        Execute('pyre help tracker')
+        Execute('pyre help trackerwindow')
+    end
+
+    if (result == 'Session') then
+        Execute('pyre set tracker view 0')
+    end
+    if (result == 'Area') then
+        Execute('pyre set tracker view 1')
+    end
+    if (result == 'Fight') then
+        Execute('pyre set tracker view 2')
+    end
+end
+
 function WindowFeature.AddFonts()
     WindowFont(WindowFeature.windowId, 'l', 'Trebuchet MS', 12, false, false, false, false)
     WindowFont(WindowFeature.windowId, 'm', 'Trebuchet MS', 10, false, false, false, false)
@@ -307,11 +397,11 @@ function WindowFeature.AddFonts()
     WindowFont(WindowFeature.windowId, 'su', 'Trebuchet MS', 8, false, false, true, false)
 end
 
-function WindowFeature.DrawTextLine(line, text, fontid, colour, left)
+function WindowFeature.DrawTextLine(line, text, left, colour, fontid)
     left = left or 10
     local top = 0
     if (line > 1) then
-        top = WindowFeature.handleHeight + (line * 20)
+        top = 3 + ((line - 1) * 20)
     end
 
     if (colour == nil) then
@@ -328,6 +418,12 @@ end
 
 -- draw our session data on the window
 function WindowFeature.DrawSessionView()
+    local session = WindowFeature.sessionCache
+    if (session == nil) then
+        WindowFeature.DrawTextLine(4, 'Waiting on session data.', 120, ColourNameToRGB('red'), 'm')
+        return
+    end
+    WindowFeature.DrawTextLine(2, Pyre.SecondsToClock(session.Normal.Duration), nil, ColourNameToRGB('teal'), 'm')
 end
 
 -- draw our area data on the window

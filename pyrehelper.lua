@@ -26,8 +26,20 @@ function Helper.LoadFeature(feature)
     if (feature.Feature.FeatureStart ~= nil) then
         feature.Feature.FeatureStart(Features, VersionData)
     end
-    Pyre.Log('Loaded Feature ' .. feature.name)
+    Pyre.Log('Loaded Feature ' .. feature.name, Pyre.LogLevel.DEBUG)
 end
+
+function Helper.RestartFeatures()
+    Pyre.Each(
+        Features,
+        function(feature)
+            if (feature.Feature.FeatureStart ~= nil) then
+                feature.Feature.FeatureStart(Features, VersionData)
+            end
+        end
+    )
+end
+
 function Helper.AddNewFeature(feature)
     Helper.LoadFeature(feature)
     table.insert(Features, feature)
@@ -111,7 +123,9 @@ end
 
 function Helper.OnStop()
     Pyre.Log('OnStop', Pyre.LogLevel.DEBUG)
+
     Pyre.Status.Started = false
+    Pyre.Status.State = Pyre.States.NONE
 
     for _, feat in ipairs(Features) do
         if ((feat ~= nil) and (feat.Feature ~= nil) and feat.Feature.FeatureStop ~= nil) then
@@ -477,6 +491,9 @@ function CoreOnStateChange(stateObject)
     if (stateObject.New ~= Pyre.States.COMBAT) then
         Pyre.QueueReset()
     end
+    if (stateObject.Old == Pyre.States.REQUESTED) then
+        Helper.RestartFeatures()
+    end
 end
 
 function CoreOnRoomChanged(changeInfo)
@@ -563,7 +580,7 @@ function Tick()
         end
     end
 
-    ResetTimer('ph_tick')
+    -- ResetTimer('ph_tick')
 end
 
 --------------------------------------------------------------------------------------

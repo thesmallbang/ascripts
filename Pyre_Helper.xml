@@ -243,7 +243,7 @@ end
 
 function OnPluginSaveState() if Helper then Helper.Save() end end
 
-function OnPluginInstall() if Helper then Helper.OnInstall(localData) end end
+function OnPluginInstall() print('oninstall') if Helper then Helper.OnInstall(localData) end end
 
 function OnPluginBroadcast(msg, id, name, text)
     if Helper then Helper.OnPluginBroadcast(msg, id, name, text) end
@@ -251,6 +251,12 @@ end
 
 function OnPluginPacketReceived(sText)
 end
+
+
+function OnPluginConnect()
+ if Helper then end 
+    Helper.OnStop()
+ end
 
 function OnPluginClose() if Helper then Helper.OnStop() end end
 

@@ -46,8 +46,11 @@ Quaff = {
             if (stat.Failed == true or stat.RoomFailed == true) then
                 return false
             end
-
+            if (Pyre.Status.Hp <= 0) then
+                return
+            end
             local inCombat = (Pyre.Status.State == Pyre.States.COMBAT)
+
             return ((Pyre.Status.Hp < Quaff.Hp.Percent and inCombat == true) or
                 (Pyre.Status.Hp < Quaff.Hp.TopOffPercent and inCombat == false))
         end
@@ -302,11 +305,11 @@ function ClearFailedPots()
 end
 
 function CheckForQuaff()
-    if ((Quaff.Enabled == 0) or (isafk == true)) then
+    if ((Quaff.Enabled == 0) or (Pyre.IsAFK == true)) then
         return
     end
 
-    if (not (Pyre.Status.State == Pyre.States.COMBAT) and not (Pyre.Status.State == Pyre.States.IDLE)) then
+    if ((Pyre.Status.State ~= Pyre.States.COMBAT) and (Pyre.Status.State ~= Pyre.States.IDLE)) then
         return
     end
 

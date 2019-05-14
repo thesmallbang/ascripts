@@ -329,9 +329,9 @@ ClanSkills = {
         Expiration = nil,
         Success = {
             'You are ready to study combat through the eyes of your opponent.',
-            'You are still recovering your Empathy abilities.'
+            'You are still recovering your Empathy abilities.*'
         },
-        Failures = {'You are no longer focused on combat empathy.*'},
+        Failures = {'You are no longer focused on combat empathy.'},
         DisplayValue = function(val)
             local setting = 'off'
 

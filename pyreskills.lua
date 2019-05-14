@@ -298,6 +298,78 @@ ClanSkills = {
 
             return setting
         end
+    },
+    [4] = {
+        -- EMPATHY
+
+        Name = 'Empathy',
+        Setting = tonumber(GetVariable('Skill_Empathy')) or 0,
+        Queued = true,
+        DidWarn = 0,
+        LastAttempt = nil,
+        CanCast = function(skill)
+            return (skill.Queued == true and skill.Setting > 0 and Pyre.Status.State == Pyre.States.IDLE and
+                (skill.LastAttempt == nil or os.difftime(socket.gettime(), skill.LastAttempt) > 4))
+        end,
+        Cast = function(skill)
+            SendNoEcho('cast ' .. skill.Name)
+
+            skill.LastAttempt = socket.gettime()
+        end,
+        OnSuccess = function(skill)
+            skill.Queued = false
+            skill.LastAttempt = nil
+            skill.DidWarn = 0
+        end,
+        OnFailure = function(skill)
+            skill.Queued = true
+
+            skill.LastAttempt = nil
+        end,
+        Expiration = nil,
+        Success = {
+            'You are ready to study combat through the eyes of your opponent.',
+            'You are still recovering your Empathy abilities.'
+        },
+        Failures = {'You are no longer focused on combat empathy.*'},
+        DisplayValue = function(val)
+            local setting = 'off'
+
+            Pyre.Switch(val) {
+                [0] = function()
+                    setting = 'off'
+                end,
+                [1] = function()
+                    setting = 'on'
+                end,
+                default = function(x)
+                    setting = 'invalid'
+                end
+            }
+
+            return setting
+        end,
+        ParseSetting = function(wildcard)
+            setting = 0
+
+            if (wildcard == nil) then
+                return setting
+            end
+
+            Pyre.Switch(string.lower(wildcard)) {
+                ['on'] = function()
+                    setting = 1
+                end,
+                ['1'] = function()
+                    setting = 1
+                end,
+                default = function(x)
+                    setting = 0
+                end
+            }
+
+            return setting
+        end
     }
 }
 
@@ -814,7 +886,8 @@ function SkillsSetup()
         'ph_skillunaffected',
         '^(.*) is unaffected by your (.*)!$',
         '',
-        trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
+        trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.KeepEvaluating + trigger_flag.Replace +
+            trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
         -1,
         0,
         '',
@@ -849,7 +922,8 @@ function SkillsSetup()
             'ph_sf' .. skill.Name,
             regexForFailures,
             '',
-            trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
+            trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.KeepEvaluating + trigger_flag.Replace +
+                trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
             -1,
             0,
             '',
@@ -861,7 +935,8 @@ function SkillsSetup()
             'ph_ss' .. skill.Name,
             regexForSuccess,
             '',
-            trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
+            trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.KeepEvaluating + trigger_flag.Replace +
+                trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
             -1,
             0,
             '',
@@ -871,9 +946,9 @@ function SkillsSetup()
 
         AddTriggerEx(
             'ph_sd' .. skill.Name,
-            '^(Skill|Spell)? *.: (.*) \\((.*):(.*)\\)*.$',
+            '^(Skill|Spell|Recovery)? *.: (.*) \\((.*):(.*)\\)*.$',
             '',
-            trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary,
+            trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.KeepEvaluating + trigger_flag.Temporary,
             -1,
             0,
             '',

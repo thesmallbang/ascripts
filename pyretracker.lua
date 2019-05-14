@@ -534,13 +534,15 @@ end
 function OnTrackerPlayerDamage(name, line, wildcards)
     local damage = tonumber(wildcards[5]) or 0
     if (Tracker.FightTracker.Current ~= nil) then
-        Tracker.FightTracker.Current.Damage.Player = Tracker.FightTracker.Current.Damage.Player + damage
+        Tracker.FightTracker.Current.Damage.Player = (Tracker.FightTracker.Current.Damage.Player or 0) + damage
     end
 end
 
 function OnTrackerEnemyDamage(name, line, wildcards)
     local damage = tonumber(wildcards[5]) or 0
-    Tracker.FightTracker.Current.Damage.Enemy = Tracker.FightTracker.Current.Damage.Enemy + damage
+    if (Tracker.FightTracker.Current ~= nil) then
+        Tracker.FightTracker.Current.Damage.Enemy = (Tracker.FightTracker.Current.Damage.Enemy or 0) + damage
+    end
 end
 
 function Tracker.FeatureSettingHandle(settingName, p1, p2, p3, p4)

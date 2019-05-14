@@ -522,7 +522,7 @@ function Helper.Setup()
     -- add settings alias
     AddAlias(
         'ph_setting',
-        "^[pP]yre [sS]e?t?t?i?n?g?\\s([a-zA-Z0-9']+\\s?)?([a-zA-Z0-9']+\\s?)?([a-zA-Z0-9\\.']+\\s?)?([a-zA-Z0-9\\.']+\\s?)?([a-zA-Z0-9\\.']+\\s?)?([a-zA-Z0-9\\.']+\\s?)?([a-zA-Z0-9\\.']+\\s?)?([a-zA-Z0-9\\.']+\\s?)?$",
+        "^[pP]yre [sS]e?t?t?i?n?g?\\s([a-zA-Z0-9']+\\s?)?([\\(\\)\\#a-zA-Z0-9']+\\s?)?([\\(\\)\\#a-zA-Z0-9\\.']+\\s?)?([\\(\\)\\#a-zA-Z0-9\\.']+\\s?)?([\\(\\)\\#a-zA-Z0-9\\.']+\\s?)?([\\(\\)\\#a-zA-Z0-9\\.']+\\s?)?([\\(\\)\\#a-zA-Z0-9\\.']+\\s?)?([\\(\\)\\#a-zA-Z0-9\\.']+\\s?)?$",
         '',
         alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
         'OnSetting'

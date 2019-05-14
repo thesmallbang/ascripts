@@ -312,7 +312,7 @@ ClanSkills = {
                 (skill.LastAttempt == nil or os.difftime(socket.gettime(), skill.LastAttempt) > 4))
         end,
         Cast = function(skill)
-            SendNoEcho('cast ' .. skill.Name)
+            SendNoEcho('cast 520')
 
             skill.LastAttempt = socket.gettime()
         end,

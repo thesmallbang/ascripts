@@ -358,7 +358,7 @@ ClanSkills = {
             'You are ready to study combat through the eyes of your opponent.',
             'You are still recovering your Empathy abilities.*'
         },
-        Failures = {'You are no longer focused on combat empathy.'},
+        Failures = {'You are no longer focused on combat empathy.', '\\#\\# You may now use empath based abilities.'},
         DisplayValue = function(val)
             local setting = 'off'
 

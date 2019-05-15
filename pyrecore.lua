@@ -451,28 +451,30 @@ function core_module.QueueProcessNext()
     -- i think the wait needs to be passed in instead of having it all in core
     local waitTime = 0
 
-    if ((core_module.addedWait or 0) > 0) then
+    if (item.Skill.SkillType ~= core_module.SkillType.QuaffHeal and ((core_module.addedWait or 0) > 0)) then
         waitTime = waitTime + core_module.addedWait
+
+        local queueWait = false
+
+        local dif = (socket.gettime() - (core_module.LastSkillExecute))
+        if (dif < waitTime) then
+            queueWait = true
+        end
+
+        if (queueWait == true) then
+            core_module.Log(
+                'Queue Wait for ' ..
+                    core_module.Round(dif, 1) .. '   [Left: ' .. core_module.TableLength(core_module.ActionQueue) .. ']',
+                core_module.LogLevel.DEBUG
+            )
+            return
+        end
     end
 
-    local queueWait = false
-
-    local dif = (socket.gettime() - (core_module.LastSkillExecute))
-    if (dif < waitTime) then
-        queueWait = true
-    end
-
-    if (queueWait == true) then
-        core_module.Log('Queue Wait ' .. core_module.TableLength(core_module.ActionQueue), core_module.LogLevel.DEBUG)
-        return
-    end
-
-    core_module.addedWait = 0
     -- reset it
     local newUniqueId = math.random(1, 1000000)
     item.uid = newUniqueId
     item.Expiration = socket.gettime() + 10
-
     item.Execute(item.Skill, item)
     core_module.LastSkillUniqueId = item.uid
     core_module.LastSkillExecute = socket.gettime()

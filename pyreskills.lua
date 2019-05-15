@@ -765,6 +765,13 @@ function OnClassSkillUsed(name, line, wildcards)
     if (skill == nil) then
         return true
     end
+
+    if (skill.SkillType == Pyre.SkillType.CombatInitiate or skill.SkillType == Pyre.SkillType.CombatMove) then
+        if (Pyre.addedWait == 0) then
+            Pyre.addedWait = 2
+        end
+    end
+
     SkillFeature.AttackDequeue(skill)
     return true
 end
@@ -858,7 +865,7 @@ function OnPyreAttack()
                             1
                         )
                         if (Pyre.addedWait == 0) then
-                            Pyre.addedWait = 2
+                            Pyre.addedWait = 4
                         end
                         return
                     end
@@ -866,6 +873,7 @@ function OnPyreAttack()
                     -- we are in combat we are skipping a combat init
                     if ((s.SkillType == Pyre.SkillType.CombatInitiate) and (Pyre.Status.State == Pyre.States.COMBAT)) then
                         Pyre.Log('Skipping Combat Initiator, already in combat', Pyre.LogLevel.DEBUG)
+
                         Pyre.ActionQueue =
                             Pyre.Except(
                             Pyre.ActionQueue,

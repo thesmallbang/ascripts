@@ -924,10 +924,16 @@ function SkillsFeatureOnQuaffHealUsed()
 end
 
 function SkillsFeatureOnHpChanged(hpData)
-    if (hpData.New < (hpData.Old + Pyre.GetSettingValue(SkillFeature.Settings, 'burstdamage'))) then
-        SkillFeature.BurstMode = true
+    if (hpData.Old - hpData.New > Pyre.GetSettingValue(SkillFeature.Settings, 'burstdamage')) then
+        if not (SkillFeature.BurstMode) then
+            SkillFeature.BurstMode = true
+            Pyre.Log('Burst mode enabled')
+        end
     else
-        SkillFeature.BurstMode = false
+        if (SkillFeature.BurstMode) then
+            SkillFeature.BurstMode = false
+            Pyre.Log('Burst mode disabled')
+        end
     end
 end
 

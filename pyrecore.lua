@@ -434,14 +434,25 @@ end
 function core_module.QueueProcessNext()
     core_module.Log('QueueProcessNext', core_module.LogLevel.VERBOSE)
 
+    -- first check for a heal
     item =
         core_module.First(
         core_module.ActionQueue,
-        function()
-            return true
+        function(s)
+            return s.Skill.SkillType == core_module.SkillType.QuaffHeal
         end
     )
 
+    if (item == nil) then
+        -- take anything else then
+        item =
+            core_module.First(
+            core_module.ActionQueue,
+            function(s)
+                return true
+            end
+        )
+    end
     if (item == nil) then
         return
     end

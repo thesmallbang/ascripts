@@ -29,8 +29,8 @@ SkillFeature.Settings = {
         value = tonumber(GetVariable('burstdamage')) or 30,
         setValue = function(setting, val)
             local parsed = tonumber(val) or 0
-            if (parsed > 1 or parsed < 0) then
-                parsed = 0
+            if (parsed > 90 or parsed < 0) then
+                parsed = 30
             end
             setting.value = parsed
             SetVariable('burstdamage', setting.value)
@@ -42,8 +42,8 @@ SkillFeature.Settings = {
         value = tonumber(GetVariable('burstbuffer')) or 10,
         setValue = function(setting, val)
             local parsed = tonumber(val) or 0
-            if (parsed > 1 or parsed < 0) then
-                parsed = 0
+            if (parsed > 90 or parsed < 0) then
+                parsed = 10
             end
             setting.value = parsed
             SetVariable('burstbuffer', setting.value)

@@ -186,11 +186,13 @@ function Helper.OnGMCP(text)
         Pyre.Status.RawMana = tonumber(gmcpval('vitals.mana')) or 0
         Pyre.Status.RawMoves = tonumber(gmcpval('vitals.moves')) or 0
 
-        if (Pyre.Status.RawHp == 0) then
-            Pyre.Status.Hp = 0
+        local hpPercent = tonumber((Pyre.Status.RawHp / Pyre.Status.MaxHp) * 100)
+        if (hpPercent == nil) then
+            Pyre.SetHp(0)
         else
-            Pyre.Status.Hp = tonumber((Pyre.Status.RawHp / Pyre.Status.MaxHp) * 100) or 0
+            Pyre.SetHp(Pyre.Round(hpPercent, 0))
         end
+
         if (Pyre.Status.RawMana == 0) then
             Pyre.Status.Mana = 0
         else

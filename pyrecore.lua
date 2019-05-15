@@ -292,6 +292,17 @@ function core_module.GetClassSkillByName(skillName)
     return matchSkill
 end
 
+function core_module.SetHp(hp)
+    if (core_module.Status.Hp == hp) then
+        return
+    end
+
+    local oldhp = core_module.Status.Hp
+    core_module.Status.Hp = hp
+    core_module.ShareEvent(core_module.Event.StateChanged, {New = hp, Old = oldhp})
+    core_module.Log('Hp Changed ' .. oldhp .. ' to ' .. hp, core_module.LogLevel.VERBOSE)
+end
+
 function core_module.SetState(state)
     if (core_module.Status.State == state) then
         return
@@ -867,7 +878,8 @@ core_module.Event = {
     NewEnemy = 100,
     EnemyDied = 110,
     RoomChanged = 200,
-    ZoneChanged = 201
+    ZoneChanged = 201,
+    HpChanged = 1000
 }
 
 core_module.Events = {
@@ -876,7 +888,8 @@ core_module.Events = {
     [core_module.Event.EnemyDied] = {},
     [core_module.Event.RoomChanged] = {},
     [core_module.Event.AFKChanged] = {},
-    [core_module.Event.ZoneChanged] = {}
+    [core_module.Event.ZoneChanged] = {},
+    [core_module.Event.HpChanged] = {}
 }
 
 function core_module.ShareEvent(eventType, eventObject)

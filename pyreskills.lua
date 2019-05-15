@@ -22,6 +22,33 @@ SkillFeature.Commands = {
 }
 
 SkillFeature.Settings = {
+    --afterinitiatedelay
+    {
+        name = 'afterinitiatedelay',
+        description = 'Delay attacks after pyre attack initiates an attack',
+        value = tonumber(GetVariable('afterinitiatedelay')) or 3,
+        setValue = function(setting, val)
+            local parsed = tonumber(val) or 0
+            if (parsed > 1 or parsed < 0) then
+                parsed = 0
+            end
+            setting.value = parsed
+            SetVariable('afterinitiatedelay', setting.value)
+        end
+    },
+    {
+        name = 'delayafterheal',
+        description = 'Delay attacks after a heal is used',
+        value = tonumber(GetVariable('delayafterheal')) or 3,
+        setValue = function(setting, val)
+            local parsed = tonumber(val) or 0
+            if (parsed > 1 or parsed < 0) then
+                parsed = 0
+            end
+            setting.value = parsed
+            SetVariable('delayafterheal', setting.value)
+        end
+    },
     {
         name = 'onlyleaderinitiate',
         description = 'Do not hammerswing not leading group',
@@ -852,7 +879,7 @@ function OnPyreAttack()
 
                         if (qitem.SkillType == Pyre.SkillType.CombatInitiate) then
                             if (Pyre.addedWait == 0) then
-                                Pyre.addedWait = Pyre.GetSettingValue(Pyre.Settings, 'afterInitiateDelay')
+                                Pyre.addedWait = Pyre.GetSettingValue(Pyre.Settings, 'afterinitiatedelay')
                             end
                         end
 
@@ -874,7 +901,7 @@ function OnPyreAttack()
 end
 
 function OnCoreQuaffHealUsed()
-    print('healed')
+    Pyre.addedWait = Pyre.GetSettingValue(SkillFeature.Settings, 'delayAfterHeal')
 end
 
 function SkillsSetup()

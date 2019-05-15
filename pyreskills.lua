@@ -935,13 +935,13 @@ function SkillsFeatureOnHpChanged(hpData)
     if (hpData.Old - hpData.New > Pyre.GetSettingValue(SkillFeature.Settings, 'burstdamage')) then
         if not (SkillFeature.BurstMode) then
             SkillFeature.BurstMode = true
-            Pyre.Log('Burst mode enabled')
+            Pyre.Log('Burst mode enabled', Pyre.LogLevel.DEBUG)
         end
     else
         if (SkillFeature.BurstMode) then
             if (hpData.New > hpData.Old) then
                 SkillFeature.BurstMode = false
-                Pyre.Log('Burst mode disabled')
+                Pyre.Log('Burst mode disabled', Pyre.LogLevel.DEBUG)
             end
         end
     end

@@ -395,7 +395,6 @@ Tracker.Factory = {
         local enemyDamage = fight.Damage.Enemy or 0
         local duration = (fight.EndTime or socket.gettime()) - (fight.StartTime or 0)
 
-        --print(Pyre.ToString(fight))
         local souls = fight.Enemies or 0
         duration = Pyre.Round(duration, 1)
 
@@ -533,14 +532,14 @@ end
 
 function OnTrackerPlayerDamage(name, line, wildcards)
     local damage = tonumber(wildcards[5]) or 0
-    if (Tracker.FightTracker.Current ~= nil) then
+    if (Tracker.FightTracker.Current ~= nil and Tracker.FightTracker.Current.Damage ~= nil) then
         Tracker.FightTracker.Current.Damage.Player = (Tracker.FightTracker.Current.Damage.Player or 0) + damage
     end
 end
 
 function OnTrackerEnemyDamage(name, line, wildcards)
     local damage = tonumber(wildcards[5]) or 0
-    if (Tracker.FightTracker.Current ~= nil) then
+    if (Tracker.FightTracker.Current ~= nil and Tracker.FightTracker.Current.Damage ~= nil) then
         Tracker.FightTracker.Current.Damage.Enemy = (Tracker.FightTracker.Current.Damage.Enemy or 0) + damage
     end
 end
@@ -659,7 +658,7 @@ function Tracker.ArchiveCurrentFight()
             local maxSessionFights = Pyre.GetSettingValue(Tracker.Settings, 'sessionsize')
             if (#Tracker.Session.Fights > maxSessionFights) then
                 -- trim our session data
-                local difference = (maxSessionFights - #Tracker.Session.Fights)
+                local difference = (#Tracker.Session.Fights - maxSessionFights)
                 if (difference > 0) then
                     Tracker.Session.Fights =
                         Pyre.Filter(
@@ -694,7 +693,7 @@ function Tracker.ArchiveCurrentArea()
         end
 
         local maxSize = Pyre.GetSettingValue(Tracker.Settings, 'areasize')
-        local difference = (maxSize - #Tracker.AreaTracker.History)
+        local difference = (#Tracker.AreaTracker.History - maxSize)
         if (difference > 0) then
             Tracker.AreaTracker.History =
                 Pyre.Filter(

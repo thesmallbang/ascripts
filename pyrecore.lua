@@ -1,4 +1,6 @@
-core_module = {}
+core_module = {
+    addedWait = 0
+}
 
 local json = require('json')
 
@@ -435,10 +437,13 @@ function core_module.QueueProcessNext()
     end
 
     -- check that we are not execeting too quickly for combat types
-    local waitTime = 2.5
-    if (item.Skill.SkillType == core_module.SkillType.CombatInitiate) then
-        waitTime = waitTime + 2
+    -- i think the wait needs to be passed in instead of having it all in core
+    local waitTime = 0
+
+    if ((core_module.addedWait or 0) > 0) then
+        waitTime = waitTime + core_module.addedWait
     end
+
     if
         (((item.Skill.SkillType == core_module.SkillType.CombatInitiate) or
             (item.Skill.SkillType == core_module.SkillType.CombatMove)) and
@@ -448,8 +453,8 @@ function core_module.QueueProcessNext()
         return
     end
 
-    -- this may be silly but i wasn't sure how objects were handled and if 2 identical commands would equal the same object
-    -- and just did it in case
+    core_module.addedWait = 0
+    -- reset it
     local newUniqueId = math.random(1, 1000000)
     item.uid = newUniqueId
     item.Execute(item.Skill, item)

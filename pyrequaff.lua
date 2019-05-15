@@ -13,7 +13,7 @@ local lastRoomChanged = socket.gettime()
 
 Quaff = {
     LastQuaff = 0,
-    Save = function(q)
+    Save = function(q) -- refactor
         SetVariable('quaff_enabled', q.Enabled)
         SetVariable('quaff_topoff', q.Topoff)
         SetVariable('quaff_container', q.Container)
@@ -21,18 +21,13 @@ Quaff = {
         q.Mp:Save()
         q.Mv:Save()
     end,
-    ResetRoomFailed = function(q)
-        q.Hp.RoomFailed = false
-        q.Mp.RoomFailed = false
-        q.Mv.RoomFailed = false
-    end,
+    RoomFailed = false,
     Enabled = tonumber(GetVariable('quaff_enabled')) or 0,
     Topoff = tonumber(GetVariable('quaff_topoff')) or 0,
     Container = GetVariable('quaff_container') or '',
     Hp = {
         Name = 'Hp',
         Failed = false,
-        RoomFailed = false,
         Percent = tonumber(GetVariable('Quaff_hp_percent')) or 50,
         TopOffPercent = tonumber(GetVariable('Quaff_hp_topoff_percent')) or 50,
         Item = GetVariable('quaff_hp_item') or 'heal',
@@ -43,7 +38,7 @@ Quaff = {
             SetVariable('Quaff_hp_percent', stat.Percent or 50)
         end,
         Needed = function(stat)
-            if (stat.Failed == true or stat.RoomFailed == true) then
+            if (stat.Failed == true or Quaff.RoomFailed == true) then
                 return false
             end
             if (Pyre.Status.Hp <= 0) then
@@ -58,7 +53,6 @@ Quaff = {
     Mp = {
         Name = 'Mp',
         Failed = false,
-        RoomFailed = false,
         Percent = tonumber(GetVariable('Quaff_mp_percent')) or 50,
         TopOffPercent = tonumber(GetVariable('Quaff_mp_topoff_percent')) or 50,
         Item = GetVariable('quaff_mp_item') or 'lotus',
@@ -69,7 +63,7 @@ Quaff = {
             SetVariable('Quaff_mp_percent', stat.Percent or 50)
         end,
         Needed = function(stat)
-            if (stat.Failed == true or stat.RoomFailed == true) then
+            if (stat.Failed == true or Quaff.RoomFailed == true) then
                 return false
             end
             local inCombat = (Pyre.Status.State == Pyre.States.COMBAT)
@@ -80,7 +74,6 @@ Quaff = {
     Mv = {
         Name = 'Mv',
         Failed = false,
-        RoomFailed = false,
         Percent = tonumber(GetVariable('Quaff_mv_percent')) or 50,
         TopOffPercent = tonumber(GetVariable('Quaff_mv_topoff_percent')) or 50,
         Item = GetVariable('quaff_mv_item') or 'move',
@@ -91,7 +84,7 @@ Quaff = {
             SetVariable('Quaff_mv_percent', stat.Percent or 50)
         end,
         Needed = function(stat)
-            if (stat.Failed == true or stat.RoomFailed == true) then
+            if (stat.Failed == true or Quaff.RoomFailed == true) then
                 return false
             end
             local inCombat = (Pyre.Status.State == Pyre.States.COMBAT)
@@ -538,11 +531,8 @@ function OnQuaffFailed(name, line, wildcards)
     end
 
     if (wildcards[1] == 'A powerful force quenches your magic.') then
-        potion.Stat.RoomFailed = true
-        Pyre.Log(
-            'Quaff RoomDisabled for ' .. potion.Stat.Name .. " type 'pyre setting quaff clear' to reset",
-            Pyre.LogLevel.INFO
-        )
+        Quaff.RoomFailed = true
+        Pyre.Log("Quaff RoomDisabled type 'pyre setting quaff clear' to reset", Pyre.LogLevel.INFO)
     else
         potion.Stat.Failed = true
         Pyre.Log(
@@ -571,7 +561,7 @@ end
 
 function QuaffOnRoomChanged(changeInfo)
     lastRoomChanged = socket.gettime()
-    Quaff:ResetRoomFailed()
+    Quaff.RoomFailed = false
 end
 
 function Quaff.Setup()
@@ -584,7 +574,8 @@ function Quaff.Setup()
         'ph_qff',
         "^(You don't have that potion.|A powerful force quenches your magic.|The magic in .* is too strong for you.)$",
         '',
-        trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
+        trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary +
+            trigger_flag.KeepEvaluating, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
         -1,
         0,
         '',
@@ -595,7 +586,8 @@ function Quaff.Setup()
         'ph_qfs',
         '^You quaff (.*)$',
         '',
-        trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
+        trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary +
+            trigger_flag.KeepEvaluating, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
         -1,
         0,
         '',

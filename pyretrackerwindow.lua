@@ -17,6 +17,7 @@ local WindowFeature = {
     visible = true,
     windowId = 'pyre_trackerwindow',
     AppVersion = '0.0',
+    QuaffFeature = nil,
     Tabs = {
         [0] = 'Session',
         [1] = 'Area',
@@ -78,6 +79,17 @@ function WindowFeature.FeatureStart(featuresRunning, versionData)
     end
 
     Tracker = require('pyretracker')
+    WindowFeature.QuaffFeature =
+        Pyre.First(
+        featuresRunning,
+        function(f)
+            return f.name == 'pyrequaff'
+        end
+    )
+
+    if (WindowFeature.QuaffFeature == nil) then
+        Pyre.Log('Quaff not found for window feature')
+    end
 
     Pyre.Each(
         WindowFeature.Commands,
@@ -338,6 +350,8 @@ function WindowFeature.DrawWindow()
             WindowFeature.DrawFightView()
         end
     }
+
+    WindowFeature.DrawExtraFeatures()
 end
 
 -- draw app name / version with draggable hotspot to move window
@@ -370,7 +384,7 @@ function WindowFeature.DrawTitle(title)
     local windowWidth = WindowInfo(WindowFeature.windowId, 3)
     local left = (windowWidth / 2) - (titleWidth / 2)
 
-    WindowFeature.DrawTextLine(1, title, left, ColourNameToRGB('white'))
+    WindowFeature.DrawTextLine(1, title, left, 'white')
 end
 
 function OnTrackerWindowTitleMouseDown(flags, hotspot_id)
@@ -453,22 +467,56 @@ function WindowFeature.AddFonts()
     WindowFont(WindowFeature.windowId, 'su', 'Trebuchet MS', 8, false, false, true, false)
 end
 
-function WindowFeature.DrawTextLine(line, text, left, colour, fontid)
-    left = left or 10
+function WindowFeature.GetLineHeight(line)
     local top = 2
     if (line > 1) then
         top = 3 + ((line - 1) * 20)
     end
+    return top
+end
 
-    if (colour == nil) then
-        colour = ColourNameToRGB('white')
+function WindowFeature.DrawTextLine(line, text, left, colour, fontid, clickFnName, tooltip)
+    left = left or 10
+    top = WindowFeature.GetLineHeight(line)
+    if (colour == nil or colour == '') then
+        colour = 'white'
     end
     fontid = fontid or 's'
     if (text == nil) then
         text = ''
     end
 
-    WindowText(WindowFeature.windowId, fontid, text, left, top, 0, 0, colour)
+    WindowText(
+        WindowFeature.windowId,
+        fontid,
+        text,
+        left,
+        top,
+        0,
+        0,
+        ColourNameToRGB(colour) or ColourNameToRGB('white')
+    )
+
+    if (clickFnName ~= nil) then
+        local msgWidth = WindowTextWidth(WindowFeature.windowId, fontid, text, false)
+        local msgHeight = WindowFontInfo(WindowFeature.windowId, fontid, 1)
+        WindowAddHotspot(
+            WindowFeature.windowId,
+            'hs_' .. line .. '_' .. left,
+            left,
+            top,
+            left + msgWidth,
+            top + msgHeight,
+            '',
+            '',
+            clickFnName,
+            '',
+            '',
+            tooltip or '',
+            1, -- hand cursor
+            0
+        )
+    end
 end -- Display_Line
 
 -- draw message at center of window that the selected view doesnt have any cached data yet
@@ -477,7 +525,7 @@ function WindowFeature.DrawWaitingForData()
     local titleWidth = WindowTextWidth(WindowFeature.windowId, 'm', data, false)
     local windowWidth = WindowInfo(WindowFeature.windowId, 3)
     local left = (windowWidth / 2) - (titleWidth / 2)
-    WindowFeature.DrawTextLine(5, data, left, ColourNameToRGB('red'), 'm')
+    WindowFeature.DrawTextLine(5, data, left, 'red', 'm')
 end
 
 -- draw our session data on the window
@@ -488,8 +536,8 @@ function WindowFeature.DrawSessionView()
         return
     end
 
-    WindowFeature.DrawTextLine(2, 'SESSION', nil, ColourNameToRGB('teal'), 'm')
-    WindowFeature.DrawTextLine(2, Pyre.SecondsToClock(session.Normal.Duration), 340, ColourNameToRGB('teal'), 'm')
+    WindowFeature.DrawTextLine(2, 'SESSION', nil, 'teal', 'm')
+    WindowFeature.DrawTextLine(2, Pyre.SecondsToClock(session.Normal.Duration), 340, 'teal', 'm')
 
     WindowFeature.DrawTextLine(3, 'Exp')
     WindowFeature.DrawTextLine(3, session.Experience, 50)
@@ -639,129 +687,100 @@ function WindowFeature.DrawFightView()
     WindowFeature.DrawPager(WindowFeature.lastFightCacheIndex, #Tracker.Session.Fights)
 end
 
+function WindowFeature.DrawExtraFeatures()
+    local msg = 'Queue: ' .. tostring(#Pyre.ActionQueue or 0)
+
+    if (#Pyre.ActionQueue or 0) > 0 then
+        WindowFeature.DrawTextLine(9, msg, 10, 'orange', 's', 'OnQueueClicked', 'Clear actions')
+    else
+        WindowFeature.DrawTextLine(9, msg, 10, 'white', 's')
+    end
+
+    local msgWidth = WindowTextWidth(WindowFeature.windowId, 's', msg, false)
+
+    -- the light bulb moment since my main feature properties aren't private
+    -- .. they are public and other scripts have access
+    if (Quaff ~= nil and Quaff.Hp ~= nil) then
+        if (Quaff.RoomFailed) then
+            WindowFeature.DrawTextLine(9, 'Quaff Suppressed', 10 + msgWidth + 10, 'red', 's')
+            msgWidth = msgWidth + (10) + (WindowTextWidth(WindowFeature.windowId, 's', 'Quaff Suppressed', false))
+        else
+            if (Quaff.Hp.Failed or Quaff.Mp.Failed or Quaff.Mv.Failed) then
+                -- 10 is just our spacer between things
+                WindowFeature.DrawTextLine(
+                    9,
+                    'Clear Pot Fails',
+                    10 + msgWidth + 10,
+                    'orange',
+                    'su',
+                    'OnWindowClearPots',
+                    'Clear potion failures to retry them again'
+                )
+                local endLeft =
+                    msgWidth + (10) + (WindowTextWidth(WindowFeature.windowId, 's', 'Clear Pot Fails', false))
+                msgWidth = endLeft
+            end
+        end
+    end
+end
+
+function OnQueueClicked()
+    -- refactor out...
+    Pyre.Log('Queue Cleared')
+    Pyre.ActionQueue = {}
+end
+
 function WindowFeature.DrawPager(i, max)
     if (max == nil or max == 0) then
         return
     end
 
+    local firstcb = nil
+    local newercb = nil
+    local oldercb = nil
+    local lastcb = nil
+    local leftColor = nil
+    local rightColor = nil
     if (i > 0) then
-        WindowText(
-            WindowFeature.windowId,
-            'su',
-            '<<',
-            10,
-            (WindowInfo(WindowFeature.windowId, 4) - WindowFeature.handleHeight) - 4,
-            0,
-            0,
-            ColourNameToRGB('white')
-        )
-
-        WindowAddHotspot(
-            WindowFeature.windowId,
-            'pagerfirst_hs',
-            10,
-            (WindowInfo(WindowFeature.windowId, 4) - WindowFeature.handleHeight) - 4,
-            29,
-            WindowInfo(WindowFeature.windowId, 4) - 1,
-            '',
-            '',
-            'OnTrackerWindowPagerFirst',
-            '',
-            '',
-            'View Current',
-            1, -- hand cursor
-            0
-        )
-
-        WindowText(
-            WindowFeature.windowId,
-            'su',
-            '<',
-            30,
-            (WindowInfo(WindowFeature.windowId, 4) - WindowFeature.handleHeight) - 4,
-            0,
-            0,
-            ColourNameToRGB('white')
-        )
-        WindowAddHotspot(
-            WindowFeature.windowId,
-            'pagernewer_hs',
-            30,
-            (WindowInfo(WindowFeature.windowId, 4) - WindowFeature.handleHeight) - 4,
-            50,
-            WindowInfo(WindowFeature.windowId, 4) - 1,
-            '',
-            '',
-            'OnTrackerWindowPagerNewer',
-            '',
-            '',
-            'View Newer',
-            1, -- hand cursor
-            0
-        )
+        firstcb = 'OnTrackerWindowPagerFirst'
+        newercb = 'OnTrackerWindowPagerNewer'
+        leftColor = 'orange'
     end
-
     if (i < max) then
-        WindowText(
-            WindowFeature.windowId,
-            'su',
-            '>',
-            WindowInfo(WindowFeature.windowId, 3) - 35,
-            (WindowInfo(WindowFeature.windowId, 4) - WindowFeature.handleHeight) - 4,
-            0,
-            0,
-            ColourNameToRGB('white')
-        )
-        WindowAddHotspot(
-            WindowFeature.windowId,
-            'navarea_older_hs',
-            WindowInfo(WindowFeature.windowId, 3) - 35,
-            (WindowInfo(WindowFeature.windowId, 4) - WindowFeature.handleHeight) - 4,
-            WindowInfo(WindowFeature.windowId, 3) - 14,
-            WindowInfo(WindowFeature.windowId, 4) - 1, -- rectangle
-            '',
-            '',
-            'OnTrackerWindowPagerOlder',
-            '',
-            '',
-            'View Older',
-            1, -- hand cursor
-            0
-        )
-        WindowText(
-            WindowFeature.windowId,
-            'su',
-            '>>',
-            WindowInfo(WindowFeature.windowId, 3) - 15,
-            (WindowInfo(WindowFeature.windowId, 4) - WindowFeature.handleHeight) - 4,
-            0,
-            0,
-            ColourNameToRGB('white')
-        )
-        WindowAddHotspot(
-            WindowFeature.windowId,
-            'navarea_oldest_hs',
-            WindowInfo(WindowFeature.windowId, 3) - 15,
-            (WindowInfo(WindowFeature.windowId, 4) - WindowFeature.handleHeight) - 4,
-            WindowInfo(WindowFeature.windowId, 3) - 1,
-            WindowInfo(WindowFeature.windowId, 4) - 1,
-            '',
-            '',
-            'OnTrackerWindowPagerLast',
-            '',
-            '',
-            'View Oldest',
-            1, -- hand cursor
-            0
-        )
+        oldercb = 'OnTrackerWindowPagerOlder'
+        lastcb = 'OnTrackerWindowPagerLast'
+        rightColor = 'orange'
     end
 
-    local msg = i .. '/' .. max
+    WindowFeature.DrawTextLine(10, '<<', 10, leftColor, 's', firstcb, 'View Current')
+    WindowFeature.DrawTextLine(10, '<', 30, leftColor, 's', newercb, 'View Newer')
+    WindowFeature.DrawTextLine(
+        10,
+        '>',
+        WindowInfo(WindowFeature.windowId, 3) - 35,
+        rightColor,
+        's',
+        oldercb,
+        'View Older'
+    )
+    WindowFeature.DrawTextLine(
+        10,
+        '>>',
+        WindowInfo(WindowFeature.windowId, 3) - 20,
+        rightColor,
+        's',
+        lastcb,
+        'View Oldest'
+    )
+
+    WindowFeature.DrawCenteredTextLine(10, i .. ' / ' .. max, 'white', 'm')
+end
+
+function WindowFeature.DrawCenteredTextLine(line, msg, colour, fontid, clickFnName, tooltip)
     local titleWidth = WindowTextWidth(WindowFeature.windowId, 'm', msg, false)
     local windowWidth = WindowInfo(WindowFeature.windowId, 3)
     local left = (windowWidth / 2) - (titleWidth / 2)
-
-    WindowFeature.DrawTextLine(10, msg, left, ColourNameToRGB('white'))
+    WindowFeature.DrawTextLine(10, msg, left, colour, fontid, clickFnName, tooltip)
 end
 
 function OnTrackerWindowPagerFirst()

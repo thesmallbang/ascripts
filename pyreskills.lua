@@ -841,13 +841,20 @@ function OnPyreAttack()
                             '^' .. regexForAttempt .. '$',
                             '',
                             trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace +
-                                trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
+                                trigger_flag.Temporary +
+                                trigger_flag.KeepEvaluating, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
                             -1,
                             0,
                             '',
                             'OnClassSkillAttempted',
                             0
                         )
+
+                        if (qitem.SkillType == Pyre.SkillType.CombatInitiate) then
+                            if (Pyre.addedWait == 0) then
+                                Pyre.addedWait = Pyre.GetSettingValue(Pyre.Settings, 'afterInitiateDelay')
+                            end
+                        end
 
                         Execute(s.Name)
                     else
@@ -866,8 +873,25 @@ function OnPyreAttack()
     end
 end
 
+function OnCoreQuaffHealUsed()
+    print('healed')
+end
+
 function SkillsSetup()
     Pyre.Log('SkillsSetup (alias+triggers)', Pyre.LogLevel.DEBUG)
+
+    AddTriggerEx(
+        'ph_coreqfs',
+        '^\\[.*\\] A warm feeling fills your body. \\[.*\\]$',
+        '',
+        trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary +
+            trigger_flag.KeepEvaluating, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
+        -1,
+        0,
+        '',
+        'OnCoreQuaffHealUsed',
+        0
+    )
 
     AddTriggerEx(
         'ph_clsskillused',

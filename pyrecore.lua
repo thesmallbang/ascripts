@@ -481,7 +481,9 @@ function core_module.QueueProcessNext()
     local newUniqueId = math.random(1, 1000000)
     item.uid = newUniqueId
     item.Expiration = socket.gettime() + 10
+    core_module.addedWait = 0
     item.Execute(item.Skill, item)
+
     core_module.LastSkillUniqueId = item.uid
     core_module.LastSkillExecute = socket.gettime()
 end

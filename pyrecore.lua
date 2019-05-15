@@ -469,7 +469,8 @@ function core_module.QueueProcessNext()
         if (queueWait == true) then
             core_module.Log(
                 'Queue Wait for ' ..
-                    core_module.Round(dif, 1) .. '   [Left: ' .. core_module.TableLength(core_module.ActionQueue) .. ']',
+                    core_module.Round(dif, 1) ..
+                        ' of ' .. waitTime .. '   [Left: ' .. core_module.TableLength(core_module.ActionQueue) .. ']',
                 core_module.LogLevel.DEBUG
             )
             return

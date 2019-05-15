@@ -637,6 +637,15 @@ function SkillFeature.AttackDequeue(skill)
             1
         )
 
+        if (skill.SkillType == Pyre.SkillType.CombatInitiate or skill.SkillType == Pyre.SkillType.CombatMove) then
+            Pyre.LastSkillExecute = socket.gettime()
+            if (Pyre.addedWait == 0) then
+                if (SkillFeature.BurstMode) then
+                    Pyre.addedWait = 3
+                end
+            end
+        end
+
         SkillFeature.LastUnqueue = socket.gettime()
         Pyre.Log('Skill Dequeued ' .. skill.Name, Pyre.LogLevel.DEBUG)
         -- if there are no more skills with that name we need to disable the dequeue trigger
@@ -767,15 +776,6 @@ function OnClassSkillUsed(name, line, wildcards)
         return true
     end
 
-    if (skill.SkillType == Pyre.SkillType.CombatInitiate or skill.SkillType == Pyre.SkillType.CombatMove) then
-        Pyre.LastSkillExecute = socket.gettime()
-        if (Pyre.addedWait == 0) then
-            if (SkillFeature.BurstMode) then
-                Pyre.addedWait = 3
-            end
-        end
-    end
-
     SkillFeature.AttackDequeue(skill)
     return true
 end
@@ -874,6 +874,11 @@ function OnPyreAttack()
                         return
                     end
 
+                    if (s.SkillType == Pyre.SkillType.CombatInitiate) then
+                        if (Pyre.addedWait == 0) then
+                            Pyre.addedWait = 3
+                        end
+                    end
                     -- we are in combat we are skipping a combat init
                     if ((s.SkillType == Pyre.SkillType.CombatInitiate) and (Pyre.Status.State == Pyre.States.COMBAT)) then
                         Pyre.Log('Skipping Combat Initiator, already in combat', Pyre.LogLevel.DEBUG)

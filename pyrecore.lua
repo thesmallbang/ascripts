@@ -299,7 +299,7 @@ function core_module.SetHp(hp)
 
     local oldhp = core_module.Status.Hp
     core_module.Status.Hp = hp
-    core_module.ShareEvent(core_module.Event.StateChanged, {New = hp, Old = oldhp})
+    core_module.ShareEvent(core_module.Event.HpChanged, {New = hp, Old = oldhp})
     core_module.Log('Hp Changed ' .. oldhp .. ' to ' .. hp, core_module.LogLevel.VERBOSE)
 end
 
@@ -474,13 +474,12 @@ function core_module.QueueProcessNext()
     item.Expiration = socket.gettime() + 10
 
     item.Execute(item.Skill, item)
-
     core_module.LastSkillUniqueId = item.uid
     core_module.LastSkillExecute = socket.gettime()
 end
 -- Reset queue leaves potions alone
 function core_module.QueueReset()
-    core_module.Log('Resetting queue', core_module.LogLevel.VERBOSE)
+    core_module.Log('Resetting queue', core_module.LogLevel.DEBUG)
     core_module.ActionQueue =
         core_module.Filter(
         core_module.ActionQueue,

@@ -854,7 +854,7 @@ function OnPyreAttack()
                     end
 
                     if (SkillFeature.BurstMode and s.SkillType ~= Pyre.SkillType.QuaffHeal) then
-                        Pyre.Log('Skipped attack for burst mode')
+                        Pyre.Log('Skipped attack for burst mode', Pyre.LogLevel.DEBUG)
                         -- remove initiations
                         Pyre.ActionQueue =
                             Pyre.Except(

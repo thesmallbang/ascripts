@@ -457,14 +457,8 @@ function core_module.QueueProcessNext()
 
     local queueWait = false
 
-    if
-        ((item.Skill.SkillType == core_module.SkillType.CombatInitiate) or
-            (item.Skill.SkillType == core_module.SkillType.CombatMove))
-     then
-        queueWait = true
-    end
-
-    if ((socket.gettime() - (core_module.LastSkillExecute)) > waitTime) then
+    local dif = (socket.gettime() - (core_module.LastSkillExecute))
+    if (dif < waitTime) then
         queueWait = true
     end
 
@@ -479,7 +473,6 @@ function core_module.QueueProcessNext()
     item.uid = newUniqueId
     item.Expiration = socket.gettime() + 10
 
-    print('executing')
     item.Execute(item.Skill, item)
 
     core_module.LastSkillUniqueId = item.uid

@@ -932,7 +932,9 @@ function OnPyreAttack()
 end
 
 function SkillsFeatureOnQuaffHealUsed()
-    Pyre.addedWait = Pyre.GetSettingValue(SkillFeature.Settings, 'delayAfterHeal')
+    if (Pyre.addedWait > 0) then
+        Pyre.addedWait = 2
+    end
 end
 
 function SkillsFeatureOnHpChanged(hpData)

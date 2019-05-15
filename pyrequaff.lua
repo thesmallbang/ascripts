@@ -501,8 +501,8 @@ function OnQuaffUsed(name, line, wildcards)
         return
     end
 
-    if (potion.SkillType == Pyre.SkillType.QuaffHeal and Pyre.addedWait < 4) then
-        Pyre.addedWait = 4
+    if (potion.SkillType == Pyre.SkillType.QuaffHeal and Pyre.addedWait < 2) then
+        Pyre.addedWait = 2
     end
 
     potion.Stat.Failed = false

@@ -768,7 +768,7 @@ function OnClassSkillUsed(name, line, wildcards)
 
     if (skill.SkillType == Pyre.SkillType.CombatInitiate or skill.SkillType == Pyre.SkillType.CombatMove) then
         if (Pyre.addedWait == 0) then
-            Pyre.addedWait = 2
+            Pyre.addedWait = 1
         end
     end
 

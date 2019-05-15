@@ -26,11 +26,11 @@ SkillFeature.Settings = {
     {
         name = 'burstdamage',
         description = 'Focus on healing if your hp is taken down by this percent in a gmcp update. ie you took burst damage',
-        value = tonumber(GetVariable('burstdamage')) or 30,
+        value = tonumber(GetVariable('burstdamage')) or 15,
         setValue = function(setting, val)
             local parsed = tonumber(val) or 0
             if (parsed > 90 or parsed < 0) then
-                parsed = 30
+                parsed = 15
             end
             setting.value = parsed
             SetVariable('burstdamage', setting.value)
@@ -39,11 +39,11 @@ SkillFeature.Settings = {
     {
         name = 'burstbuffer',
         description = 'Increase your hp percent by this amount during burst mode',
-        value = tonumber(GetVariable('burstbuffer')) or 10,
+        value = tonumber(GetVariable('burstbuffer')) or 15,
         setValue = function(setting, val)
             local parsed = tonumber(val) or 0
             if (parsed > 90 or parsed < 0) then
-                parsed = 10
+                parsed = 15
             end
             setting.value = parsed
             SetVariable('burstbuffer', setting.value)
@@ -939,10 +939,8 @@ function SkillsFeatureOnHpChanged(hpData)
         end
     else
         if (SkillFeature.BurstMode) then
-            if (hpData.New > hpData.Old) then
-                SkillFeature.BurstMode = false
-                Pyre.Log('Burst mode disabled', Pyre.LogLevel.DEBUG)
-            end
+            SkillFeature.BurstMode = false
+            Pyre.Log('Burst mode disabled', Pyre.LogLevel.DEBUG)
         end
     end
 end

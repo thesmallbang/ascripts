@@ -724,6 +724,10 @@ function WindowFeature.DrawExtraFeatures()
     end
 end
 
+function OnWindowClearPots()
+    Execute('pyre set quaff clear')
+end
+
 function OnQueueClicked()
     -- refactor out...
     Pyre.Log('Queue Cleared')

@@ -10,7 +10,8 @@ SkillFeature = {
     LastAttack = 0,
     LastUnqueue = 0,
     LastSkillExecute = 0,
-    LastSkillUniqueId = 0
+    LastSkillUniqueId = 0,
+    BurstMode = false
 }
 
 SkillFeature.Commands = {
@@ -22,31 +23,30 @@ SkillFeature.Commands = {
 }
 
 SkillFeature.Settings = {
-    --afterinitiatedelay
     {
-        name = 'afterinitiatedelay',
-        description = 'Delay attacks after pyre attack initiates an attack',
-        value = tonumber(GetVariable('afterinitiatedelay')) or 3,
+        name = 'burstdamage',
+        description = 'Focus on healing if your hp is taken down by this percent in a gmcp update. ie you took burst damage',
+        value = tonumber(GetVariable('burstdamage')) or 30,
         setValue = function(setting, val)
             local parsed = tonumber(val) or 0
             if (parsed > 1 or parsed < 0) then
                 parsed = 0
             end
             setting.value = parsed
-            SetVariable('afterinitiatedelay', setting.value)
+            SetVariable('burstdamage', setting.value)
         end
     },
     {
-        name = 'delayafterheal',
-        description = 'Delay attacks after a heal is used',
-        value = tonumber(GetVariable('delayafterheal')) or 3,
+        name = 'burstbuffer',
+        description = 'Increase your hp percent by this amount during burst mode',
+        value = tonumber(GetVariable('burstbuffer')) or 10,
         setValue = function(setting, val)
             local parsed = tonumber(val) or 0
             if (parsed > 1 or parsed < 0) then
                 parsed = 0
             end
             setting.value = parsed
-            SetVariable('delayafterheal', setting.value)
+            SetVariable('burstbuffer', setting.value)
         end
     },
     {
@@ -736,7 +736,16 @@ function OnSkillUnaffected(name, line, wildcards)
 
     if (not (skill == nil) and (not (SkillFeature.LastSkill == nil) and (skill.Name == SkillFeature.LastSkill.Name))) then
         SkillFeature.SkillFail = skill
-        SkillFeature.AttackDequeue(skill)
+
+        -- replace all unaffected matches with next best option
+
+        Pyre.ActionQueue =
+            Pyre.Except(
+            Pyre.ActionQueue,
+            function(q)
+                return (q.Skill.Name == skill.Name)
+            end
+        )
     end
 end
 
@@ -803,8 +812,6 @@ function OnPyreAttack()
     end
 
     if not (bestSkill == nil) then
-        local expiration = ((Pyre.TableLength(Pyre.ActionQueue) * 15) + 5)
-
         -- dont allow duplicate initiators
         if
             (Pyre.Any(
@@ -822,32 +829,51 @@ function OnPyreAttack()
             Pyre.ActionQueue,
             {
                 Skill = bestSkill,
-                Expiration = socket.gettime() + expiration,
+                Expiration = nil,
                 Execute = function(s, qitem)
-                    if ((Pyre.Status.IsLeader == false) and (Pyre.Settings.OnlyLeaderInitiate == 1)) then
+                    if
+                        ((Pyre.Status.IsLeader == false) and
+                            (Pyre.GetSettingValue(SkillFeature.Settings, 'onlyleaderinitiate') == 1))
+                     then
                         Pyre.Log('Initiation cancelled. You are not the group leader', Pyre.LogLevel.INFO)
+                        -- remove initiations
+                        Pyre.ActionQueue =
+                            Pyre.Except(
+                            Pyre.ActionQueue,
+                            function(aq)
+                                return aq.SkillType == Pyre.SkillType.CombatInitiate
+                            end
+                        )
+                        return
+                    end
+
+                    if (SkillFeature.BurstMode and s.SkillType ~= Pyre.SkillType.QuaffHeal) then
+                        Pyre.Log('Skipped attack for burst mode')
+                        -- remove initiations
+                        Pyre.ActionQueue =
+                            Pyre.Except(
+                            Pyre.ActionQueue,
+                            function(aq)
+                                return aq.uid ~= Pyre.SkillType.uid
+                            end,
+                            1
+                        )
+                        if (Pyre.addedWait == 0) then
+                            Pyre.addedWait = 2
+                        end
                         return
                     end
 
                     -- we are in combat we are skipping a combat init
-                    if
-                        ((qitem.SkillType == Pyre.SkillType.CombatInitiate) and
-                            (Pyre.Status.State == Pyre.States.COMBAT))
-                     then
+                    if ((s.SkillType == Pyre.SkillType.CombatInitiate) and (Pyre.Status.State == Pyre.States.COMBAT)) then
                         Pyre.Log('Skipping Combat Initiator, already in combat', Pyre.LogLevel.DEBUG)
                         Pyre.ActionQueue =
                             Pyre.Except(
                             Pyre.ActionQueue,
-                            function(v)
-                                if (v == nil or v.Skill == nil or s == nil) then
-                                    return false
-                                end
-                                return (v.Skill.Name == s.Name)
-                            end,
-                            1
+                            function(aq)
+                                return aq.SkillType == Pyre.SkillType.CombatInitiate
+                            end
                         )
-                        qitem.Expiration = socket.gettime() + ((Pyre.TableLength(Pyre.ActionQueue) * 15) + 5)
-                        table.insert(Pyre.ActionQueue, qitem)
                         return
                     end
 
@@ -877,12 +903,6 @@ function OnPyreAttack()
                             0
                         )
 
-                        if (qitem.SkillType == Pyre.SkillType.CombatInitiate) then
-                            if (Pyre.addedWait == 0) then
-                                Pyre.addedWait = Pyre.GetSettingValue(Pyre.Settings, 'afterinitiatedelay')
-                            end
-                        end
-
                         Execute(s.Name)
                     else
                         SetCommand(s.Name .. ' ')
@@ -900,12 +920,21 @@ function OnPyreAttack()
     end
 end
 
-function OnCoreQuaffHealUsed()
+function SkillsFeatureOnQuaffHealUsed()
     Pyre.addedWait = Pyre.GetSettingValue(SkillFeature.Settings, 'delayAfterHeal')
+end
+
+function SkillsFeatureOnHpChanged(hpData)
+    if (hpData.New < (hpData.Old + Pyre.GetSettingValue(SkillFeature.Settings, 'burstdamage'))) then
+        SkillFeature.BurstMode = true
+    else
+        SkillFeature.BurstMode = false
+    end
 end
 
 function SkillsSetup()
     Pyre.Log('SkillsSetup (alias+triggers)', Pyre.LogLevel.DEBUG)
+    table.insert(Pyre.Events[Pyre.Event.HpChanged], SkillsFeatureOnHpChanged)
 
     AddTriggerEx(
         'ph_coreqfs',

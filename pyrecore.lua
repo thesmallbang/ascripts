@@ -455,11 +455,20 @@ function core_module.QueueProcessNext()
         waitTime = waitTime + core_module.addedWait
     end
 
+    local queueWait = false
+
     if
-        (((item.Skill.SkillType == core_module.SkillType.CombatInitiate) or
-            (item.Skill.SkillType == core_module.SkillType.CombatMove)) and
-            ((socket.gettime() - core_module.LastSkillExecute) < waitTime))
+        ((item.Skill.SkillType == core_module.SkillType.CombatInitiate) or
+            (item.Skill.SkillType == core_module.SkillType.CombatMove))
      then
+        queueWait = true
+    end
+
+    if ((socket.gettime() - (core_module.LastSkillExecute)) < waitTime) then
+        queueWait = true
+    end
+
+    if (queueWait) then
         core_module.Log('Queue Wait ' .. core_module.TableLength(core_module.ActionQueue), core_module.LogLevel.DEBUG)
         return
     end
@@ -468,11 +477,9 @@ function core_module.QueueProcessNext()
     -- reset it
     local newUniqueId = math.random(1, 1000000)
     item.uid = newUniqueId
+    item.Expiration = socket.gettime() + 10
     item.Execute(item.Skill, item)
-    core_module.Log(
-        'Queue Length (Including This Still until detected) : ' .. core_module.TableLength(core_module.ActionQueue),
-        core_module.LogLevel.VERBOSE
-    )
+
     core_module.LastSkillUniqueId = item.uid
     core_module.LastSkillExecute = socket.gettime()
 end
@@ -914,7 +921,6 @@ core_module.SkillType = {
     Heal = 20,
     CombatInitiate = 100,
     CombatMove = 110,
-    CombatHeal = 120,
     QuaffHeal = 500,
     QuaffMana = 510,
     QuaffMove = 520

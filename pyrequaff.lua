@@ -44,9 +44,15 @@ Quaff = {
             if (Pyre.Status.Hp <= 0) then
                 return
             end
+
             local inCombat = (Pyre.Status.State == Pyre.States.COMBAT)
 
-            return ((Pyre.Status.Hp < Quaff.Hp.Percent and inCombat == true) or
+            local percent = Quaff.Hp.Percent
+            if (SkillFeature ~= nil and SkillFeature.BurstMode) then
+                percent = Pyre.GetSettingValue(SkillFeature.Settings, 'burstbuffer', 10)
+            end
+
+            return ((Pyre.Status.Hp < percent and inCombat == true) or
                 (Pyre.Status.Hp < Quaff.Hp.TopOffPercent and inCombat == false))
         end
     },

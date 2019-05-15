@@ -931,15 +931,24 @@ function SkillsFeatureOnHpChanged(hpData)
         end
     else
         if (SkillFeature.BurstMode) then
-            SkillFeature.BurstMode = false
-            Pyre.Log('Burst mode disabled')
+            if (hpData.New > hpData.Old) then
+                SkillFeature.BurstMode = false
+                Pyre.Log('Burst mode disabled')
+            end
         end
+    end
+end
+
+function SkillsFeatureOnStateChanged(stateData)
+    if (stateData.New ~= Pyre.States.COMBAT) then
+        SkillFeature.BurstMode = false
     end
 end
 
 function SkillsSetup()
     Pyre.Log('SkillsSetup (alias+triggers)', Pyre.LogLevel.DEBUG)
     table.insert(Pyre.Events[Pyre.Event.HpChanged], SkillsFeatureOnHpChanged)
+    table.insert(Pyre.Events[Pyre.Event.StateChanged], SkillsFeatureOnStateChanged)
 
     AddTriggerEx(
         'ph_coreqfs',

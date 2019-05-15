@@ -464,11 +464,11 @@ function core_module.QueueProcessNext()
         queueWait = true
     end
 
-    if ((socket.gettime() - (core_module.LastSkillExecute)) < waitTime) then
+    if ((socket.gettime() - (core_module.LastSkillExecute)) > waitTime) then
         queueWait = true
     end
 
-    if (queueWait) then
+    if (queueWait == true) then
         core_module.Log('Queue Wait ' .. core_module.TableLength(core_module.ActionQueue), core_module.LogLevel.DEBUG)
         return
     end
@@ -478,6 +478,8 @@ function core_module.QueueProcessNext()
     local newUniqueId = math.random(1, 1000000)
     item.uid = newUniqueId
     item.Expiration = socket.gettime() + 10
+
+    print('executing')
     item.Execute(item.Skill, item)
 
     core_module.LastSkillUniqueId = item.uid

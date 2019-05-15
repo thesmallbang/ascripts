@@ -736,7 +736,6 @@ function OnSkillUnaffected(name, line, wildcards)
 
     if (not (skill == nil) and (not (SkillFeature.LastSkill == nil) and (skill.Name == SkillFeature.LastSkill.Name))) then
         SkillFeature.SkillFail = skill
-
         -- replace all unaffected matches with next best option
 
         Pyre.ActionQueue =

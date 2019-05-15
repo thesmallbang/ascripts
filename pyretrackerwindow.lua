@@ -593,8 +593,8 @@ function WindowFeature.DrawAreaView()
         return
     end
 
-    WindowFeature.DrawTextLine(2, area.Area, nil, ColourNameToRGB('teal'), 'm')
-    WindowFeature.DrawTextLine(2, Pyre.SecondsToClock(area.Normal.Duration), 340, ColourNameToRGB('teal'), 'm')
+    WindowFeature.DrawTextLine(2, area.Area, nil, 'teal', 'm')
+    WindowFeature.DrawTextLine(2, Pyre.SecondsToClock(area.Normal.Duration), 340, 'teal', 'm')
 
     WindowFeature.DrawTextLine(3, 'Exp')
     WindowFeature.DrawTextLine(3, area.Experience, 50)
@@ -653,8 +653,8 @@ function WindowFeature.DrawFightView()
         return
     end
 
-    WindowFeature.DrawTextLine(2, 'FIGHT', nil, ColourNameToRGB('teal'), 'm')
-    WindowFeature.DrawTextLine(2, Pyre.SecondsToClock(fight.Normal.Duration), 340, ColourNameToRGB('teal'), 'm')
+    WindowFeature.DrawTextLine(2, 'FIGHT', nil, 'teal', 'm')
+    WindowFeature.DrawTextLine(2, Pyre.SecondsToClock(fight.Normal.Duration), 340, 'teal', 'm')
 
     WindowFeature.DrawTextLine(3, 'Exp')
     WindowFeature.DrawTextLine(3, fight.Experience, 50)

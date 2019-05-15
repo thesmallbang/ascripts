@@ -11,7 +11,8 @@ SkillFeature = {
     LastUnqueue = 0,
     LastSkillExecute = 0,
     LastSkillUniqueId = 0,
-    BurstMode = false
+    BurstMode = false,
+    BurstResetCount = 0
 }
 
 SkillFeature.Commands = {
@@ -769,7 +770,9 @@ function OnClassSkillUsed(name, line, wildcards)
     if (skill.SkillType == Pyre.SkillType.CombatInitiate or skill.SkillType == Pyre.SkillType.CombatMove) then
         Pyre.LastSkillExecute = socket.gettime()
         if (Pyre.addedWait == 0) then
-            Pyre.addedWait = 1
+            if (SkillFeature.BurstMode) then
+                Pyre.addedWait = 3
+            end
         end
     end
 
@@ -936,12 +939,17 @@ function SkillsFeatureOnHpChanged(hpData)
     if (hpData.Old - hpData.New > Pyre.GetSettingValue(SkillFeature.Settings, 'burstdamage')) then
         if not (SkillFeature.BurstMode) then
             SkillFeature.BurstMode = true
-            Pyre.Log('Burst mode enabled', Pyre.LogLevel.DEBUG)
+            SkillFeature.BurstResetCount = 0
+            Pyre.Log('Burst mode enabled', Pyre.LogLevel.INFO)
         end
     else
         if (SkillFeature.BurstMode) then
-            SkillFeature.BurstMode = false
-            Pyre.Log('Burst mode disabled', Pyre.LogLevel.DEBUG)
+            SkillFeature.BurstResetCount = SkillFeature.BurstResetCount + 1
+            if (SkillFeature.BurstResetCount > 1) then
+                SkillFeature.BurstMode = false
+                SkillFeature.BurstResetCount = 0
+                Pyre.Log('Burst mode disabled', Pyre.LogLevel.INFO)
+            end
         end
     end
 end

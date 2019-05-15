@@ -497,7 +497,7 @@ function CoreOnStateChange(stateObject)
         Pyre.QueueReset()
     end
     if (stateObject.Old == Pyre.States.REQUESTED) then
-        Helper.RestartFeatures()
+    -- Helper.RestartFeatures()
     end
 end
 

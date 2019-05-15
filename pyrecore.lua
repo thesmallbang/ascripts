@@ -298,7 +298,12 @@ function core_module.SetHp(hp)
     end
 
     local oldhp = core_module.Status.Hp
+
+    if (oldhp == hp) then
+        return
+    end
     core_module.Status.Hp = hp
+
     core_module.ShareEvent(core_module.Event.HpChanged, {New = hp, Old = oldhp})
     core_module.Log('Hp Changed ' .. oldhp .. ' to ' .. hp, core_module.LogLevel.VERBOSE)
 end

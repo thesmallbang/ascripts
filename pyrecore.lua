@@ -189,8 +189,8 @@ function core_module.AskIfEmpty(settingValue, settingName, default)
     local result =
         utils.inputbox(
         'Enter a value for ' ..
-            settingName .. '. If you meant to leave it blank click cancel. Otherwise enter a value below',
-        'Set Value for ' .. settingName,
+            (settingName or '') .. '. If you meant to leave it blank click cancel. Otherwise enter a value below',
+        'Set Value for ' .. (settingName or ''),
         default,
         'Courier',
         9

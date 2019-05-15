@@ -767,6 +767,7 @@ function OnClassSkillUsed(name, line, wildcards)
     end
 
     if (skill.SkillType == Pyre.SkillType.CombatInitiate or skill.SkillType == Pyre.SkillType.CombatMove) then
+        Pyre.LastSkillExecute = socket.gettime()
         if (Pyre.addedWait == 0) then
             Pyre.addedWait = 1
         end
@@ -865,7 +866,7 @@ function OnPyreAttack()
                             1
                         )
                         if (Pyre.addedWait == 0) then
-                            Pyre.addedWait = 4
+                            Pyre.addedWait = 3
                         end
                         return
                     end

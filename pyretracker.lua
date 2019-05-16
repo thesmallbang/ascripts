@@ -579,7 +579,6 @@ function OnTrackerPlayerDamage(name, line, wildcards)
         Tracker.EnemyCounterLastReset = socket.gettime() - 10
     end
 
-    print(Tracker.EnemyCounter)
     if (Tracker.FightTracker.Current ~= nil and Tracker.FightTracker.Current.Damage ~= nil) then
         Tracker.FightTracker.Current.Damage.Player = (Tracker.FightTracker.Current.Damage.Player or 0) + damage
     end

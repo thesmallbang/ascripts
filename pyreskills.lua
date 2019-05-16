@@ -790,11 +790,11 @@ function OnClassSkillUsed(name, line, wildcards)
     local match = wildcards[2]
     local skill = Pyre.GetClassSkillByName(match)
     if (skill == nil) then
-        return true
+        return
     end
 
     SkillFeature.AttackDequeue(skill)
-    return true
+    return
 end
 
 function OnClanSkillSuccess(name, line, wildcards)

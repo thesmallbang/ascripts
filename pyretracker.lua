@@ -512,7 +512,7 @@ function Tracker.FeatureStart()
         0,
         '',
         'OnTrackerPlayerDamage',
-        2
+        0
     )
 
     AddTriggerEx(

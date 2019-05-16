@@ -65,8 +65,8 @@ function Helper.RemoveFeature(feature)
         end
     )
 
-    SetVariable('feature_' .. feature.name, nil)
-    SetVariable('feature_version_' .. feature.name, nil)
+    SetVariable('feature_' .. feature.name, '')
+    SetVariable('feature_version_' .. feature.name, '')
 
     os.remove('lua/' .. feature.name .. '.lua')
     Pyre.Log('Uninstalled Feature ' .. feature.name)

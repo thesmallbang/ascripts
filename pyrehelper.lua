@@ -50,8 +50,8 @@ function Helper.AddNewFeature(feature)
     Helper.LoadFeature(feature)
     table.insert(Features, feature)
     SetVariable('plugininstalled', feature.name)
-    SetVariable('feature_version_' .. feature.name, feature.version)
-    Pyre.Execute('pyre reload')
+    SetVariable('feature_version_' .. feature.name, feature.version or '')
+    Pyre.Log('It is recommended you pyre reload after feature installs')
 end
 function Helper.RemoveFeature(feature)
     if (feature ~= nil and feature.Feature ~= nil and feature.Feature.FeatureStop ~= nil) then

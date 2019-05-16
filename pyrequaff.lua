@@ -346,9 +346,9 @@ function CheckForQuaff()
                         end
 
                         if (not (Quaff.Container == '')) then
-                            Execute('get ' .. Quaff.Hp.Item .. ' ' .. Quaff.Container)
+                            Pyre.Execute('get ' .. Quaff.Hp.Item .. ' ' .. Quaff.Container)
                         end
-                        Execute('quaff ' .. Quaff.Hp.Item)
+                        Pyre.Execute('quaff ' .. Quaff.Hp.Item)
                     end
                 }
             )
@@ -396,9 +396,9 @@ function CheckForQuaff()
                         end
 
                         if not (Quaff.Container == '') then
-                            Execute('get ' .. Quaff.Mp.Item .. ' ' .. Quaff.Container)
+                            Pyre.Execute('get ' .. Quaff.Mp.Item .. ' ' .. Quaff.Container)
                         end
-                        Execute('quaff ' .. Quaff.Mp.Item)
+                        Pyre.Execute('quaff ' .. Quaff.Mp.Item)
                     end
                 }
             )
@@ -465,9 +465,9 @@ function CheckForQuaff()
                         end
 
                         if not (Quaff.Container == '') then
-                            Execute('get ' .. Quaff.Mv.Item .. ' ' .. Quaff.Container)
+                            Pyre.Execute('get ' .. Quaff.Mv.Item .. ' ' .. Quaff.Container)
                         end
-                        Execute('quaff ' .. Quaff.Mv.Item)
+                        Pyre.Execute('quaff ' .. Quaff.Mv.Item)
                     end
                 }
             )

@@ -43,7 +43,7 @@ end
 function Helper.AddNewFeature(feature)
     Helper.LoadFeature(feature)
     table.insert(Features, feature)
-    Execute('pyre help ' .. feature.name)
+    Pyre.Execute('pyre help ' .. feature.name)
 end
 function Helper.RemoveFeature(feature)
     if (feature ~= nil and feature.Feature ~= nil and feature.Feature.FeatureStop ~= nil) then

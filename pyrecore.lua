@@ -27,12 +27,21 @@ function core_module.Log(msg, loglevel)
     core_module.ColorLog(msg, 'white', '', loglevel)
 end
 
+function core_module.Execute(cmd)
+    local showCommands = core_module.Settings.ShowPyreCommands or 0
+    if (showCommands == 1) then
+        Execute(cmd)
+    else
+        SendNoEcho(cmd)
+    end
+end
+
 function core_module.ReportToChannel(reportType, msg)
     local channel = core_module.Settings.Channel or 'echo'
     if (channel == 'echo') then
         core_module.Log(msg, core_module.LogLevel.INFO)
     else
-        Execute(channel .. ' @cPR ' .. reportType .. '@w ' .. msg)
+        Pyre.Execute(channel .. ' @cPR ' .. reportType .. '@w ' .. msg)
     end
 end
 
@@ -179,6 +188,7 @@ function core_module.SaveSettings()
     SetVariable('LogLevel', core_module.Settings.LogLevel or core_module.LogLevel.INFO)
     SetVariable('AddToQueueDelay', core_module.Settings.AddToQueueDelay or 0)
     SetVariable('QueueSize', core_module.Settings.QueueSize or 2)
+    SetVariable('showpyrecommands', core_module.Settings.ShowPyreCommands or 0)
 end
 
 function core_module.AskIfEmpty(settingValue, settingName, default)
@@ -226,6 +236,12 @@ function core_module.ChangeSetting(setting, settingValue)
         core_module.Settings.QueueSize = tonumber(settingValue) or 2
         core_module.Log('QueueSize : ' .. core_module.Settings.QueueSize)
     end
+
+    if (string.lower(setting) == 'showpyrecommands') then
+        core_module.Settings.ShowPyreCommands = tonumber(settingValue) or 0
+        core_module.Log('ShowPyreCommands : ' .. core_module.Settings.ShowPyreCommands)
+    end
+
     core_module.SaveSettings()
 end
 
@@ -258,6 +274,13 @@ function core_module.ShowSettings()
                 Tooltip = 'How big is the "Attack Queue" allowed to get (potions can still get added when full)'
             },
             {Value = core_module.Settings.QueueSize}
+        },
+        {
+            {
+                Value = 'ShowPyreCommands',
+                Tooltip = 'Force commands issues from the plugin to be visible'
+            },
+            {Value = core_module.Settings.ShowPyreCommands}
         }
     }
 
@@ -928,7 +951,8 @@ core_module.Settings = {
     Channel = GetVariable('Channel') or 'echo',
     LogLevel = tonumber(GetVariable('LogLevel')) or core_module.LogLevel.INFO,
     AddToQueueDelay = tonumber(GetVariable('AddToQueueDelay')) or 0,
-    QueueSize = tonumber(GetVariable('QueueSize')) or 30
+    QueueSize = tonumber(GetVariable('QueueSize')) or 30,
+    ShowPyreCommands = tonumber(GetVariable('showpyrecommands')) or 0
 }
 
 core_module.SkillType = {
@@ -938,13 +962,22 @@ core_module.SkillType = {
     CombatMove = 110,
     QuaffHeal = 500,
     QuaffMana = 510,
-    QuaffMove = 520
+    QuaffMove = 520,
+    Flee = 1000
 }
 
 core_module.Classes = {
     {
         Name = 'Blacksmith',
         Skills = {
+            {
+                SkillType = core_module.SkillType.Flee,
+                Name = 'Flee',
+                Level = 1,
+                AutoSend = true,
+                Alias = '~',
+                Attempts = {'You fail to run away!', "You aren't fighting anyone."}
+            },
             {
                 SkillType = core_module.SkillType.CombatInitiate,
                 Name = 'Attack ',

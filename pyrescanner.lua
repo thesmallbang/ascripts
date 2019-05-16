@@ -148,7 +148,7 @@ function OnPyreScanTimer()
     EnableTrigger('ph_scanner_entity', true)
 
     Feature.ScanEntities = {}
-    SendNoEcho('scan')
+    Pyre.Execute('scan')
 
     -- enable our timer to disable the scan since there is no end line
     EnableTimer('ph_scanner_disable', true)
@@ -221,7 +221,7 @@ function Report(match)
     if match == nil then
         match = ''
     end
-    Execute(
+    Pyre.Execute(
         Pyre.Settings.Channel ..
             ' ' ..
                 'Scan Report For [' ..
@@ -235,7 +235,7 @@ function Report(match)
     for k, v in pairs(Feature.ScanEntities) do
         if not (lastLocation == v.Location) then
             if (not (lastLocation == '') and not (names == '')) then
-                Execute(Pyre.Settings.Channel .. ' ' .. lastLocation .. ' [' .. nameCount .. ']: ' .. names)
+                Pyre.Execute(Pyre.Settings.Channel .. ' ' .. lastLocation .. ' [' .. nameCount .. ']: ' .. names)
             end
             names = ''
             lastLocation = v.Location
@@ -276,12 +276,12 @@ function Report(match)
     end
 
     if not (names == '') then
-        Execute(Pyre.Settings.Channel .. ' ' .. lastLocation .. ' [' .. nameCount .. ']: ' .. names)
+        Pyre.Execute(Pyre.Settings.Channel .. ' ' .. lastLocation .. ' [' .. nameCount .. ']: ' .. names)
     end
     if not (totalCount == 0) then
-        Execute(Pyre.Settings.Channel .. ' Total matched ' .. totalCount)
+        Pyre.Execute(Pyre.Settings.Channel .. ' Total matched ' .. totalCount)
     else
-        Execute(Pyre.Settings.Channel .. ' No matches')
+        Pyre.Execute(Pyre.Settings.Channel .. ' No matches')
     end
 end
 

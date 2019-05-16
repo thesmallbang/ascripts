@@ -20,6 +20,10 @@ SkillFeature.Commands = {
         name = 'pyre attack',
         description = 'Queue up a single pyre attack',
         callback = 'OnPyreAttack'
+    },
+    {
+        name = 'pyre flee',
+        description = 'Stop spamming flee to run away'
     }
 }
 
@@ -48,6 +52,19 @@ SkillFeature.Settings = {
             end
             setting.value = parsed
             SetVariable('burstbuffer', setting.value)
+        end
+    },
+    {
+        name = 'burstwimp',
+        description = 'Trigger a pyre flee at what percent hp?',
+        value = tonumber(GetVariable('burstwimp')) or 25,
+        setValue = function(setting, val)
+            local parsed = tonumber(val) or 0
+            if (parsed > 90 or parsed < 0) then
+                parsed = 25
+            end
+            setting.value = parsed
+            SetVariable('burstwimp', setting.value)
         end
     },
     {
@@ -117,7 +134,7 @@ ClanSkills = {
                 return false
             end
 
-            SendNoEcho(skill.Name)
+            Pyre.Execute(skill.Name)
 
             skill.LastAttempt = socket.gettime()
         end,
@@ -198,7 +215,7 @@ ClanSkills = {
                 (skill.LastAttempt == nil or os.difftime(socket.gettime(), skill.LastAttempt) > 4))
         end,
         Cast = function(skill)
-            SendNoEcho(skill.Name)
+            Pyre.Execute(skill.Name)
 
             skill.LastAttempt = socket.gettime()
         end,
@@ -340,7 +357,7 @@ ClanSkills = {
                 (skill.LastAttempt == nil or os.difftime(socket.gettime(), skill.LastAttempt) > 4))
         end,
         Cast = function(skill)
-            SendNoEcho('cast 520')
+            Pyre.Execute('cast 520')
 
             skill.LastAttempt = socket.gettime()
         end,
@@ -604,7 +621,7 @@ function CheckSkillDuration(skill)
 
     EnableTrigger('ph_sd' .. skill.Name, true)
 
-    SendNoEcho('saf ' .. skill.Name)
+    Pyre.Execute('saf ' .. skill.Name)
 end
 
 function SkillFeature.AttackDequeue(skill)
@@ -919,7 +936,7 @@ function OnPyreAttack()
                             0
                         )
 
-                        Execute(s.Name)
+                        Pyre.Execute(s.Name)
                     else
                         SetCommand(s.Name .. ' ')
                         return

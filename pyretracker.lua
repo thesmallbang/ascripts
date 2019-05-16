@@ -570,7 +570,7 @@ function OnTrackerPlayerDamage(name, line, wildcards)
     local element = wildcards[2]
 
     if (element == 'swing') then
-        if (Tracker.EnemyCounterLastReset < socket.gettime() - 1.0) then
+        if (Tracker.EnemyCounterLastReset < socket.gettime() - 0.5) then
             Tracker.EnemyCounter = 0
             Tracker.EnemyCounterLastReset = socket.gettime()
         end

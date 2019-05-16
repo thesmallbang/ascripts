@@ -570,17 +570,16 @@ function OnTrackerPlayerDamage(name, line, wildcards)
     local element = wildcards[2]
 
     if (element == 'swing') then
-        Tracker.EnemyCounter = Tracker.EnemyCounter + 1
-
         if (Tracker.EnemyCounterLastReset < socket.gettime() - 0.5) then
             Tracker.EnemyCounter = 0
             Tracker.EnemyCounterLastReset = socket.gettime()
         end
+        Tracker.EnemyCounter = Tracker.EnemyCounter + 1
     else
-        Tracker.EnemyCounter = 0
-        Tracker.EnemyCounterLastReset = socket.gettime()
+        Tracker.EnemyCounterLastReset = socket.gettime() - 10
     end
 
+    print(Tracker.EnemyCounter)
     if (Tracker.FightTracker.Current ~= nil and Tracker.FightTracker.Current.Damage ~= nil) then
         Tracker.FightTracker.Current.Damage.Player = (Tracker.FightTracker.Current.Damage.Player or 0) + damage
     end

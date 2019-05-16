@@ -179,6 +179,22 @@ Tracker.Factory = {
             end
         ) or 0
 
+        local duration = Pyre.Round((socket.gettime() - session.StartTime), 1)
+
+        local fightSummary = Tracker.Factory.CreateFightSummary(Tracker.GetFightByIndex(0))
+
+        if (fightSummary ~= nil) then
+            exp = exp + (fightSummary.Experience or 0)
+            normalExp = normalExp + (fightSummary.NormalExperience or 0)
+            rareExp = normalExp + (fightSummary.RareExperience or 0)
+            bonusExp = normalExp + (fightSummary.BonusExperience or 0)
+            combatDuration = combatDuration + (fightSummary.Normal.Duration)
+            duration = duration + (fightSummary.Normal.Duration)
+            playerDamage = playerDamage + (fightSummary.PlayerDamage or 0)
+            enemyDamage = enemyDamage + (fightSummary.PlayerDamage or 0)
+            fights = fights + 1
+        end
+
         local souls =
             Pyre.Sum(
             session.Fights,
@@ -193,8 +209,6 @@ Tracker.Factory = {
         end
 
         local soulsPerFight = Pyre.Round((souls / fightsForMath), 1)
-
-        local duration = Pyre.Round((socket.gettime() - session.StartTime), 1)
 
         if (duration < combatDuration) then
             duration = combatDuration
@@ -247,6 +261,7 @@ Tracker.Factory = {
             },
             Souls = souls
         }
+
         return summary
     end,
     CreateAreaSummary = function(area)
@@ -314,6 +329,22 @@ Tracker.Factory = {
             end
         ) or 0
 
+        local duration = Pyre.Round(((area.EndTime or socket.gettime()) - area.StartTime), 1)
+
+        local fightSummary = Tracker.Factory.CreateFightSummary(Tracker.GetFightByIndex(0))
+
+        if (fightSummary ~= nil) then
+            exp = exp + (fightSummary.Experience or 0)
+            normalExp = normalExp + (fightSummary.NormalExperience or 0)
+            rareExp = normalExp + (fightSummary.RareExperience or 0)
+            bonusExp = normalExp + (fightSummary.BonusExperience or 0)
+            combatDuration = combatDuration + (fightSummary.Normal.Duration)
+            duration = duration + (fightSummary.Normal.Duration)
+            playerDamage = playerDamage + (fightSummary.PlayerDamage or 0)
+            enemyDamage = enemyDamage + (fightSummary.PlayerDamage or 0)
+            fights = fights + 1
+        end
+
         local souls =
             Pyre.Sum(
             area.Fights,
@@ -328,8 +359,6 @@ Tracker.Factory = {
         end
 
         local soulsPerFight = Pyre.Round((souls / fightsForMath), 1)
-
-        local duration = Pyre.Round(((area.EndTime or socket.gettime()) - area.StartTime), 1)
 
         if (duration < combatDuration) then
             duration = combatDuration
@@ -386,6 +415,10 @@ Tracker.Factory = {
         return summary
     end,
     CreateFightSummary = function(fight)
+        if (fight == nil or fight.XP == nil) then
+            return nil
+        end
+
         local exp = (fight.XP.Normal + fight.XP.Rare + fight.XP.Bonus) or 0
 
         local normalExp = fight.XP.Normal or 0

@@ -239,7 +239,16 @@ end
 -- Relay to helper functions
 -- ----------------------------------------------------
 
+local tickLast = 0
+local tickAt = 0.5
 
+function OnPluginTick ()
+
+    if (tickLast + tickAt < socket.gettime()) then
+        tickLast = socket.gettime()
+       if (Helper) then  Helper.Tick() end
+    end
+end
 
 function OnPluginSaveState() if Helper then Helper.Save() end end
 

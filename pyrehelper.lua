@@ -40,10 +40,18 @@ function Helper.RestartFeatures()
     )
 end
 
+function Helper.ShowInstalledFeatureHelp()
+    local installed = tostring(GetVariable('plugininstalled')) or ''
+    if (installed ~= '') then
+        Pyre.Execute('pyre help ' .. installed)
+    end
+end
 function Helper.AddNewFeature(feature)
     Helper.LoadFeature(feature)
     table.insert(Features, feature)
-    Pyre.Execute('pyre help ' .. feature.name)
+    SetVariable('plugininstalled', feature.name)
+    SetVariable('feature_version_' .. feature.name, feature.version)
+    Pyre.Execute('pyre reload')
 end
 function Helper.RemoveFeature(feature)
     if (feature ~= nil and feature.Feature ~= nil and feature.Feature.FeatureStop ~= nil) then
@@ -56,6 +64,9 @@ function Helper.RemoveFeature(feature)
             return (f.name ~= feature.name)
         end
     )
+
+    SetVariable('feature_' .. feature.name, nil)
+    SetVariable('feature_version_' .. feature.name, nil)
 
     os.remove('lua/' .. feature.name .. '.lua')
     Pyre.Log('Uninstalled Feature ' .. feature.name)
@@ -511,8 +522,6 @@ function Helper.Setup()
     table.insert(Pyre.Events[Pyre.Event.StateChanged], CoreOnStateChange)
     table.insert(Pyre.Events[Pyre.Event.RoomChanged], CoreOnRoomChanged)
 
-    AddTimer('ph_tick', 0, 0, 0.5, '', timer_flag.Enabled + timer_flag.Replace + timer_flag.Temporary, 'Tick')
-
     -- add help alias
     AddAlias(
         'ph_help',
@@ -569,7 +578,7 @@ function Helper.Setup()
     )
 end
 
-function Tick()
+function Helper.Tick()
     -- dont tick if we are not started
     Pyre.Log('Tick', Pyre.LogLevel.VERBOSE)
     if (Pyre.Status.Started == false) then

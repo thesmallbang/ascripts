@@ -695,15 +695,20 @@ function WindowFeature.DrawExtraFeatures()
     else
         WindowFeature.DrawTextLine(9, msg, 10, 'white', 's')
     end
-
     local msgWidth = WindowTextWidth(WindowFeature.windowId, 's', msg, false)
+
+    if (((Tracker.EnemyCounter or 0) > 0) and Pyre.Status.Subclass == 'Blacksmith') then
+        local msg = 'Enemy: ' .. (Tracker.EnemyCounter or 0)
+        WindowFeature.DrawTextLine(9, msg, 20 + msgWidth)
+        msgWidth = msgWidth + 20 + WindowTextWidth(WindowFeature.windowId, 's', msg, false)
+    end
 
     -- the light bulb moment since my main feature properties aren't private
     -- .. they are public and other scripts have access
     if (Quaff ~= nil and Quaff.Hp ~= nil) then
         if (Quaff.RoomFailed) then
             WindowFeature.DrawTextLine(9, 'Quaff Suppressed', 10 + msgWidth + 10, 'red', 's')
-            msgWidth = msgWidth + (10) + (WindowTextWidth(WindowFeature.windowId, 's', 'Quaff Suppressed', false))
+            msgWidth = msgWidth + (20) + (WindowTextWidth(WindowFeature.windowId, 's', 'Quaff Suppressed', false))
         else
             if (Quaff.Hp.Failed or Quaff.Mp.Failed or Quaff.Mv.Failed) then
                 -- 10 is just our spacer between things
@@ -717,7 +722,7 @@ function WindowFeature.DrawExtraFeatures()
                     'Clear potion failures to retry them again'
                 )
                 local endLeft =
-                    msgWidth + (10) + (WindowTextWidth(WindowFeature.windowId, 's', 'Clear Pot Fails', false))
+                    msgWidth + (20) + (WindowTextWidth(WindowFeature.windowId, 's', 'Clear Pot Fails', false))
                 msgWidth = endLeft
             end
         end

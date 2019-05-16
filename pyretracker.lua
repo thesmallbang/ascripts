@@ -1,5 +1,7 @@
 local Pyre = require('pyrecore')
 local Tracker = {
+    EnemyCounter = 0,
+    EnemyCounterLastReset = 0,
     AreaIndex = 0,
     FightIndex = 0,
     Session = {},
@@ -565,6 +567,17 @@ end
 
 function OnTrackerPlayerDamage(name, line, wildcards)
     local damage = tonumber(wildcards[5]) or 0
+    local element = wildcards[2]
+
+    if (Tracker.EnemyCounterLastReset < socket.gettime() - 1.5) then
+        Tracker.EnemyCounter = 0
+        Tracker.EnemyCounterLastReset = socket.gettime()
+    end
+
+    if (element == 'swing') then
+        Tracker.EnemyCounter = Tracker.EnemyCounter + 1
+    end
+
     if (Tracker.FightTracker.Current ~= nil and Tracker.FightTracker.Current.Damage ~= nil) then
         Tracker.FightTracker.Current.Damage.Player = (Tracker.FightTracker.Current.Damage.Player or 0) + damage
     end
@@ -664,6 +677,7 @@ function Tracker.GetAreaByIndex(i)
 end
 
 function Tracker.ArchiveCurrentFight()
+    Tracker.EnemyCounter = 0
     -- if the fight has anything useful then we archive it
     if ((Tracker.FightTracker.Current.Area or '') ~= '') then
         Tracker.FightTracker.Current = Tracker.Factory.EndFight(Tracker.FightTracker.Current)

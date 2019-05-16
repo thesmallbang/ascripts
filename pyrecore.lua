@@ -28,7 +28,7 @@ function core_module.Log(msg, loglevel)
 end
 
 function core_module.Execute(cmd)
-    local showCommands = core_module.Settings.ShowPyreCommands or 0
+    local showCommands = core_module.Settings.ShowPyreCommands or 1
     if (showCommands == 1) then
         Execute(cmd)
     else
@@ -188,7 +188,7 @@ function core_module.SaveSettings()
     SetVariable('LogLevel', core_module.Settings.LogLevel or core_module.LogLevel.INFO)
     SetVariable('AddToQueueDelay', core_module.Settings.AddToQueueDelay or 0)
     SetVariable('QueueSize', core_module.Settings.QueueSize or 2)
-    SetVariable('showpyrecommands', core_module.Settings.ShowPyreCommands or 0)
+    SetVariable('showpyrecommands', core_module.Settings.ShowPyreCommands or 1)
 end
 
 function core_module.AskIfEmpty(settingValue, settingName, default)
@@ -238,7 +238,7 @@ function core_module.ChangeSetting(setting, settingValue)
     end
 
     if (string.lower(setting) == 'showpyrecommands') then
-        core_module.Settings.ShowPyreCommands = tonumber(settingValue) or 0
+        core_module.Settings.ShowPyreCommands = tonumber(settingValue) or 1
         core_module.Log('ShowPyreCommands : ' .. core_module.Settings.ShowPyreCommands)
     end
 
@@ -952,7 +952,7 @@ core_module.Settings = {
     LogLevel = tonumber(GetVariable('LogLevel')) or core_module.LogLevel.INFO,
     AddToQueueDelay = tonumber(GetVariable('AddToQueueDelay')) or 0,
     QueueSize = tonumber(GetVariable('QueueSize')) or 30,
-    ShowPyreCommands = tonumber(GetVariable('showpyrecommands')) or 0
+    ShowPyreCommands = tonumber(GetVariable('showpyrecommands')) or 1
 }
 
 core_module.SkillType = {

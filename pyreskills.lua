@@ -962,10 +962,10 @@ end
 function SkillsFeatureOnHpChanged(hpData)
     if (hpData.Old - hpData.New > Pyre.GetSettingValue(SkillFeature.Settings, 'burstdamage')) then
         if not (SkillFeature.BurstMode) then
-            SkillFeature.BurstMode = true
-            SkillFeature.BurstResetCount = 0
             Pyre.Log('Burst mode enabled', Pyre.LogLevel.INFO)
         end
+        SkillFeature.BurstResetCount = 0
+        SkillFeature.BurstMode = true
     else
         if (SkillFeature.BurstMode) then
             SkillFeature.BurstResetCount = SkillFeature.BurstResetCount + 1

@@ -82,6 +82,13 @@ function PH.Install(remoteVersionData, featuresOnDisk)
 
     Core.Log(PH.Config.Versions.Release.Version .. ' - ' .. PH.Config.Versions.Release.Description)
 
+    if (PH.Config.Versions.Release.Version ~= PH.Config.LatestVersions.Release.Version) then
+        Core.Log(
+            'Update Available. (Requires you to download the xml file) ' .. PH.Config.LatestVersions.Release.Version
+        )
+        Core.Log(PH.Config.LatestVersions.Release.Description)
+    end
+
     PH.Start()
 end
 
@@ -366,7 +373,6 @@ function PH.InstallFeature(name)
         return
     end
 
-    Core.Log(Core.ToString(feature))
     Core.Log('Installing ' .. feature.Name .. ' : ' .. feature.Version)
     download(
         'https://raw.githubusercontent.com/thesmallbang/ascripts/RefactoringPluginEvents/' .. feature.Filename,
@@ -381,10 +387,9 @@ function PH.InstallFeature(name)
                     return f.Name == feature.Name
                 end
             )
-
             table.insert(PH.Config.Versions.Features, feature)
-
             PH.Save()
+            Core.Log('Installed ' .. feature.Name .. ' : ' .. feature.Version)
         end
     )
 end

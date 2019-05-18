@@ -173,6 +173,7 @@ function saveDownload(retval, page, status, headers, full_status, request_url)
 end
 
 function download(url, completedCallback)
+print('downloading ' .. url)
     downloadsRequested = downloadsRequested + 1
     async.doAsyncRemoteRequest(url, completedCallback, "HTTPS", 120)
 end

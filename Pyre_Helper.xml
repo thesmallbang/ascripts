@@ -224,25 +224,40 @@ function checkVersionFile()
         local found = false
         for _, localDep in pairs(localData.Dependencies) do
 
-            if (
-            
-            endsWith(remoteDep.Url,'.xml') or (
-            endsWith(remoteDep.Url,'.lua')
-                and
-            file_exists('lua//' .. remoteDep.Name .. '.lua'))
-            
-            and
-            ((remoteDep.Name == localDep.Name) and ((tonumber(remoteDep.Version) or 1) == (tonumber(localDep.Version) or 0)))
-            
-            ) then
+
+            -- only apply the following if we have the local dep installed
+            if (localDep.Name == remoteDep.Name) then
                 found = true
+                
+                -- is this file on disk?
+                if (endsWith(remoteDep.Url,'.xml') and not (file_exists('worlds//plugins//' .. remoteDep.Name .. '.xml'))) then
+                    -- we have the local dep configured but it is not on disk
+                    found = false
+                end
+
+                if (endsWith(remoteDep.Url,'.lua') and not (file_exists('lua//' .. remoteDep.Name .. '.lua'))) then
+                    -- we have the local dep configured but it is not on disk
+                    found = false
+                end
+
+                if (remoteDep.Version ~= localDep.Version) then
+                        download(remoteDep.Url, function(retval, page, status, headers, full_status, request_url) 
+                            saveDownload(retval, page, status, headers, full_status, request_url)
+                            localDep.Version = remoteDep.Version
+                            localDep.Url = remoteDep.Url
+                            checkVersionFile()
+                        end)
+                        return
+                end
+
             end
+
         end
 
         if (found == false) then
             download(remoteDep.Url, function(retval, page, status, headers, full_status, request_url) 
             saveDownload(retval, page, status, headers, full_status, request_url)
-
+            table.insert(localData.Dependencies, remoteDep)
             checkVersionFile()
         end)
             return

@@ -1,8 +1,8 @@
 {
   "Release": {
-    "Version": "2.3",
+    "Version": "2.4",
     "Url": "https://raw.githubusercontent.com/thesmallbang/ascripts/RefactoringPluginEvents/Pyre_Helper.xml",
-    "Description": "Testing Version Change."
+    "Description": "Almost nothing works. Good thing you updated to it."
   },
   "Dependencies": [{
       "Name": "Pyre_Updater",
@@ -12,13 +12,13 @@
     {
       "Name": "pyrehelper",
       "Url": "https://raw.githubusercontent.com/thesmallbang/ascripts/RefactoringPluginEvents/pyrehelper.lua",
-      "Version": "1.1",
+      "Version": "1.2",
       "Relay": "true"
     },
     {
       "Name": "pyrecore",
       "Url": "https://raw.githubusercontent.com/thesmallbang/ascripts/RefactoringPluginEvents/pyrecore.lua",
-      "Version": "1.1"
+      "Version": "1.2"
     }
   ],
   "Features": [{
@@ -37,19 +37,19 @@
       "Name": "pyrequaff",
       "Filename": "pyrequaff.lua",
       "Description": "Potion quaffing functionality",
-      "Version": "1.1"
+      "Version": "1.0"
     },
     {
       "Name": "pyretracker",
       "Filename": "pyretracker.lua",
       "Description": "Keep track of fights, dps, and exp",
-      "Version": "1.2"
+      "Version": "1.0"
     },
     {
       "Name": "pyretrackerwindow",
       "Filename": "pyretrackerwindow.lua",
       "Description": "Window to show pyretracker data (requires pyretracker install first)",
-      "Version": "1.1"
+      "Version": "1.0"
     }
   ]
 }

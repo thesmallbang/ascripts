@@ -1,13 +1,13 @@
 {
   "Release": {
-    "Version": "2.1",
+    "Version": "2.2",
     "Url": "https://raw.githubusercontent.com/thesmallbang/ascripts/RefactoringPluginEvents/Pyre_Helper.xml",
     "Description": "Another big update to clean up code"
   },
   "Dependencies": [{
       "Name": "updaterplugin",
       "Url": "https://raw.githubusercontent.com/thesmallbang/ascripts/RefactoringPluginEvents/Pyre_Updater.xml",
-      "Version": "1.1"
+      "Version": "1.2"
     },
     {
       "Name": "pyrehelper",
@@ -43,7 +43,7 @@
       "Name": "pyretracker",
       "Filename": "pyretracker.lua",
       "Description": "Keep track of fights, dps, and exp",
-      "Version": "1.0"
+      "Version": "1.1"
     },
     {
       "Name": "pyretrackerwindow",

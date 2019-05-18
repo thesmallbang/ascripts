@@ -9,12 +9,12 @@
 <plugin
    name="Pyre_Helper"
    author="Tamon"
-   id="c74be251554149f1929c4d75"
+   id="c74be251554149f1929c4d79"
    language="Lua"
    purpose="pyre helper plugin"
    date_written="2019-04-07 00:57:33"
    requires="5.06"
-   version="2.0"
+   version="2.1"
    save_state="y"
    >
 
@@ -201,7 +201,6 @@ function checkVersionFile()
             local tempData = remoteData
             tempData.downloaded = os.date()
             tempData.Features = {}
-            saveFile("worlds/plugins/pyreversion.json",json.encode(tempData))
             SetVariable('ph_version', json.encode(tempData))
     end
 
@@ -209,6 +208,17 @@ function checkVersionFile()
     if (remoteData ~= nil and localData == nil) then
         localData = { Release = { Version = 0 }, Dependencies = {}, Features = {}}
     end
+
+    if (remoteData.Release.Version ~= localData.Release.Version) then
+        download(remoteData.Release.Url, function(retval, page, status, headers, full_status, request_url) 
+                saveDownload(retval, page, status, headers, full_status, request_url)
+                localData.Release = remoteData.Release
+                SetVariable('ph_version', json.encode(localData))
+                Execute("pyre reload")
+            end)
+                return
+    end
+
 
     for _, remoteDep in pairs(remoteData.Dependencies) do
         local found = false
@@ -236,7 +246,6 @@ function checkVersionFile()
             return
         end
     end
-
 
     local features = {}
     -- download any features from previous installs

@@ -82,13 +82,6 @@ function PH.Install(remoteVersionData, featuresOnDisk)
 
     Core.Log(PH.Config.Versions.Release.Version .. ' - ' .. PH.Config.Versions.Release.Description)
 
-    if (PH.Config.Versions.Release.Version ~= PH.Config.LatestVersions.Release.Version) then
-        Core.Log(
-            'Update Available. (Requires you to download the xml file) ' .. PH.Config.LatestVersions.Release.Version
-        )
-        Core.Log(PH.Config.LatestVersions.Release.Description)
-    end
-
     PH.Start()
 end
 

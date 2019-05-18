@@ -113,10 +113,8 @@ function async_xml_download_complete(retval, page, status, headers, full_status,
         end
 
         if (pluginFoundId == '') then
-            print('installing plugin')
             LoadPlugin(savePath);
         else
-            print('reloading plugin')
             ReloadPlugin (pluginFoundId)
         end
 
@@ -176,14 +174,18 @@ function saveDownload(retval, page, status, headers, full_status, request_url)
 end
 
 function download(url)
+print('downloading ' .. url)
     downloadsRequested = downloadsRequested + 1
     async.doAsyncRemoteRequest(url, saveDownload, "HTTPS", 120)
 end
+            local function endsWith(str, ending)
+            return ending == "" or str:sub(-#ending) == ending
+            end
 
 function checkVersionFile()
 
     if  (remoteData == nil) then
-        download("https://raw.githubusercontent.com/thesmallbang/ascripts/master/version.json")
+        download("https://raw.githubusercontent.com/thesmallbang/ascripts/RefactoringPluginEvents/version.json")
         return
     end
 
@@ -191,24 +193,35 @@ function checkVersionFile()
          local filetext = readFile('worlds/plugins/pyreversion.json')
          localData = json.decode(filetext)
     end
-    
+
     if (remoteData ~= nil and localData == nil) then
-        localData = { release = { version = 0 }, dependencies = {}, features = {}}
+        localData = { Release = { Version = 0 }, Dependencies = {}, Features = {}}
     end
 
      remoteData.downloaded = os.date()
      saveFile("worlds/plugins/pyreversion.json",json.encode(remoteData))
 
-    for _, remoteDep in pairs(remoteData.dependencies) do
+    for _, remoteDep in pairs(remoteData.Dependencies) do
         local found = false
-        for _, localDep in pairs(localData.dependencies) do
-            if ((remoteDep.name == localDep.name) and ((tonumber(remoteDep.version) or 1) == (tonumber(localDep.version) or 0))) then
+        for _, localDep in pairs(localData.Dependencies) do
+
+            if (
+            (
+            endsWith(remoteDep.Url,'.xml') or (
+            endsWith(remoteDep.Url,'.lua')
+                and
+            file_exists('lua//' .. remoteDep.Name .. '.lua')))
+            and
+            ((remoteDep.Name == localDep.Name) and ((tonumber(remoteDep.Version) or 1) == (tonumber(localDep.Version) or 0)))
+            
+            ) then
                 found = true
             end
         end
 
         if (found == false) then
-            download(remoteDep.url)
+            download(remoteDep.Url)
+            return
         end
     end
 
@@ -218,19 +231,23 @@ function checkVersionFile()
 
     local features = {}
 
-    for _, dep in pairs(localData.dependencies) do
-        if ((dep.relay ~= nil) and (dep.relay == "true")) then
-            Helper = require(dep.name)
+    for _, dep in pairs(remoteData.Dependencies) do
+        if (dep.Relay == "true") then
+            Helper = require(dep.Name)
         end
     end
 
-    for _, feature in pairs(localData.features) do
-        if file_exists('lua//' .. feature.filename) then
+    for _, feature in pairs(localData.Features) do
+        if file_exists('lua//' .. feature.Filename) then
             table.insert(features,feature)
         end
     end
     
-    Helper.OnStart(localData, features)
+    if (Helper) then
+        Helper.Install(remoteData, foundFeatures)
+        else
+        print('helper was nothing')
+    end
 
 end
 
@@ -252,7 +269,9 @@ end
 
 function OnPluginSaveState() if Helper then Helper.Save() end end
 
-function OnPluginInstall() if Helper then Helper.OnInstall(localData) end end
+function OnPluginInstall() 
+    checkVersionFile()
+end
 
 function OnPluginBroadcast(msg, id, name, text)
     if Helper then Helper.OnPluginBroadcast(msg, id, name, text) end
@@ -261,20 +280,11 @@ end
 function OnPluginPacketReceived(sText)
 end
 
-
-function OnPluginClose() if Helper then Helper.OnStop() end end
-
-function OnPluginDisconnect() if Helper then Helper.OnStop() end end
-
-
--- ---------------------------------------------------- 
--- Startup
--- ----------------------------------------------------
-
-
-checkVersionFile()
-
-    
+function OnPluginDisable () if Helper then Helper.Stop() end end
+function OnPluginEnable () if Helper then Helper.Start() end end
+function OnPluginClose() if Helper then Helper.Stop() end end
+function OnPluginDisconnect() if Helper then Helper.Stop() end end
+ 
 ]]>
 
 

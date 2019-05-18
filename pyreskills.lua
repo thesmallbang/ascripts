@@ -815,6 +815,7 @@ function OnPyreAttack()
         return ((inCombat and skill.SkillType == Pyre.SkillType.CombatMove) or
             (not (inCombat) and skill.SkillType == Pyre.SkillType.CombatInitiate))
     end
+
     local bestSkill = SkillFeature.GetClassSkillByLevel(Pyre.Status.Subclass, Pyre.Status.Level, skillFilter)
 
     if (not (Pyre.Status.State == Pyre.States.COMBAT) and not (Pyre.Status.State == Pyre.States.IDLE)) then
@@ -967,7 +968,7 @@ function SkillsFeatureOnHpChanged(hpData)
         SkillFeature.BurstResetCount = 0
         SkillFeature.BurstMode = true
     else
-        if (SkillFeature.BurstMode) then
+        if (hpData.Old < hpData.New and SkillFeature.BurstMode) then
             SkillFeature.BurstResetCount = SkillFeature.BurstResetCount + 1
             if (SkillFeature.BurstResetCount > 1) then
                 SkillFeature.BurstMode = false

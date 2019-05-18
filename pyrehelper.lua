@@ -37,7 +37,6 @@ PH.Config = {
 -- Plugin install. This really happens at plugin startup from a mush perspective.
 function PH.Install(remoteVersionData, featuresOnDisk)
     PH.Config.LatestVersions = remoteVersionData
-
     PH.Config.Versions = json.decode(GetVariable('ph_version') or '[]')
 
     if (PH.Config.Versions.Release == nil) then

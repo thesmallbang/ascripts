@@ -43,7 +43,7 @@
       "Name": "pyretracker",
       "Filename": "pyretracker.lua",
       "Description": "Keep track of fights, dps, and exp",
-      "Version": "1.1"
+      "Version": "1.2"
     },
     {
       "Name": "pyretrackerwindow",

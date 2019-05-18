@@ -193,11 +193,15 @@ function checkVersionFile()
         return
     end
 
+    print('get var')
     local localdata = GetVariable('ph_version')
 
     if  (localdata ~= nil) then
-            localData = json.decode(localdata)
+            print('before')
+              pcall(function() localData = json.decode(localdata) end)
+              print('after')
          else
+            print('new')
             local tempData = remoteData
             tempData.downloaded = os.date()
             tempData.Features = {}
@@ -209,7 +213,7 @@ function checkVersionFile()
         localData = { Release = { Version = 0 }, Dependencies = {}, Features = {}}
     end
 
-    if (remoteData.Release.Version ~= localData.Release.Version) then
+    if (tonumber(remoteData.Release.Version) ~= GetPluginInfo('Pyre_Helper', 19)) then
         download(remoteData.Release.Url, function(retval, page, status, headers, full_status, request_url) 
                 saveDownload(retval, page, status, headers, full_status, request_url)
                 localData.Release = remoteData.Release

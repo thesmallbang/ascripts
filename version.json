@@ -1,6 +1,6 @@
 {
   "Release": {
-    "V,
+    "Version": "2.2",
     "Url": "https://raw.githubusercontent.com/thesmallbang/ascripts/RefactoringPluginEvents/Pyre_Helper.xml",
     "Description": "Another big update to clean up code"
   },

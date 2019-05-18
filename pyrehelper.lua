@@ -99,3 +99,5 @@ end
 -- This occurs on an interval that mushclient estimates at 25 hits per second. We are limiting the ticks based on a time setting to slow our tick down
 function PH.Tick()
 end
+
+return PH

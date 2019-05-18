@@ -233,6 +233,7 @@ function checkVersionFile()
 
     for _, dep in pairs(remoteData.Dependencies) do
         if (dep.Relay == "true") then
+            print(dep.Name)
             Helper = require(dep.Name)
         end
     end
@@ -243,7 +244,7 @@ function checkVersionFile()
         end
     end
     
-    if (Helper) then
+    if (Helper ~= nil) then
         Helper.Install(remoteData, foundFeatures)
         else
         print('helper was nothing')

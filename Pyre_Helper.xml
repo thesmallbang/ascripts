@@ -225,11 +225,12 @@ function checkVersionFile()
         for _, localDep in pairs(localData.Dependencies) do
 
             if (
-            (
+            
             endsWith(remoteDep.Url,'.xml') or (
             endsWith(remoteDep.Url,'.lua')
                 and
-            file_exists('lua//' .. remoteDep.Name .. '.lua')))
+            file_exists('lua//' .. remoteDep.Name .. '.lua'))
+            
             and
             ((remoteDep.Name == localDep.Name) and ((tonumber(remoteDep.Version) or 1) == (tonumber(localDep.Version) or 0)))
             

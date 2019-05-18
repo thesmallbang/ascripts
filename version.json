@@ -6,7 +6,7 @@
   },
   "Dependencies": [{
       "Name": "pyre_updater",
-      "Url": "https://raw.githubusercontent.com/thesmallbang/ascripts/RefactoringPluginEvents/Pyre_Updater.xml",
+      "Url": "https://raw.githubusercontent.com/thesmallbang/ascripts/RefactoringPluginEvents/pyre_updater.xml",
       "Version": "1.2"
     },
     {

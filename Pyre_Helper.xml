@@ -213,7 +213,6 @@ function checkVersionFile()
         download(remoteData.Release.Url, function(retval, page, status, headers, full_status, request_url) 
                 saveDownload(retval, page, status, headers, full_status, request_url)
                 localData.Release = remoteData.Release
-                print(json.encode(localData))
                 SetVariable('ph_version', json.encode(localData))
                 print('Your main .xml was updated and requires you to "pyre reload" manually.')    
             end)

@@ -147,6 +147,14 @@ function PH.StartFeatures()
             PH.RegisterFeature(lf)
         end
     )
+    Core.Each(
+        PH.Config.LoadedFeatures,
+        function(lf)
+            if (lf.Start ~= nil) then
+                lf.Start()
+            end
+        end
+    )
 end
 
 -- Stop on all features
@@ -155,6 +163,15 @@ function PH.StopFeatures()
         PH.Config.LoadedFeatures,
         function(lf)
             PH.UnregisterFeature(lf)
+        end
+    )
+
+    Core.Each(
+        PH.Config.LoadedFeatures,
+        function(lf)
+            if (lf.Start ~= nil) then
+                lf.Stop()
+            end
         end
     )
 end

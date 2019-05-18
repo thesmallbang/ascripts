@@ -193,15 +193,11 @@ function checkVersionFile()
         return
     end
 
-    print('get var')
     local localdata = GetVariable('ph_version')
 
     if  (localdata ~= nil) then
-            print('before')
-              pcall(function() localData = json.decode(localdata) end)
-              print('after')
+            localData = json.decode(localdata)
          else
-            print('new')
             local tempData = remoteData
             tempData.downloaded = os.date()
             tempData.Features = {}

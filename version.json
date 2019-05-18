@@ -2,7 +2,7 @@
   "Release": {
     "Version": "2.1",
     "Url": "https://raw.githubusercontent.com/thesmallbang/ascripts/RefactoringPluginEvents/Pyre_Helper.xml",
-    "Description": "Something about release"
+    "Description": "Another big update to clean up code"
   },
   "Dependencies": [{
       "Name": "updaterplugin",

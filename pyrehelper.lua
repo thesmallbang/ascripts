@@ -39,6 +39,7 @@ function PH.Install(remoteVersionData, featuresOnDisk)
     PH.Config.LatestVersions = remoteVersionData
 
     PH.Config.Versions = json.decode(GetVariable('ph_version') or '[]')
+
     if (PH.Config.Versions.Release == nil) then
         PH.Config.Versions = remoteVersionData
         PH.Config.Versions.Features = {}
@@ -51,7 +52,7 @@ function PH.Install(remoteVersionData, featuresOnDisk)
                 return Core.Any(
                     featuresOnDisk or {},
                     function(df)
-                        return (df.Name == vf.Name and df.Version == vf.Name)
+                        return (df.Name == vf.Name and df.Version == vf.Version)
                     end
                 )
             end
@@ -69,7 +70,6 @@ function PH.Install(remoteVersionData, featuresOnDisk)
         PH.Config.Commands,
         function(cmd)
             local safename = cmd.Name:gsub('%s+', '')
-            print('adding phc_' .. safename)
             AddAlias(
                 'phc_' .. safename,
                 '^' .. cmd.ExecuteWith .. '$',
@@ -96,7 +96,10 @@ function PH.LoadFeature(feature)
     )
 
     if (loadedFeature ~= nil) then
-        loadedFeature.Stop()
+        if (loadedFeature.Reference.Stop ~= nil) then
+            loadedFeature.Reference.Stop()
+        end
+
         PH.Config.LoadedFeatures =
             Core.Except(
             PH.Config.LoadedFeatures,
@@ -106,7 +109,7 @@ function PH.LoadFeature(feature)
         )
     end
 
-    loadedFeature = require(feature.Filename)
+    loadedFeature = require(feature.Name)
     table.insert(PH.Config.LoadedFeatures, {Name = feature.Name, Version = feature.Version, Reference = loadedFeature})
 end
 
@@ -142,7 +145,6 @@ function PH.StartFeatures()
     Core.Each(
         PH.Config.LoadedFeatures,
         function(lf)
-            print('Starting Feature ' .. lf.Name)
             PH.RegisterFeature(lf)
         end
     )
@@ -153,7 +155,6 @@ function PH.StopFeatures()
     Core.Each(
         PH.Config.LoadedFeatures,
         function(lf)
-            print('Stopping Feature ' .. lf.Name)
             PH.UnregisterFeature(lf)
         end
     )
@@ -161,7 +162,7 @@ end
 
 -- Save on all features
 function PH.Save()
-    print('save')
+    SetVariable('ph_version', json.encode(PH.Config.Versions))
 end
 
 -- Tick on all features.
@@ -321,7 +322,7 @@ function PH.ShowFeatures()
             if (installed == nil) then
                 versionColumn = 'Not Installed'
             end
-            if (installed ~= nil and (tonumber(installed.Version) or 0 < tonumber(latestFeature.Version) or 0)) then
+            if (installed ~= nil and ((tonumber(installed.Version) or 0) < (tonumber(latestFeature.Version) or 0))) then
                 versionColumn = installed.Version .. ' -> ' .. latestFeature.Version
             end
 
@@ -366,12 +367,30 @@ function PH.InstallFeature(name)
         return
     end
 
+    Core.Log(Core.ToString(feature))
     Core.Log('Installing ' .. feature.Name .. ' : ' .. feature.Version)
+    download(
+        'https://raw.githubusercontent.com/thesmallbang/ascripts/RefactoringPluginEvents/' .. feature.Filename,
+        function(retval, page, status, headers, full_status, request_url)
+            saveDownload(retval, page, status, headers, full_status, request_url)
+            PH.LoadFeature(feature)
+            -- update our Versions to include or replace the existing feature data
+            PH.Config.Versions.Features =
+                Core.Except(
+                PH.Config.Versions.Features,
+                function(f)
+                    return f.Name == feature.Name
+                end
+            )
+
+            table.insert(PH.Config.Versions.Features, feature)
+
+            PH.Save()
+        end
+    )
 end
 
 function PH.RegisterFeature(feature)
-    print('register fdeature')
-    print(feature.Name)
     if (feature == nil or feature.Config == nil) then
         return
     end
@@ -381,7 +400,6 @@ function PH.RegisterFeature(feature)
         feature.Config.Commands,
         function(cmd)
             local safename = cmd.Name:gsub('%s+', '')
-            print('adding phc_' .. safename)
             AddAlias(
                 'phc_' .. safename .. '_' .. feature.Name,
                 '^' .. cmd.ExecuteWith .. '$',
@@ -403,7 +421,6 @@ function PH.UnregisterFeature(feature)
             feature.Config.Commands,
             function(cmd)
                 local safename = cmd.Name:gsub('%s+', '')
-                print('deleting phc_' .. safename)
                 DeleteAlias('phc_' .. safename .. '_' .. feature.Name)
             end
         )

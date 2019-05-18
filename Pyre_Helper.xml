@@ -170,7 +170,6 @@ function saveDownload(retval, page, status, headers, full_status, request_url)
             request_url
         )
     end
-   checkVersionFile()
 end
 
 function download(url, completedCallback)
@@ -184,23 +183,27 @@ end
 function checkVersionFile()
 
     if  (remoteData == nil) then
-        download("https://raw.githubusercontent.com/thesmallbang/ascripts/RefactoringPluginEvents/version.json", saveDownload)
+        download("https://raw.githubusercontent.com/thesmallbang/ascripts/RefactoringPluginEvents/version.json", 
+        function(retval, page, status, headers, full_status, request_url) 
+            saveDownload(retval, page, status, headers, full_status, request_url)
+            checkVersionFile()
+            return
+        end)
         return
     end
 
-    if  file_exists("worlds/plugins/pyreversion.json") then
-            local filetext = readFile('worlds/plugins/pyreversion.json')
-            localData = json.decode(filetext)
-            SetVariable('ph_version', json.encode(localData))
-         else
+    local localdata = GetVariable('ph_version')
 
+    if  (localdata ~= nil) then
+            localData = json.decode(localdata)
+         else
             local tempData = remoteData
             tempData.downloaded = os.date()
             tempData.Features = {}
             saveFile("worlds/plugins/pyreversion.json",json.encode(tempData))
             SetVariable('ph_version', json.encode(tempData))
-
     end
+
 
     if (remoteData ~= nil and localData == nil) then
         localData = { Release = { Version = 0 }, Dependencies = {}, Features = {}}
@@ -225,7 +228,11 @@ function checkVersionFile()
         end
 
         if (found == false) then
-            download(remoteDep.Url, saveDownload)
+            download(remoteDep.Url, function(retval, page, status, headers, full_status, request_url) 
+            saveDownload(retval, page, status, headers, full_status, request_url)
+            checkVersionFile()
+            return
+        end)
             return
         end
     end
@@ -249,10 +256,11 @@ function checkVersionFile()
     end
     
     if (Helper ~= nil) then
-        Helper.Install(remoteData, foundFeatures)
+        Helper.Install(remoteData, features)
     end
 
 end
+
 
 
 -- ---------------------------------------------------- 

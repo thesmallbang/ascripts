@@ -173,7 +173,6 @@ function saveDownload(retval, page, status, headers, full_status, request_url)
 end
 
 function download(url, completedCallback)
-print('downloading ' .. url)
     downloadsRequested = downloadsRequested + 1
     async.doAsyncRemoteRequest(url, completedCallback, "HTTPS", 120)
 end
@@ -245,7 +244,7 @@ function checkVersionFile()
         if file_exists('lua//' .. feature.Filename) then
             table.insert(features,feature)
         else
-             download(feature.Url, function(retval, page, status, headers, full_status, request_url) 
+             download('https://raw.githubusercontent.com/thesmallbang/ascripts/RefactoringPluginEvents/' .. feature.Filename, function(retval, page, status, headers, full_status, request_url) 
             saveDownload(retval, page, status, headers, full_status, request_url)
             checkVersionFile()
         end)

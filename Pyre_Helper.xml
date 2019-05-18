@@ -173,6 +173,7 @@ function saveDownload(retval, page, status, headers, full_status, request_url)
 end
 
 function download(url, completedCallback)
+print('downloading ' .. url)
     downloadsRequested = downloadsRequested + 1
     async.doAsyncRemoteRequest(url, completedCallback, "HTTPS", 120)
 end
@@ -231,7 +232,22 @@ function checkVersionFile()
             download(remoteDep.Url, function(retval, page, status, headers, full_status, request_url) 
             saveDownload(retval, page, status, headers, full_status, request_url)
             checkVersionFile()
+        end)
             return
+        end
+    end
+
+
+    local features = {}
+    -- download any features from previous installs
+    
+    for _, feature in pairs(localData.Features) do
+        if file_exists('lua//' .. feature.Filename) then
+            table.insert(features,feature)
+        else
+             download(feature.Url, function(retval, page, status, headers, full_status, request_url) 
+            saveDownload(retval, page, status, headers, full_status, request_url)
+            checkVersionFile()
         end)
             return
         end
@@ -241,7 +257,6 @@ function checkVersionFile()
         return
     end
 
-    local features = {}
 
     for _, dep in pairs(remoteData.Dependencies) do
         if (dep.Relay == "true") then
@@ -249,11 +264,7 @@ function checkVersionFile()
         end
     end
 
-    for _, feature in pairs(localData.Features) do
-        if file_exists('lua//' .. feature.Filename) then
-            table.insert(features,feature)
-        end
-    end
+   
     
     if (Helper ~= nil) then
         Helper.Install(remoteData, features)

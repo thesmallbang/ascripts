@@ -5,7 +5,7 @@
     "Description": "Another big update to clean up code"
   },
   "Dependencies": [{
-      "Name": "updaterplugin",
+      "Name": "pyre_updater",
       "Url": "https://raw.githubusercontent.com/thesmallbang/ascripts/RefactoringPluginEvents/Pyre_Updater.xml",
       "Version": "1.2"
     },

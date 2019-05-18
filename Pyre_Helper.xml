@@ -173,10 +173,9 @@ function saveDownload(retval, page, status, headers, full_status, request_url)
    checkVersionFile()
 end
 
-function download(url)
-print('downloading ' .. url)
+function download(url, completedCallback)
     downloadsRequested = downloadsRequested + 1
-    async.doAsyncRemoteRequest(url, saveDownload, "HTTPS", 120)
+    async.doAsyncRemoteRequest(url, completedCallback, "HTTPS", 120)
 end
             local function endsWith(str, ending)
             return ending == "" or str:sub(-#ending) == ending
@@ -185,21 +184,27 @@ end
 function checkVersionFile()
 
     if  (remoteData == nil) then
-        download("https://raw.githubusercontent.com/thesmallbang/ascripts/RefactoringPluginEvents/version.json")
+        download("https://raw.githubusercontent.com/thesmallbang/ascripts/RefactoringPluginEvents/version.json", saveDownload)
         return
     end
 
     if  file_exists("worlds/plugins/pyreversion.json") then
-         local filetext = readFile('worlds/plugins/pyreversion.json')
-         localData = json.decode(filetext)
+            local filetext = readFile('worlds/plugins/pyreversion.json')
+            localData = json.decode(filetext)
+            SetVariable('ph_version', json.encode(localData))
+         else
+
+            local tempData = remoteData
+            tempData.downloaded = os.date()
+            tempData.Features = {}
+            saveFile("worlds/plugins/pyreversion.json",json.encode(tempData))
+            SetVariable('ph_version', json.encode(tempData))
+
     end
 
     if (remoteData ~= nil and localData == nil) then
         localData = { Release = { Version = 0 }, Dependencies = {}, Features = {}}
     end
-
-     remoteData.downloaded = os.date()
-     saveFile("worlds/plugins/pyreversion.json",json.encode(remoteData))
 
     for _, remoteDep in pairs(remoteData.Dependencies) do
         local found = false
@@ -220,7 +225,7 @@ function checkVersionFile()
         end
 
         if (found == false) then
-            download(remoteDep.Url)
+            download(remoteDep.Url, saveDownload)
             return
         end
     end
@@ -233,7 +238,6 @@ function checkVersionFile()
 
     for _, dep in pairs(remoteData.Dependencies) do
         if (dep.Relay == "true") then
-            print(dep.Name)
             Helper = require(dep.Name)
         end
     end
@@ -246,8 +250,6 @@ function checkVersionFile()
     
     if (Helper ~= nil) then
         Helper.Install(remoteData, foundFeatures)
-        else
-        print('helper was nothing')
     end
 
 end

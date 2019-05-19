@@ -2,7 +2,7 @@
   "Release": {
     "Version": "2.4",
     "Url": "https://raw.githubusercontent.com/thesmallbang/ascripts/RefactoringPluginEvents/Pyre_Helper.xml",
-    "Description": "Almost nothing works. Good thing you updated to it."
+    "Description": "Added pyre window"
   },
   "Dependencies": [{
       "Name": "Pyre_Updater",

@@ -46,9 +46,9 @@
       "Version": "1.0"
     },
     {
-      "Name": "pyretrackerwindow",
-      "Filename": "pyretrackerwindow.lua",
-      "Description": "Window to show pyretracker data (requires pyretracker install first)",
+      "Name": "pyrewindow",
+      "Filename": "pyrewindow.lua",
+      "Description": "Window to show feature data if they support a window.",
       "Version": "1.0"
     }
   ]

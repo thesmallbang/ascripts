@@ -785,6 +785,9 @@ function PH.ChangeSetting(line, wildcards)
         else
             setting.Value = p2
         end
+        if (setting.OnAfterSet ~= nil) then
+            setting:OnAfterSet()
+        end
         Core.Log(setting.Name .. ' changed from ' .. originalValue .. ' to ' .. setting.Value)
 
         return

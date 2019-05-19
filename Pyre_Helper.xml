@@ -366,7 +366,7 @@ function OnPluginDisable () if Helper then Helper.Stop() end end
 function OnPluginEnable () if Helper then Helper.Start() end end
 function OnPluginClose() if Helper then Helper.Stop() end end
 function OnPluginDisconnect() if Helper then Helper.Stop() end end
- 
+
 ]]>
 
 

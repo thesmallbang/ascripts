@@ -939,7 +939,14 @@ core_module.Events = {
 
 function core_module.ShareEvent(eventType, eventObject)
     for _, evt in pairs(core_module.Events[eventType]) do
-        evt(eventObject)
+        if (evt.Callback == nil) then
+            core_module.Log(
+                'Event not configured correctly. ' .. eventType .. ' - ' .. evt.Source,
+                core_module.LogLevel.ERROR
+            )
+        else
+            evt.Callback(eventObject)
+        end
     end
 end
 

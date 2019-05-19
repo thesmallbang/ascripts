@@ -141,7 +141,7 @@ function PH.Install(remoteVersionData, featuresOnDisk)
             local safename = cmd.Name:gsub('%s+', '')
 
             if (cmd.ExecuteWith == nil or cmd.ExecuteWith == '') then
-                cmd.ExecuteWith = 'pyre ' .. string.lower(safename) .. ' (.*)'
+                cmd.ExecuteWith = 'pyre ' .. string.lower(safename) .. '\\s?(.*)?'
             end
 
             AddAlias(
@@ -618,7 +618,7 @@ function PH.RegisterFeature(feature)
             function(cmd)
                 local safename = cmd.Name:gsub('%s+', '')
                 if (cmd.ExecuteWith == nil or cmd.ExecuteWith == '') then
-                    cmd.ExecuteWith = 'pyre ' .. string.lower(safename) .. '\\s?(.*)'
+                    cmd.ExecuteWith = 'pyre ' .. string.lower(safename) .. '\\s?(.*)?'
                 end
                 AddAlias(
                     'phc_' .. feature.Name .. '_' .. safename,

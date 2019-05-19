@@ -175,7 +175,7 @@ function PH.Install(remoteVersionData, featuresOnDisk)
         )
     end
 
-    Core.Log('PH Version' .. PH.Config.Versions.Release.Version .. ' - ' .. PH.Config.Versions.Release.Description)
+    Core.Log('PH Version ' .. PH.Config.Versions.Release.Version .. ' - ' .. PH.Config.Versions.Release.Description)
 end
 
 function PH.LoadFeature(feature)

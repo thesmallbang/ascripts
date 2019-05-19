@@ -284,10 +284,10 @@ function PH.StartFeatures()
     Core.Each(
         PH.Config.LoadedFeatures,
         function(lf)
+            PH.RegisterFeature(lf)
             if (lf.Reference.Start ~= nil) then
                 lf.Reference.Start()
             end
-            PH.RegisterFeature(lf)
         end
     )
 end
@@ -319,11 +319,11 @@ function PH.Save()
     Core.Each(
         PH.Config.LoadedFeatures,
         function(f)
-            if (f.Config ~= nil and f.Config.Settings ~= nil) then
+            if (f.Reference ~= nil and f.Reference.Config ~= nil and f.Reference.Config.Settings ~= nil) then
                 Core.Each(
-                    f.Config.Settings,
+                    f.Reference.Config.Settings,
                     function(s)
-                        SetVariable(f.Name .. '_' .. s.Name, s.Value or s.Default or 0)
+                        SetVariable(f.Name .. '_' .. s.Name, s.Value)
                     end
                 )
             end
@@ -923,15 +923,7 @@ function PH.UnregisterFeature(feature)
         )
     end
 
-    -- save settings
-    if (feature.Reference.Config.Settings ~= nil) then
-        Core.Each(
-            feature.Reference.Config.Settings,
-            function(s)
-                SetVariable(feature.Name .. '_' .. s.Name, (s.Value or s.Default))
-            end
-        )
-    end
+    PH.Save()
 
     -- unregister triggers
     if (feature.Reference.Config.Triggers ~= nil) then
@@ -986,7 +978,12 @@ function PH.ChangeSetting(line, wildcards)
         end
 
         local originalValue = setting.Value or ''
-
+        if (setting.OnBeforeSet ~= nil) then
+            local result = setting:OnBeforeSet(originalValue, p2)
+            if (result == false) then
+                return
+            end
+        end
         if (setting.Min ~= nil or setting.Max ~= nil) then
             setting.Value = tonumber(p2) or tonumber(setting.Default)
             if (setting.Min ~= nil and setting.Value < setting.Min) then
@@ -1001,6 +998,7 @@ function PH.ChangeSetting(line, wildcards)
         if (setting.OnAfterSet ~= nil) then
             setting:OnAfterSet()
         end
+        PH.Save()
         Core.Log(setting.Name .. ' changed from ' .. originalValue .. ' to ' .. setting.Value)
 
         return
@@ -1041,6 +1039,7 @@ function PH.ChangeSetting(line, wildcards)
             if (setting.OnAfterSet ~= nil) then
                 setting:OnAfterSet()
             end
+            PH.Save()
             Core.Log(setting.Name .. ' changed from ' .. originalValue .. ' to ' .. setting.Value)
 
             return
@@ -1096,6 +1095,7 @@ function PH.ChangeSetting(line, wildcards)
         else
             setting.Value = p3
         end
+        PH.Save()
         Core.Log(feature.Name .. ' ' .. setting.Name .. ' changed from ' .. originalValue .. ' to ' .. setting.Value)
     end
 end

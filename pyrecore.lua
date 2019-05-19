@@ -165,7 +165,6 @@ function core_module.GetSettingValue(settings, settingName, default)
     if (setting == nil) then
         return default
     end
-
     return setting.Value
 end
 
@@ -182,14 +181,6 @@ function core_module.GetSetting(settings, settingName)
         return default
     end
     return setting
-end
-
-function core_module.SaveSettings()
-    SetVariable('Channel', core_module.Settings.Channel or 'echo')
-    SetVariable('LogLevel', core_module.Settings.LogLevel or core_module.LogLevel.INFO)
-    SetVariable('AddToQueueDelay', core_module.Settings.AddToQueueDelay or 0)
-    SetVariable('QueueSize', core_module.Settings.QueueSize or 2)
-    SetVariable('showpyrecommands', core_module.Settings.ShowPyreCommands or 1)
 end
 
 function core_module.AskIfEmpty(settingValue, settingName, default)

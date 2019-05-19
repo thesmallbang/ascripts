@@ -20,7 +20,6 @@ PH.Config = {
     Commands = {
         {
             Name = 'features',
-            ExecuteWith = 'pyre features',
             Description = 'View available features',
             Callback = function(line, wildcards)
                 PH.ShowFeatures()
@@ -140,6 +139,11 @@ function PH.Install(remoteVersionData, featuresOnDisk)
         PH.Config.Commands,
         function(cmd)
             local safename = cmd.Name:gsub('%s+', '')
+
+            if (cmd.ExecuteWith == nil or cmd.ExecuteWith == '') then
+                cmd.ExecuteWith = 'pyre ' .. string.lower(safename) .. ' (.*)'
+            end
+
             AddAlias(
                 'phc_' .. safename,
                 '^' .. cmd.ExecuteWith .. '$',
@@ -417,16 +421,18 @@ function PHCommandHandler(name, line, wildcards)
     Core.Each(
         PH.Config.LoadedFeatures,
         function(f)
-            cmd =
-                Core.First(
-                f.Reference.Config.Commands,
-                function(c)
-                    return 'phc_' .. c.Name:gsub('%s+', '') == name
-                end
-            )
+            if (f.Reference ~= nil and f.Reference.Config ~= nil and f.Reference.Config.Commands ~= nil) then
+                cmd =
+                    Core.First(
+                    f.Reference.Config.Commands,
+                    function(c)
+                        return 'phc_' .. f.Name .. '_' .. c.Name:gsub('%s+', '') == name
+                    end
+                )
 
-            if (cmd ~= nil and cmd.Callback ~= nil) then
-                cmd.Callback(line, wildcards)
+                if (cmd ~= nil) then
+                    cmd.Callback(line, wildcards)
+                end
             end
         end
     )
@@ -448,16 +454,17 @@ function PHTriggerHandler(name, line, wildcards)
     Core.Each(
         PH.Config.LoadedFeatures,
         function(f)
-            if (f ~= nil and f.Reference ~= nil and f.Reference.Config ~= nil) then
+            if (f ~= nil and f.Reference ~= nil and f.Reference.Config ~= nil and f.Reference.Config.Triggers ~= nil) then
+                -- PHTriggerHandler
                 trigger =
                     Core.First(
                     f.Reference.Config.Triggers,
                     function(t)
-                        return 'pht_' .. t.Name:gsub('%s+', '') == name
+                        return 'pht_' .. f.Name .. '_' .. t.Name:gsub('%s+', '') == name
                     end
                 )
 
-                if (trigger ~= nil and trigger.Callback ~= nil) then
+                if (trigger ~= nil) then
                     trigger.Callback(line, wildcards)
                 end
             end
@@ -610,11 +617,15 @@ function PH.RegisterFeature(feature)
             feature.Reference.Config.Commands,
             function(cmd)
                 local safename = cmd.Name:gsub('%s+', '')
+                if (cmd.ExecuteWith == nil or cmd.ExecuteWith == '') then
+                    cmd.ExecuteWith = 'pyre ' .. string.lower(safename) .. '\\s?(.*)'
+                end
                 AddAlias(
-                    'phc_' .. safename .. '_' .. feature.Name,
+                    'phc_' .. feature.Name .. '_' .. safename,
                     '^' .. cmd.ExecuteWith .. '$',
                     '',
-                    alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary + alias_flag.KeepEvaluating,
+                    alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary +
+                        alias_flag.KeepEvaluating,
                     'PHCommandHandler'
                 )
             end
@@ -650,7 +661,6 @@ function PH.RegisterFeature(feature)
             feature.Reference.Config.Triggers,
             function(trigger)
                 local safename = trigger.Name:gsub('%s+', '')
-                print('register trigger pht_' .. feature.Name .. '_' .. safename)
                 AddTriggerEx(
                     'pht_' .. feature.Name .. '_' .. safename,
                     '^' .. trigger.Match .. '$',
@@ -679,7 +689,7 @@ function PH.UnregisterFeature(feature)
             feature.Reference.Config.Commands,
             function(cmd)
                 local safename = cmd.Name:gsub('%s+', '')
-                DeleteAlias('phc_' .. safename .. '_' .. feature.Config.Name)
+                DeleteAlias('phc_' .. feature.Name .. '_' .. safename)
             end
         )
     end

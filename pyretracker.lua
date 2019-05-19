@@ -1,4 +1,163 @@
+local Core = require('pyrecore')
+
 Tracker = {
+    Config = {
+        Events = {
+            {
+                Type = Core.Event.StateChanged,
+                Callback = function(o)
+                    Tracker.OnStateChanged(o)
+                end
+            },
+            {
+                Type = Core.Event.ZoneChanged,
+                Callback = function(o)
+                    Tracker.OnZoneChanged(o)
+                end
+            }
+        },
+        Commands = {
+            {
+                Name = 'setarea',
+                Description = 'switch the area for view/reporting',
+                Callback = function(line, wildcards)
+                    Tracker.SetArea(line, wildcards)
+                end
+            },
+            {
+                Name = 'firstarea',
+                Description = 'switch to the first area for view/reporting',
+                Callback = function(line, wildcards)
+                    Tracker.SetFirstArea()
+                end
+            },
+            {
+                Name = 'newerarea',
+                Description = 'switch to a newer area for view/reporting',
+                Callback = function(line, wildcards)
+                    Tracker.SetNewerArea()
+                end
+            },
+            {
+                Name = 'olderarea',
+                Description = 'switch to the first area for view/reporting',
+                Callback = function(line, wildcards)
+                    Tracker.SetOlderArea()
+                end
+            },
+            {
+                Name = 'lastarea',
+                Description = 'switch to the first area for view/reporting',
+                Callback = function(line, wildcards)
+                    Tracker.SetLastArea()
+                end
+            },
+            {
+                Name = 'resetarea',
+                Description = 'reset the current area tracking',
+                Callback = function(line, wildcards)
+                    Tracker.ResetCurrentArea()
+                end
+            },
+            {
+                Name = 'resetareas',
+                Description = 'reset all areas',
+                Callback = function(line, wildcards)
+                    Tracker.ResetAreas()
+                end
+            },
+            {
+                Name = 'resetsession',
+                Description = 'reset all fight data for the session',
+                Callback = function(line, wildcards)
+                    Tracker.ResetSession()
+                end
+            },
+            {
+                Name = 'resetfight',
+                Description = 'reset the current fight data',
+                Callback = function(line, wildcards)
+                    Tracker.ResetCurrentFight()
+                end
+            },
+            {
+                Name = 'setfight',
+                Description = 'switch the fight for view/reporting',
+                Callback = function(line, wildcards)
+                    Tracker.SetFight(line, wildcards)
+                end
+            },
+            {
+                Name = 'firstfight',
+                Description = 'switch to the first fight for view/reporting',
+                Callback = function(line, wildcards)
+                    Tracker.SetFirstFight()
+                end
+            },
+            {
+                Name = 'newerfight',
+                Description = 'switch to a newer fight for view/reporting',
+                Callback = function(line, wildcards)
+                    Tracker.SetNewerFight()
+                end
+            },
+            {
+                Name = 'olderfight',
+                Description = 'switch to the first fight for view/reporting',
+                Callback = function(line, wildcards)
+                    Tracker.SetOlderFight()
+                end
+            },
+            {
+                Name = 'lastfight',
+                Description = 'switch to the first fight for view/reporting',
+                Callback = function(line, wildcards)
+                    Tracker.SetLastFight()
+                end
+            }
+        },
+        Settings = {
+            {
+                Name = 'areasize',
+                Description = 'How many previous areas to keep data on',
+                Value = nil,
+                Min = 1,
+                Max = 1000000,
+                Default = 10
+            },
+            {
+                Name = 'sessionsize',
+                Description = 'How fights to limit the session to',
+                Value = nil,
+                Min = 1,
+                Max = 1000000,
+                Default = 100000
+            }
+        },
+        Triggers = {
+            {
+                Name = 'ExperienceGain',
+                Match = "You receive ([0-9]+)\\+?([0-9]+)?\\+?([0-9]+)? ?('rare kill'|bonus)? experience (points|bonus|).*",
+                Callback = function(line, wildcards)
+                    Tracker.OnExperienceGain(line, wildcards)
+                end
+            },
+            {
+                Name = 'PlayerDidDamage',
+                Match = '(\\*)?\\[.*\\]?\\s?Your (\\w*) -?<?(.*)>?-? (.*)! \\[(.*)\\]',
+                Callback = function(line, wildcards)
+                    Tracker.OnPlayerDidDamage(line, wildcards)
+                end
+            },
+            {
+                Name = 'EnemyDidDamage',
+                Match = "(\\*)?\\[.*\\]?\\s?(.*)'s (\\w*) (.*) you[!|\\.] \\[(.*)\\]",
+                Callback = function(line, wildcards)
+                    Tracker.OnEnemyDidDamage(line, wildcards)
+                end
+            }
+        }
+    },
     EnemyCounter = 0,
     EnemyCounterLastReset = 0,
     AreaIndex = 0,
@@ -11,67 +170,6 @@ Tracker = {
     AreaTracker = {
         Current = {},
         History = {}
-    }
-}
-
-local Core = require('pyrecore')
-
-Tracker.Config = {
-    Events = {
-        {
-            Type = Core.Event.StateChanged,
-            Callback = function(o)
-                Tracker.OnStateChanged(o)
-            end
-        },
-        {
-            Type = Core.Event.ZoneChanged,
-            Callback = function(o)
-                Tracker.OnZoneChanged(o)
-            end
-        }
-    },
-    Commands = {},
-    Settings = {
-        {
-            Name = 'areasize',
-            Description = 'How many previous areas to keep data on',
-            Value = nil,
-            Min = 1,
-            Max = 1000000,
-            Default = 10
-        },
-        {
-            Name = 'sessionsize',
-            Description = 'How fights to limit the session to',
-            Value = nil,
-            Min = 1,
-            Max = 1000000,
-            Default = 100000
-        }
-    },
-    Triggers = {
-        {
-            Name = 'ExperienceGain',
-            Match = "You receive ([0-9]+)\\+?([0-9]+)?\\+?([0-9]+)? ?('rare kill'|bonus)? experience (points|bonus|).*",
-            Callback = function(line, wildcards)
-                Tracker.OnExperienceGain(line, wildcards)
-            end
-        },
-        {
-            Name = 'PlayerDidDamage',
-            Match = '(\\*)?\\[.*\\]?\\s?Your (\\w*) -?<?(.*)>?-? (.*)! \\[(.*)\\]',
-            Callback = function(line, wildcards)
-                Tracker.OnPlayerDidDamage(line, wildcards)
-            end
-        },
-        {
-            Name = 'EnemyDidDamage',
-            Match = "(\\*)?\\[.*\\]?\\s?(.*)'s (\\w*) (.*) you[!|\\.] \\[(.*)\\]",
-            Callback = function(line, wildcards)
-                Tracker.OnEnemyDidDamage(line, wildcards)
-            end
-        }
     }
 }
 
@@ -479,6 +577,29 @@ function Tracker.Stop()
     Tracker.AreaTracker.History = {}
 end
 
+function Tracker.GetFightByIndex(i)
+    if (i == 0) then
+        return Tracker.FightTracker.Current
+    end
+    local fight = Tracker.Session.Fights[i]
+    if (fight == nil) then
+        return Tracker.FightTracker.Current
+    end
+    return fight
+end
+
+function Tracker.GetAreaByIndex(i)
+    if (i == 0) then
+        return Tracker.AreaTracker.Current
+    end
+
+    local area = Tracker.AreaTracker.History[i]
+    if (area == nil) then
+        return Tracker.AreaTracker.Current
+    end
+    return area
+end
+
 function Tracker.ArchiveCurrentFight()
     Tracker.EnemyCounter = 0
     -- if the fight has anything useful then we archive it
@@ -505,7 +626,7 @@ function Tracker.ArchiveCurrentFight()
                 end
             end
 
-            local maxSessionFights = Core.GetSettingValue(Tracker.Settings, 'sessionsize')
+            local maxSessionFights = Core.GetSettingValue(Tracker.Config.Settings, 'sessionsize')
             if (#Tracker.Session.Fights > maxSessionFights) then
                 -- trim our session data
                 local difference = (#Tracker.Session.Fights - maxSessionFights)
@@ -542,7 +663,7 @@ function Tracker.ArchiveCurrentArea()
             end
         end
 
-        local maxSize = Core.GetSettingValue(Tracker.Settings, 'areasize')
+        local maxSize = Core.GetSettingValue(Tracker.Config.Settings, 'areasize')
         local difference = (#Tracker.AreaTracker.History - maxSize)
         if (difference > 0) then
             Tracker.AreaTracker.History =
@@ -624,11 +745,110 @@ function Tracker.OnPlayerDidDamage(line, wildcards)
         Tracker.FightTracker.Current.Damage.Player = (Tracker.FightTracker.Current.Damage.Player or 0) + damage
     end
 end
+
 function Tracker.OnEnemyDidDamage(line, wildcards)
     local damage = tonumber(wildcards[5]) or 0
     if (Tracker.FightTracker.Current ~= nil and Tracker.FightTracker.Current.Damage ~= nil) then
         Tracker.FightTracker.Current.Damage.Enemy = (Tracker.FightTracker.Current.Damage.Enemy or 0) + damage
     end
+end
+
+function Tracker.SetArea(line, wildcards)
+    local i = Core.AskIfEmpty(wildcards[1], 'Area Index', Tracker.AreaIndex)
+    if (i ~= nil and i ~= '') then
+        Tracker.AreaIndex = tonumber(i) or 0
+        if (Tracker.AreaIndex > #Tracker.AreaTracker.History) then
+            Tracker.AreaIndex = #Tracker.AreaTracker.History
+        end
+        if (Tracker.AreaIndex < 0) then
+            Tracker.AreaIndex = 0
+        end
+        Core.Log('Area index set to ' .. (Tracker.AreaIndex or 0) .. ' of ' .. (#Tracker.AreaTracker.History or 0))
+    end
+end
+
+function Tracker.SetFirstArea()
+    Tracker.AreaIndex = 0
+    Core.Log('Area index set to ' .. (Tracker.AreaIndex or 0) .. ' of ' .. (#Tracker.AreaTracker.History or 0))
+end
+
+function Tracker.SetNewerArea()
+    Tracker.AreaIndex = Tracker.AreaIndex - 1
+    if (Tracker.AreaIndex < 0) then
+        Tracker.AreaIndex = 0
+    end
+    Core.Log('Area index set to ' .. (Tracker.AreaIndex or 0) .. ' of ' .. (#Tracker.AreaTracker.History or 0))
+end
+
+function Tracker.SetOlderArea()
+    Tracker.AreaIndex = Tracker.AreaIndex + 1
+    if (Tracker.AreaIndex > #Tracker.AreaTracker.History) then
+        Tracker.AreaIndex = #Tracker.AreaTracker.History
+    end
+    Core.Log('Area index set to ' .. (Tracker.AreaIndex or 0) .. ' of ' .. (#Tracker.AreaTracker.History or 0))
+end
+
+function Tracker.SetLastArea()
+    Tracker.AreaIndex = #Tracker.AreaTracker.History or 0
+    Core.Log('Area index set to ' .. (Tracker.AreaIndex or 0) .. ' of ' .. (#Tracker.AreaTracker.History or 0))
+end
+
+function Tracker.ResetSession()
+    Core.Log('Resetting all session data', Core.LogLevel.INFO)
+    Tracker.Session = Tracker.Factory.NewSession()
+end
+function Tracker.ResetCurrentArea()
+    Core.Log('Resetting area data', Core.LogLevel.INFO)
+    Tracker.AreaTracker.Current = Tracker.Factory.NewArea()
+end
+function Tracker.ResetAreas()
+    Core.Log('Resetting all area data', Core.LogLevel.INFO)
+    OnResetAreaData()
+    Tracker.AreaTracker.History = {}
+end
+function Tracker.ResetCurrentFight()
+    Core.Log('Resetting fight data', Core.LogLevel.INFO)
+    Tracker.FightTracker.Current = Tracker.Factory.NewFight()
+end
+
+function Tracker.SetFight(line, wildcards)
+    local i = Core.AskIfEmpty(nil, 'Fight Index', Tracker.FightIndex)
+    if (i ~= nil and i ~= '') then
+        Tracker.FightIndex = tonumber(i) or 0
+        if (Tracker.FightIndex > #Tracker.Session.Fights) then
+            Tracker.FightIndex = #Tracker.Session.Fights
+        end
+        if (Tracker.FightIndex < 0) then
+            Tracker.FightIndex = 0
+        end
+        Core.Log('Fight index set to ' .. (Tracker.FightIndex or 0) .. ' of ' .. (#Tracker.Session.Fights or 0))
+    end
+end
+
+function Tracker.SetFirstFight()
+    Tracker.FightIndex = 0
+    Core.Log('Fight index set to ' .. (Tracker.FightIndex or 0) .. ' of ' .. (#Tracker.Session.Fights or 0))
+end
+
+function Tracker.SetNewerFight()
+    Tracker.FightIndex = Tracker.FightIndex - 1
+    if (Tracker.FightIndex < 0) then
+        Tracker.FightIndex = 0
+    end
+    Core.Log('Fight index set to ' .. (Tracker.FightIndex or 0) .. ' of ' .. (#Tracker.Session.Fights or 0))
+end
+
+function Tracker.SetOlderFight()
+    Tracker.FightIndex = Tracker.FightIndex + 1
+    if (Tracker.FightIndex > #Tracker.Session.Fights) then
+        Tracker.FightIndex = #Tracker.Session.Fights
+    end
+    Core.Log('Fight index set to ' .. (Tracker.FightIndex or 0) .. ' of ' .. (#Tracker.Session.Fights or 0))
+end
+
+function Tracker.SetLastFight()
+    Tracker.FightIndex = #Tracker.Session.Fights or 0
+    Core.Log('Fight index set to ' .. (Tracker.FightIndex or 0) .. ' of ' .. (#Tracker.Session.Fights or 0))
 end
 
 return Tracker

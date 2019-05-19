@@ -160,12 +160,13 @@ function core_module.GetSettingValue(settings, settingName, default)
     if (default == nil) then
         default = 0
     end
+
     local setting = core_module.GetSetting(settings, settingName)
     if (setting == nil) then
         return default
     end
 
-    return setting.value
+    return setting.Value
 end
 
 function core_module.GetSetting(settings, settingName)
@@ -173,7 +174,7 @@ function core_module.GetSetting(settings, settingName)
         core_module.First(
         settings,
         function(s)
-            return s.name == settingName
+            return s.Name == settingName
         end
     )
     if (setting == nil) then

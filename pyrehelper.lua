@@ -91,6 +91,7 @@ PH.Config = {
             Default = 1
         }
     },
+    Triggers = {},
     LatestVersions = {},
     Versions = {},
     LoadedFeatures = {}
@@ -149,6 +150,27 @@ function PH.Install(remoteVersionData, featuresOnDisk)
         end
     )
 
+    -- register triggers
+    if (PH.Config.Triggers ~= nil) then
+        Core.Each(
+            PH.Config.Triggers,
+            function(trigger)
+                local safename = trigger.Name:gsub('%s+', '')
+                AddTriggerEx(
+                    'phth_' .. safename,
+                    '^' .. trigger.Match .. '$',
+                    '',
+                    trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
+                    -1,
+                    0,
+                    '',
+                    'PHTriggerHandler',
+                    0
+                )
+            end
+        )
+    end
+
     Core.Log('PH Version' .. PH.Config.Versions.Release.Version .. ' - ' .. PH.Config.Versions.Release.Description)
 end
 
@@ -188,6 +210,13 @@ function PH.Start()
         end
     )
 
+    Core.Each(
+        PH.Config.Triggers,
+        function(t)
+            EnableTrigger('phth_' .. t.Name:gsub('%s+', ''), true)
+        end
+    )
+
     -- start features
     PH.StartFeatures()
 
@@ -202,6 +231,14 @@ function PH.Stop()
             EnableAlias('phc_' .. c.Name:gsub('%s+', ''), false)
         end
     )
+
+    Core.Each(
+        PH.Config.Triggers,
+        function(t)
+            EnableTrigger('phth_' .. t.Name:gsub('%s+', ''), false)
+        end
+    )
+
     -- same for each features
     PH.StopFeatures()
 
@@ -213,16 +250,10 @@ function PH.StartFeatures()
     Core.Each(
         PH.Config.LoadedFeatures,
         function(lf)
-            PH.RegisterFeature(lf)
-        end
-    )
-
-    Core.Each(
-        PH.Config.LoadedFeatures,
-        function(lf)
             if (lf.Reference.Start ~= nil) then
                 lf.Reference.Start()
             end
+            PH.RegisterFeature(lf)
         end
     )
 end
@@ -231,9 +262,9 @@ end
 function PH.StopFeatures()
     Core.Each(
         PH.Config.LoadedFeatures,
-        function(lf)
-            if (lf.Reference.Stop ~= nil) then
-                lf.Reference.Stop()
+        function(f)
+            if (f.Reference.Stop ~= nil) then
+                f.Reference.Stop()
             end
             PH.UnregisterFeature(lf)
         end
@@ -378,12 +409,60 @@ function PHCommandHandler(name, line, wildcards)
         end
     )
 
-    if (cmd == nil) then
-        Core.Log('Command callback not handled correctly', Core.LogLevel.ERROR)
+    if (cmd ~= nil) then
+        cmd.Callback(line, wildcards)
         return
     end
 
-    cmd.Callback(line, wildcards)
+    Core.Each(
+        PH.Config.LoadedFeatures,
+        function(f)
+            cmd =
+                Core.First(
+                f.Reference.Config.Commands,
+                function(c)
+                    return 'phc_' .. c.Name:gsub('%s+', '') == name
+                end
+            )
+
+            if (cmd ~= nil and cmd.Callback ~= nil) then
+                cmd.Callback(line, wildcards)
+            end
+        end
+    )
+end
+
+function PHTriggerHandler(name, line, wildcards)
+    local trigger =
+        Core.First(
+        PH.Config.Triggers,
+        function(t)
+            return 'phth_' .. t.Name:gsub('%s+', '') == name
+        end
+    )
+
+    if (trigger ~= nil) then
+        trigger.Callback(line, wildcards)
+    end
+
+    Core.Each(
+        PH.Config.LoadedFeatures,
+        function(f)
+            if (f ~= nil and f.Reference ~= nil and f.Reference.Config ~= nil) then
+                trigger =
+                    Core.First(
+                    f.Reference.Config.Triggers,
+                    function(t)
+                        return 'pht_' .. t.Name:gsub('%s+', '') == name
+                    end
+                )
+
+                if (trigger ~= nil and trigger.Callback ~= nil) then
+                    trigger.Callback(line, wildcards)
+                end
+            end
+        end
+    )
 end
 
 function PH.ShowFeatures()
@@ -564,6 +643,29 @@ function PH.RegisterFeature(feature)
             end
         )
     end
+
+    -- register triggers
+    if (feature.Reference.Config.Triggers ~= nil) then
+        Core.Each(
+            feature.Reference.Config.Triggers,
+            function(trigger)
+                local safename = trigger.Name:gsub('%s+', '')
+                print('register trigger pht_' .. feature.Name .. '_' .. safename)
+                AddTriggerEx(
+                    'pht_' .. feature.Name .. '_' .. safename,
+                    '^' .. trigger.Match .. '$',
+                    '',
+                    trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace +
+                        trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
+                    -1,
+                    0,
+                    '',
+                    'PHTriggerHandler',
+                    0
+                )
+            end
+        )
+    end
 end
 
 function PH.UnregisterFeature(feature)
@@ -604,6 +706,17 @@ function PH.UnregisterFeature(feature)
             feature.Reference.Config.Settings,
             function(s)
                 SetVariable(feature.Name .. '_' .. s.Name, (s.Value or s.Default))
+            end
+        )
+    end
+
+    -- unregister triggers
+    if (feature.Reference.Config.Triggers ~= nil) then
+        Core.Each(
+            feature.Reference.Config.Triggers,
+            function(trigger)
+                local safename = trigger.Name:gsub('%s+', '')
+                DeleteTrigger('pht_' .. feature.Name .. '_' .. safename)
             end
         )
     end

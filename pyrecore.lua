@@ -216,86 +216,6 @@ function core_module.AskIfEmpty(settingValue, settingName, default)
     return result
 end
 
-function core_module.ChangeSetting(setting, settingValue)
-    if (string.lower(setting) == 'channel') then
-        settingValue = core_module.AskIfEmpty(settingValue, settingName, core_module.Settings.Channel)
-        core_module.Settings.Channel = settingValue
-        core_module.Log('Channel : ' .. core_module.Settings.Channel)
-    end
-
-    if (string.lower(setting) == 'loglevel') then
-        core_module.Settings.LogLevel = tonumber(settingValue) or core_module.LogLevel.INFO
-        core_module.Log('LogLevel : ' .. core_module.Settings.LogLevel)
-    end
-
-    if (string.lower(setting) == 'addtoqueuedelay') then
-        core_module.Settings.AddToQueueDelay = tonumber(settingValue) or 0
-        core_module.Log('AddToQueueDelay : ' .. core_module.Settings.AddToQueueDelay)
-    end
-
-    if (string.lower(setting) == 'queuesize') then
-        core_module.Settings.QueueSize = tonumber(settingValue) or 2
-        core_module.Log('QueueSize : ' .. core_module.Settings.QueueSize)
-    end
-
-    if (string.lower(setting) == 'showpyrecommands') then
-        core_module.Settings.ShowPyreCommands = tonumber(settingValue) or 1
-        core_module.Log('ShowPyreCommands : ' .. core_module.Settings.ShowPyreCommands)
-    end
-
-    core_module.SaveSettings()
-end
-
-function core_module.ShowSettings()
-    local logTable = {
-        {
-            {
-                Value = 'Channel',
-                Tooltip = 'What channel to use for reporting. Use echo for local only'
-            },
-            {Value = core_module.Settings.Channel}
-        },
-        {
-            {
-                Value = 'LogLevel',
-                Tooltip = '0 = OFF, 1 = VERBOSE, 2 = DEBUG, 3 = INFO (default), 4 = ERRORONLY'
-            },
-            {Value = core_module.Settings.LogLevel}
-        },
-        {
-            {
-                Value = 'AddToQueueDelay',
-                Tooltip = 'At this point it is really a Queue delay.How long between adding to the queue.'
-            },
-            {Value = core_module.Settings.AddToQueueDelay}
-        },
-        {
-            {
-                Value = 'QueueSize',
-                Tooltip = 'How big is the "Attack Queue" allowed to get (potions can still get added when full)'
-            },
-            {Value = core_module.Settings.QueueSize}
-        },
-        {
-            {
-                Value = 'ShowPyreCommands',
-                Tooltip = 'Force commands issues from the plugin to be visible'
-            },
-            {Value = core_module.Settings.ShowPyreCommands}
-        }
-    }
-
-    core_module.LogTable(
-        'Feature: Core',
-        'teal',
-        {'Setting', 'Value'},
-        logTable,
-        1,
-        true,
-        'usage: pyre set <setting> <value>'
-    )
-end
-
 function core_module.GetClassSkillByName(skillName)
     local matchSkill = nil
 
@@ -919,6 +839,7 @@ end
 -------------------------------------
 
 core_module.Event = {
+    Tick = 1,
     StateChanged = 10,
     AFKChanged = 11,
     NewEnemy = 100,
@@ -929,8 +850,9 @@ core_module.Event = {
 }
 
 core_module.Events = {
-    [core_module.Event.NewEnemy] = {},
+    [core_module.Event.Tick] = {},
     [core_module.Event.StateChanged] = {},
+    [core_module.Event.NewEnemy] = {},
     [core_module.Event.EnemyDied] = {},
     [core_module.Event.RoomChanged] = {},
     [core_module.Event.AFKChanged] = {},

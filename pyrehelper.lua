@@ -48,6 +48,13 @@ PH.Config = {
             Callback = function(line, wildcards)
                 PH.ChangeSetting(line, wildcards)
             end
+        },
+        {
+            Name = 'help',
+            Description = 'show help ',
+            Callback = function(line, wildcards)
+                PH.ShowHelp(line, wildcards)
+            end
         }
     },
     Settings = {
@@ -153,6 +160,29 @@ function PH.Install(remoteVersionData, featuresOnDisk)
             )
         end
     )
+
+    -- load settings
+    if (PH.Config.Settings ~= nil) then
+        Core.Each(
+            PH.Config.Settings,
+            function(s)
+                s.Value = GetVariable('ph_' .. s.Name)
+                if (s.Value == nil) then
+                    s.Value = (s.Default or 0)
+                end
+                if (s.Min ~= nil or s.Max ~= nil) then
+                    s.Value = tonumber(s.Value) or tonumber(s.Default)
+                    if (s.Min ~= nil and s.Value < s.Min) then
+                        s.Value = s.Min
+                    end
+                    if (s.Max ~= nil and s.Value > s.Max) then
+                        s.Value = s.Max
+                    end
+                end
+                Core.Log('setting loaded ph_' .. s.Name .. ' : ' .. s.Value, Core.LogLevel.VERBOSE)
+            end
+        )
+    end
 
     -- register triggers
     if (PH.Config.Triggers ~= nil) then
@@ -278,11 +308,33 @@ end
 -- Save on all features
 function PH.Save()
     SetVariable('ph_version', json.encode(PH.Config.Versions))
+
+    Core.Each(
+        PH.Config.Settings,
+        function(s)
+            SetVariable('ph_' .. s.Name, s.Value or s.Default or 0)
+        end
+    )
+
+    Core.Each(
+        PH.Config.LoadedFeatures,
+        function(f)
+            if (f.Config ~= nil and f.Config.Settings ~= nil) then
+                Core.Each(
+                    f.Config.Settings,
+                    function(s)
+                        SetVariable(f.Name .. '_' .. s.Name, s.Value or s.Default or 0)
+                    end
+                )
+            end
+        end
+    )
 end
 
 -- Tick on all features.
 -- This occurs on an interval that mushclient estimates at 25 hits per second. We are limiting the ticks based on a time setting to slow our tick down
 function PH.Tick()
+    Core.ShareEvent(Core.Event.Tick)
 end
 
 function PH.OnPluginBroadcast(msg, id, name, text)
@@ -469,6 +521,167 @@ function PHTriggerHandler(name, line, wildcards)
                 end
             end
         end
+    )
+end
+
+function PH.ShowHelp(line, wildcards)
+    local logTable = {}
+    local topic = wildcards[1] or ''
+
+    if (topic == '') then
+        logTable = {
+            {
+                {
+                    Value = 'reloader',
+                    Color = 'orange',
+                    Tooltip = 'click for: Reloader Plugin Help',
+                    Action = 'pyre help reloader'
+                }
+            },
+            {
+                {
+                    Value = 'core',
+                    Color = 'orange',
+                    Tooltip = 'click for: Core Help',
+                    Action = 'pyre help core'
+                }
+            },
+            {
+                {
+                    Value = 'features',
+                    Color = 'orange',
+                    Tooltip = 'click for a list of features',
+                    Action = 'pyre features'
+                }
+            }
+        }
+
+        for _, feat in ipairs(PH.Config.LoadedFeatures) do
+            table.insert(
+                logTable,
+                {
+                    {
+                        Value = feat.Name,
+                        Color = 'orange',
+                        Tooltip = 'click for ' .. feat.Name .. ' specific help/settings',
+                        Action = 'pyre help ' .. feat.Name
+                    }
+                }
+            )
+        end
+
+        Core.LogTable('Pyre Help', 'teal', {'Topic'}, logTable, 3, true, 'usage: pyre help <topic> or click topic')
+        return
+    end
+
+    for _, feat in ipairs(PH.Config.LoadedFeatures) do
+        if ((topic == feat.Name or ('pyre' .. topic == feat.Name)) and (feat.Reference ~= nil)) then
+            PH.BuildConfigHelp(feat.Name, feat.Reference.Config)
+            return
+        end
+    end
+
+    if (topic == 'reloader') then
+        logTable = {
+            {
+                {
+                    Value = 'update',
+                    Color = 'orange',
+                    Tooltip = 'Update features to latest versions',
+                    Action = 'pyre update'
+                },
+                {Value = 'Update features to latest versions'}
+            },
+            {
+                {
+                    Value = 'reload',
+                    Color = 'orange',
+                    Action = 'pyre reload'
+                },
+                {Value = 'Reload the plugin'}
+            }
+        }
+
+        Core.LogTable(
+            'Plugin: Reloader ',
+            'teal',
+            {'Command', 'Description'},
+            logTable,
+            1,
+            true,
+            'usage: pyre <command>'
+        )
+    end
+
+    if (topic == 'core' or topic == 'pyrecore') then
+        if (PH.Config ~= nil) then
+            PH.BuildConfigHelp('core', PH.Config)
+            return
+        end
+    end
+end
+
+function PH.BuildConfigHelp(name, config)
+    local logTable = {}
+
+    table.insert(logTable, {{Value = 'Command'}, {Value = 'Description'}})
+
+    Core.Each(
+        config.Commands,
+        function(c)
+            local execute =
+                string.gsub(c.ExecuteWith, '[\\?\\(\\.\\*\\)]', ''):match '^%s*(.*)':match '(.-)%s*$':sub(1, -2)
+            table.insert(
+                logTable,
+                {
+                    {
+                        Value = c.Name,
+                        Color = 'orange',
+                        Tooltip = c.Description .. ' .. ' .. execute,
+                        Action = execute
+                    },
+                    {
+                        Value = c.Description,
+                        Tooltip = c.Description .. ' .. ' .. execute
+                    }
+                }
+            )
+        end
+    )
+
+    table.insert(logTable, {{Value = ''}, {Value = ''}})
+    table.insert(logTable, {{Value = 'Setting'}, {Value = 'Value'}})
+
+    Core.Each(
+        config.Settings,
+        function(s)
+            local execute = 'pyre set ' .. name .. ' ' .. s.Name
+            table.insert(
+                logTable,
+                {
+                    {
+                        Value = s.Name,
+                        Color = 'orange',
+                        Tooltip = s.Description .. '  (Default: ' .. s.Default .. ')',
+                        Action = execute
+                    },
+                    {
+                        Value = s.Value,
+                        Tooltip = s.Description
+                    }
+                }
+            )
+        end
+    )
+
+    Core.LogTable(
+        'Topic: ' .. string.upper(name:gsub('pyre', '')),
+        'teal',
+        {'', ''},
+        logTable,
+        1,
+        false,
+        'Interact with orange text, Mouseover for more information'
     )
 end
 
@@ -791,6 +1004,47 @@ function PH.ChangeSetting(line, wildcards)
         Core.Log(setting.Name .. ' changed from ' .. originalValue .. ' to ' .. setting.Value)
 
         return
+    end
+
+    if (p1 == 'core') then
+        local setting =
+            Core.First(
+            PH.Config.Settings,
+            function(s)
+                return (string.lower(s.Name) == string.lower(p2))
+            end
+        )
+
+        if (setting ~= nil) then
+            -- do we have a feature match, a setting match and no value passed in
+            if (p3 == '') then
+                p3 = Core.AskIfEmpty(p3, setting.Name, setting.Default)
+
+                if (p3 == nil or p3 == '') then
+                    p3 = (setting.Default or 0)
+                end
+            end
+
+            local originalValue = setting.Value or ''
+
+            if (setting.Min ~= nil or setting.Max ~= nil) then
+                setting.Value = tonumber(p3) or tonumber(setting.Default)
+                if (setting.Min ~= nil and setting.Value < setting.Min) then
+                    setting.Value = setting.Min
+                end
+                if (setting.Max ~= nil and setting.Value > setting.Max) then
+                    setting.Value = setting.Max
+                end
+            else
+                setting.Value = p3
+            end
+            if (setting.OnAfterSet ~= nil) then
+                setting:OnAfterSet()
+            end
+            Core.Log(setting.Name .. ' changed from ' .. originalValue .. ' to ' .. setting.Value)
+
+            return
+        end
     end
 
     -- is p1 a feature name instead?

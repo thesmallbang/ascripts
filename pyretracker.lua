@@ -803,7 +803,7 @@ function Tracker.ResetCurrentArea()
 end
 function Tracker.ResetAreas()
     Core.Log('Resetting all area data', Core.LogLevel.INFO)
-    OnResetAreaData()
+    Tracker.ResetCurrentArea()
     Tracker.AreaTracker.History = {}
 end
 function Tracker.ResetCurrentFight()

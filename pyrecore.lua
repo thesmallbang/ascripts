@@ -499,7 +499,7 @@ function core_module.QueueProcessNext()
     -- i think the wait needs to be passed in instead of having it all in core
     local waitTime = 0
 
-    if (item.Info.ActionType ~= core_module.ActionType.QuaffHeal and ((core_module.addedWait or 0) > 0)) then
+    if (item.Info.ActionType ~= core_module.ActionType.QuaffHeal and (core_module.addedWait > 0)) then
         waitTime = waitTime + core_module.addedWait
 
         local queueWait = false
@@ -526,6 +526,13 @@ function core_module.QueueProcessNext()
     item.Expiration = socket.gettime() + 10
     --  core_module.addedWait = 0
     item.Execute(item.Info, item)
+
+    local skill = core_module.GetClassSkillByName(item.Info.Name)
+    if (skill ~= nil) then
+        if (core_module.addedWait < (skill.AddDelay or 0)) then
+            core_module.addedWait = skill.AddDelay or 0
+        end
+    end
 
     core_module.LastSkillUniqueId = item.uid
     core_module.LastSkillExecute = socket.gettime()

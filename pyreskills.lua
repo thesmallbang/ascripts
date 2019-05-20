@@ -164,6 +164,15 @@ Skills.Config = {
                 skill.Warnings = nil
                 Core.RemoveAction(skill.Name)
             end
+        },
+        {
+            Name = 'SkillsOnQuaffDetected',
+            Match = '\\[.*\\] A warm feeling fills your body. \\[.*\\]',
+            Callback = function(line, wildcards)
+                if (Core.addedWait < 4) then
+                    Core.addedWait = 4
+                end
+            end
         }
     }
 }

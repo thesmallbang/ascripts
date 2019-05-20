@@ -151,6 +151,7 @@ function PH.Install(remoteVersionData, featuresOnDisk)
             PH.Config.Triggers,
             function(trigger)
                 local safename = trigger.Name:gsub('%s+', '')
+
                 AddTriggerEx(
                     'phth_' .. safename,
                     '^' .. trigger.Match .. '$',
@@ -873,6 +874,7 @@ function PH.RegisterFeature(feature)
             feature.Reference.Config.Triggers,
             function(trigger)
                 local safename = trigger.Name:gsub('%s+', '')
+                print('adding trigger ' .. ' pht_' .. feature.Name .. '_' .. safename)
                 AddTriggerEx(
                     'pht_' .. feature.Name .. '_' .. safename,
                     '^' .. trigger.Match .. '$',

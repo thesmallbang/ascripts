@@ -19,6 +19,7 @@ Skills.Config = {
             Name = 'attack',
             Description = 'Initiate a pyre attack',
             Callback = function(line, wildcards)
+                Skills.PyreAttack()
             end
         }
     },
@@ -122,6 +123,19 @@ Skills.Config = {
                 spell.Expiration = socket.gettime() + (minutes * 60) + seconds
                 Core.RemoveAction(spell.Name)
             end
+        },
+        {
+            Name = 'SkillUsed',
+            Match = '(\\*)?\\[.*\\]?\\s?Your\\s(\\w*) -?<?(.*)>?-? (.*)! \\[(.*)\\]',
+            Callback = function(line, wildcards)
+                print('in skill used')
+                local match = wildcards[2]
+                local skill = Core.GetClassSkillByName(match)
+                if (skill == nil) then
+                    return
+                end
+                Core.RemoveAction(skill.Name)
+            end
         }
     }
 }
@@ -142,7 +156,7 @@ function Skills.AddCustomSkills()
         table.insert(
             custom.Spells,
             {
-                ActionType = core_module.ActionType.Buff,
+                ActionType = Core.ActionType.Buff,
                 Name = 'Apathy',
                 CastWith = 'apathy',
                 Level = 1,
@@ -180,7 +194,7 @@ function Skills.AddCustomSkills()
         table.insert(
             custom.Spells,
             {
-                ActionType = core_module.ActionType.Buff,
+                ActionType = Core.ActionType.Buff,
                 Name = 'Gloom',
                 CastWith = 'gloom',
                 Level = 1,
@@ -198,7 +212,7 @@ function Skills.AddCustomSkills()
         table.insert(
             custom.Spells,
             {
-                ActionType = core_module.ActionType.BuffDurationOnly,
+                ActionType = Core.ActionType.BuffDurationOnly,
                 Name = 'Sanctuary',
                 Level = 1,
                 Applied = nil,
@@ -215,7 +229,7 @@ function Skills.AddCustomSkills()
         table.insert(
             custom.Spells,
             {
-                ActionType = core_module.ActionType.Buff,
+                ActionType = Core.ActionType.Buff,
                 Name = 'Empathy',
                 CastWith = 'cast 520',
                 Level = 1,
@@ -262,14 +276,14 @@ function Skills.Stop()
 end
 
 function Skills.Tick()
-    if (os.time() - Skills.Config.TickLimits.LastTick < Skills.Config.TickLimits.Seconds) then
+    if (socket.gettime() - Skills.Config.TickLimits.LastTick < Skills.Config.TickLimits.Seconds) then
         return
     end
 
     if (Core.Status.State == Core.States.IDLE) then
         Skills.CheckOnSkills()
     end
-    Skills.Config.TickLimits.LastTick = os.time()
+    Skills.Config.TickLimits.LastTick = socket.gettime()
 end
 
 function Skills.HookIn(spell)
@@ -339,7 +353,7 @@ function Skills.CheckOnSkills()
         function(spell)
             if
                 (spell.ActionType == Core.ActionType.BuffDurationOnly and
-                    (spell.Expiration == nil or spell.Expiration < os.time()))
+                    (spell.Expiration == nil or spell.Expiration < socket.gettime()))
              then
                 -- not going to bother with the queue since this can be spammed
                 if
@@ -381,7 +395,10 @@ function Skills.CheckOnSkills()
                 end
             end
 
-            if (spell.ActionType == Core.ActionType.Buff and (spell.Expiration == nil or spell.Expiration < os.time())) then
+            if
+                (spell.ActionType == Core.ActionType.Buff and
+                    (spell.Expiration == nil or spell.Expiration < socket.gettime()))
+             then
                 -- queue up a casting action
                 -- we are just going to refer to everything as buff for queue behaviour outside of this plugin
 
@@ -416,7 +433,7 @@ function Skills.CheckOnSkills()
             if (spell.Expiration ~= nil) then
                 -- check for expiration warning
                 local warningTime = Core.GetSettingValue(Skills, 'expirationwarn')
-                local warnAt = spell.Expiration - os.time()
+                local warnAt = spell.Expiration - socket.gettime()
 
                 if (warningTime > 0 and warnAt > 0 and (spell.Warnings or 1) < 3) then
                     local d = spell.Warnings or 1
@@ -438,6 +455,68 @@ function Skills.CheckOnSkills()
     )
 end
 
+function Skills.PyreAttack()
+    local inCombat = (Core.Status.State == Core.States.COMBAT)
+
+    local skillFilter = function(skill)
+        return ((inCombat and skill.ActionType == Core.ActionType.CombatMove) or
+            (not (inCombat) and skill.ActionType == Core.ActionType.CombatInitiate))
+    end
+
+    local leaderinitiate = Core.GetSettingValue(Skills, 'onlyleaderinitiate')
+
+    local isValid = function(skill, state, isleader, leaderinitiate)
+        if ((isleader == false) and (leaderinitiate == 1)) then
+            Core.Log('Initiation blocked. You are not the group leader', Core.LogLevel.INFO)
+            return false
+        end
+
+        -- we only have stuff for combat and idle states
+        if (state ~= Core.States.IDLE and state ~= Core.States.COMBAT) then
+            Core.Log('Invalid state for pyre attack', Core.LogLevel.DEBUG)
+            return false
+        end
+        return true
+    end
+
+    local bestSkill = Core.GetClassSkillByLevel(Core.Status.Subclass, Core.Status.Level, skillFilter)
+
+    local maxqueuesize = Core.GetSettingValue(Core, 'queuesize')
+    local queuesize = #Core.ActionQueue
+    if (maxqueuesize <= queuesize) then
+        Core.Log('Action queue is full', Core.LogLevel.DEBUG)
+        return
+    end
+
+    if (isValid(bestSkill, Core.Status.State, Core.Status.IsLeader, leaderinitiate)) then
+        Core.AddAction(
+            bestSkill.Name,
+            bestSkill.ActionType,
+            function(action)
+                local askill = Core.GetClassSkillByName(action.Name)
+                if (isValid(askill, Core.Status.State, Core.Status.IsLeader, leaderinitiate)) then
+                    -- AddTriggerEx(
+                    --     triggerName,
+                    --     '^' .. regexForAttempt .. '$',
+                    --     '',
+                    --     trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace +
+                    --         trigger_flag.Temporary +
+                    --         trigger_flag.KeepEvaluating,
+                    --     -1,
+                    --     0,
+                    --     '',
+                    --     'OnSkillAttempted',
+                    --     0
+                    -- )
+
+                    Core.Execute(askill.Name)
+                end
+            end
+        )
+        Core.Log(bestSkill.Name .. ' queued [' .. #Core.ActionQueue .. ']')
+    end
+end
+
 function OnSkillSuccessDetected(name, line, wildcards)
     Core.Log('OnSkillSuccessDetected ' .. name, Core.LogLevel.DEBUG)
     local spell = Core.GetClassSkillByName(string.sub(name, 3))
@@ -447,7 +526,7 @@ function OnSkillSuccessDetected(name, line, wildcards)
         return
     end
 
-    spell.Applied = os.time()
+    spell.Applied = socket.gettime()
     Core.RemoveAction(spell.Name)
 end
 
@@ -463,6 +542,9 @@ function OnSkillFailedDetected(name, line, wildcards)
     spell.Applied = nil
     spell.Warnings = nil
     Core.RemoveAction(spell.Name)
+end
+
+function OnSkillUseDetected(line, wildcards)
 end
 
 return Skills

@@ -80,7 +80,7 @@ Window = {
                 Value = nil,
                 Min = 200,
                 Max = 999999,
-                Default = 300
+                Default = 380
             },
             {
                 Name = 'left',

@@ -37,9 +37,9 @@ core_module = {
                 Name = 'queuesize',
                 Description = 'Maximum size of commands that can be stored in the activity queue',
                 Value = nil,
-                Min = 0,
-                Max = 4,
-                Default = 3
+                Min = 1,
+                Max = 200,
+                Default = 30
             },
             {
                 Name = 'showpyrecommands',
@@ -275,23 +275,17 @@ function core_module.GetClassSkillByLevel(subclassToCheck, level, filterFn)
         end
     end
 
-    for _, subclass in ipairs(Pyre.Classes) do
+    for _, subclass in ipairs(core_module.Classes) do
         if (string.lower(subclass.Name) == string.lower(subclassToCheck)) then
             local skillTable = subclass.Skills
 
-            local previousSkillLoopItem = nil
             for _, skill in ipairs(skillTable) do
                 if
                     ((skill.Level <= level) and (foundSkill == nil or foundSkill.Level < skill.Level) and
-                        not (not (SkillFeature.SkillFail == nil) and (skill.Level > SkillFeature.SkillFail.Level)) and
                         (filterFn(skill)))
                  then
                     foundSkill = skill
-                    if (not (SkillFeature.SkillFail == nil) and skill.Name == SkillFeature.SkillFail.Name) then
-                        foundSkill = previousSkillLoopItem
-                    end
                 end
-                previousSkillLoopItem = skill
             end
         end
     end

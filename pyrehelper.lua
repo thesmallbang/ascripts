@@ -14,6 +14,13 @@ PH.Config = {
             Type = Core.Event.StateChanged,
             Callback = function(o)
                 PH.StateChanged(o)
+                Core.QueueReset()
+            end
+        },
+        {
+            Type = Core.Event.RoomChanged,
+            Callback = function(o)
+                Core.QueueReset()
             end
         }
     },
@@ -487,7 +494,8 @@ function PHTriggerHandler(name, line, wildcards)
         Core.First(
         PH.Config.Triggers,
         function(t)
-            return 'phth_' .. t.Name:gsub('%s+', '') == name
+            local safename = name:gsub('%s+', '')
+            return 'phth_' .. t.Name:gsub('%s+', '') == safename
         end
     )
 
@@ -501,16 +509,17 @@ function PHTriggerHandler(name, line, wildcards)
             if (f ~= nil and f.Reference ~= nil and f.Reference.Config ~= nil and f.Reference.Config.Triggers ~= nil) then
                 -- PHTriggerHandler
                 trigger =
-                    Core.First(
+                    Core.Each(
                     f.Reference.Config.Triggers,
                     function(t)
-                        return 'pht_' .. f.Name .. '_' .. t.Name:gsub('%s+', '') == name
+                        local shouldbe = 'pht_' .. f.Name .. '_' .. t.Name:gsub('%s+', '')
+                        if (shouldbe == name) then
+                            if (t.Callback ~= nil) then
+                                t.Callback(line, wildcards)
+                            end
+                        end
                     end
                 )
-
-                if (trigger ~= nil) then
-                    trigger.Callback(line, wildcards)
-                end
             end
         end
     )
@@ -874,13 +883,13 @@ function PH.RegisterFeature(feature)
             feature.Reference.Config.Triggers,
             function(trigger)
                 local safename = trigger.Name:gsub('%s+', '')
-                print('adding trigger ' .. ' pht_' .. feature.Name .. '_' .. safename)
                 AddTriggerEx(
                     'pht_' .. feature.Name .. '_' .. safename,
                     '^' .. trigger.Match .. '$',
                     '',
                     trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace +
-                        trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
+                        trigger_flag.Temporary +
+                        trigger_flag.KeepEvaluating, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
                     -1,
                     0,
                     '',

@@ -125,15 +125,44 @@ Skills.Config = {
             end
         },
         {
-            Name = 'SkillUsed',
+            Name = 'CheckSkillUsed',
             Match = '(\\*)?\\[.*\\]?\\s?Your\\s(\\w*) -?<?(.*)>?-? (.*)! \\[(.*)\\]',
             Callback = function(line, wildcards)
-                print('in skill used')
+                print('in used match')
                 local match = wildcards[2]
+
                 local skill = Core.GetClassSkillByName(match)
                 if (skill == nil) then
                     return
                 end
+                Core.RemoveAction(skill.Name)
+            end
+        },
+        {
+            Name = 'SafNotFound',
+            Match = 'You are not affected by any skills or spells.',
+            Callback = function(line, wildcards)
+                local match =
+                    Core.First(
+                    Core.ActionQueue,
+                    function(a)
+                        return a.Info.ActionType == Core.ActionType.Buff or
+                            a.Info.ActionType == Core.ActionType.BuffDurationOnly
+                    end
+                )
+
+                if (match == nil) then
+                    return
+                end
+
+                local skill = Core.GetClassSkillByName(match.Info.Name)
+
+                if (skill == nil) then
+                    return
+                end
+                skill.Expiration = os.time() + 10000
+                skill.Applied = os.time()
+                skill.Warnings = nil
                 Core.RemoveAction(skill.Name)
             end
         }
@@ -142,6 +171,24 @@ Skills.Config = {
 
 function Skills.Start()
     Skills.AddCustomSkills()
+
+    -- class not set in time...
+    local custom = Core.GetClassByName(Core.Status.Subclass)
+
+    if (custom == nil) then
+        custom = Core.GetClassByName('Blacksmith')
+        if (custom == nil) then
+            return
+        end
+    end
+
+    Core.Each(
+        custom.Skills or custom.Spells,
+        function(s)
+            Skills.HookIn(s)
+        end
+    )
+
     -- Core.Execute('saf')
 end
 
@@ -273,6 +320,14 @@ end
 
 function Skills.Stop()
     Skills.RemoveCustomSkills()
+
+    local custom = Core.GetClassByName(Core.Status.Subclass)
+    Core.Each(
+        custom.Skills or custom.Spells,
+        function(s)
+            Skills.Unhook(s)
+        end
+    )
 end
 
 function Skills.Tick()
@@ -288,6 +343,7 @@ end
 
 function Skills.HookIn(spell)
     -- we are going to do a trigger per spell for now
+
     local regexForFailures = ''
     local regexForSuccess = ''
 
@@ -340,6 +396,8 @@ end
 
 function Skills.Unhook(spell)
     -- delete triggers
+    DeleteTrigger('ss_' .. spell.Name)
+    DeleteTrigger('sf_' .. spell.Name)
 end
 
 function Skills.CheckOnSkills()
@@ -481,6 +539,19 @@ function Skills.PyreAttack()
 
     local bestSkill = Core.GetClassSkillByLevel(Core.Status.Subclass, Core.Status.Level, skillFilter)
 
+    if (bestSkill.ActionType == Core.ActionType.CombatInitiate) then
+        if
+            (Core.Any(
+                Core.ActionQueue,
+                function(v)
+                    return (v.Skill.SkillType == Core.SkillType.CombatInitiate)
+                end
+            ))
+         then
+            Core.Log('Discarding duplicate initiator attack', Core.LogLevel.DEBUG)
+            return
+        end
+    end
     local maxqueuesize = Core.GetSettingValue(Core, 'queuesize')
     local queuesize = #Core.ActionQueue
     if (maxqueuesize <= queuesize) then
@@ -527,6 +598,8 @@ function OnSkillSuccessDetected(name, line, wildcards)
     end
 
     spell.Applied = socket.gettime()
+    spell.Expiration = nil
+
     Core.RemoveAction(spell.Name)
 end
 

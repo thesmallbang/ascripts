@@ -564,7 +564,7 @@ function core_module.RemoveAction(name)
         core_module.Except(
         core_module.ActionQueue,
         function(a)
-            return string.lower(a.Info.Name) == string.lower(name)
+            return string.lower(a.Info.Name or '') == string.lower(name)
         end,
         1
     )
@@ -1008,7 +1008,7 @@ core_module.Classes = {
                 Level = 1,
                 AutoSend = true,
                 Alias = '~',
-                Attempts = {'You fail to run away!', "You aren't fighting anyone."}
+                Failures = {'You fail to run away!', "You aren't fighting anyone."}
             },
             {
                 ActionType = core_module.ActionType.CombatInitiate,
@@ -1016,7 +1016,7 @@ core_module.Classes = {
                 Level = 1,
                 AutoSend = false,
                 Alias = '~',
-                Attempts = {'Who are you trying to attack?'}
+                Failures = {'Who are you trying to attack?'}
             },
             {
                 ActionType = core_module.ActionType.CombatInitiate,
@@ -1024,7 +1024,7 @@ core_module.Classes = {
                 Level = 51,
                 AutoSend = true,
                 Alias = 'swing',
-                Attempts = {
+                Failures = {
                     'You swing your hammer wildly but find nobody to hit',
                     'You are not using a hammer.',
                     'You start to build momentum with your hammer.',
@@ -1037,7 +1037,7 @@ core_module.Classes = {
                 Level = 11,
                 AutoSend = true,
                 Alias = 'bash',
-                Attempts = {'Bash whom?', "You don't know how to bash someone.", 'You are stunned.'}
+                Failures = {'Bash whom?', "You don't know how to bash someone.", 'You are stunned.'}
             },
             {
                 ActionType = core_module.ActionType.CombatMove,
@@ -1045,7 +1045,7 @@ core_module.Classes = {
                 Level = 50,
                 AutoSend = true,
                 Alias = 'sap',
-                Attempts = {'Sap whom?', "You don't know how to sap someone.", 'You are stunned.'}
+                Failures = {'Sap whom?', "You don't know how to sap someone.", 'You are stunned.'}
             },
             {
                 ActionType = core_module.ActionType.CombatMove,
@@ -1053,7 +1053,7 @@ core_module.Classes = {
                 Level = 60,
                 AutoSend = true,
                 Alias = 'scalp',
-                Attempts = {'Scalp whom?', "You don't know how to scalp someone.", 'You are stunned.'}
+                Failures = {'Scalp whom?', "You don't know how to scalp someone.", 'You are stunned.'}
             },
             {
                 ActionType = core_module.ActionType.CombatMove,
@@ -1061,7 +1061,7 @@ core_module.Classes = {
                 Level = 88,
                 AutoSend = true,
                 Alias = 'mighty',
-                Attempts = {'Assault whom?', "You don't know how to assault someone.", 'You are stunned.'}
+                Failures = {'Assault whom?', "You don't know how to assault someone.", 'You are stunned.'}
             },
             {
                 ActionType = core_module.ActionType.CombatMove,
@@ -1069,7 +1069,7 @@ core_module.Classes = {
                 Level = 101,
                 AutoSend = true,
                 Alias = 'uppercut',
-                Attempts = {'Uppercut whom?', "You don't know how to uppercut someone.", 'You are stunned.'}
+                Failures = {'Uppercut whom?', "You don't know how to uppercut someone.", 'You are stunned.'}
             },
             {
                 ActionType = core_module.ActionType.CombatMove,
@@ -1077,7 +1077,7 @@ core_module.Classes = {
                 Level = 137,
                 AutoSend = true,
                 Alias = 'stomp',
-                Attempts = {'Stomp whom?', "You don't know how to stomp someone.", 'You are stunned.'}
+                Failures = {'Stomp whom?', "You don't know how to stomp someone.", 'You are stunned.'}
             },
             {
                 ActionType = core_module.ActionType.CombatMove,
@@ -1085,7 +1085,7 @@ core_module.Classes = {
                 Level = 151,
                 AutoSend = true,
                 Alias = 'bodycheck',
-                Attempts = {'Bodycheck whom?', "You don't know how to bodycheck someone.", 'You are stunned.'}
+                Failures = {'Bodycheck whom?', "You don't know how to bodycheck someone.", 'You are stunned.'}
             },
             {
                 ActionType = core_module.ActionType.CombatMove,
@@ -1093,7 +1093,7 @@ core_module.Classes = {
                 Level = 165,
                 AutoSend = true,
                 Alias = 'cleave',
-                Attempts = {'Cleave whom?', "You don't know how to cleave.", 'You are stunned.'}
+                Failures = {'Cleave whom?', "You don't know how to cleave.", 'You are stunned.'}
             },
             {
                 ActionType = core_module.ActionType.CombatMove,
@@ -1101,7 +1101,7 @@ core_module.Classes = {
                 Level = 178,
                 AutoSend = true,
                 Alias = 'hammering blow',
-                Attempts = {'Hammering Blow whom?', "You sit down and sing 'If I had a hammer!'.", 'You are stunned.'}
+                Failures = {'Hammering Blow whom?', "You sit down and sing 'If I had a hammer!'.", 'You are stunned.'}
             }
         }
     }

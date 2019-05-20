@@ -395,11 +395,11 @@ Window = {
             end
 
             -- subtract a bit of window width so we can have some border padding
+            local columnSpacer = Core.GetSettingValue(Window, 'columnspacer')
+
             local xmargin = (windowWidth / 15) / 2
             local ymargin = rowspacer
             windowWidth = windowWidth - xmargin * 2
-
-            local columnSpacer = Core.GetSettingValue(Window, 'columnspacer')
 
             -- figure out how big our columns are going to be
             local columnWidth = Core.Round(windowWidth / (totalColumns), 0) + (totalColumns + columnSpacer)
@@ -443,9 +443,225 @@ Window = {
                     end
                 end
             )
+
+            -- drawing our pager after content to ensure it is on top
+
+            -- do we have a pager?
+
+            if (view.Pager ~= nil) then
+                local min = view.Pager.Min()
+                local max = view.Pager.Max()
+                local current = view.Pager.Current()
+
+                if (min < max) then
+                    -- Pager background
+                    WindowCircleOp(
+                        windowId,
+                        3,
+                        0,
+                        windowHeight - (lineHeight + rowspacer),
+                        Core.GetSettingValue(Window, 'width'),
+                        windowHeight,
+                        ColourNameToRGB(Core.GetSettingValue(Window, 'bordercolor')),
+                        0,
+                        0,
+                        ColourNameToRGB(Core.GetSettingValue(Window, 'backcolor')),
+                        0,
+                        0,
+                        0
+                    )
+
+                    local msgWidth = WindowTextWidth(windowId, 's', '<<', false)
+                    local top = windowHeight - (lineHeight + rowspacer) + 2
+                    local left = 10
+
+                    -- left side
+                    if (current > min) then
+                        WindowText(
+                            windowId,
+                            's',
+                            '<<',
+                            left,
+                            top,
+                            0,
+                            0,
+                            ColourNameToRGB(Core.GetSettingValue(Window, 'linkcolor'))
+                        )
+                        WindowAddHotspot(
+                            windowId,
+                            'hs_pager_first',
+                            left,
+                            top,
+                            left + msgWidth,
+                            top + lineHeight,
+                            '',
+                            '',
+                            'OnWindowPagerHandler',
+                            '',
+                            '',
+                            'First',
+                            1, -- hand cursor
+                            0
+                        )
+                        left = left + msgWidth + 10
+
+                        WindowText(
+                            windowId,
+                            's',
+                            '<',
+                            left,
+                            top,
+                            0,
+                            0,
+                            ColourNameToRGB(Core.GetSettingValue(Window, 'linkcolor'))
+                        )
+                        WindowAddHotspot(
+                            windowId,
+                            'hs_pager_newer',
+                            left,
+                            top,
+                            left + msgWidth,
+                            top + lineHeight,
+                            '',
+                            '',
+                            'OnWindowPagerHandler',
+                            '',
+                            '',
+                            'Newer',
+                            1, -- hand cursor
+                            0
+                        )
+                        left = left + msgWidth
+                    end
+
+                    local middleMsg = current .. ' / ' .. max
+                    local middleWidth = WindowTextWidth(windowId, 's', middleMsg, false)
+                    -- middle pager
+                    WindowText(
+                        windowId,
+                        's',
+                        middleMsg,
+                        windowWidth / 2 - middleWidth / 2,
+                        top,
+                        0,
+                        0,
+                        ColourNameToRGB(Core.GetSettingValue(Window, 'linkcolor'))
+                    )
+                    WindowAddHotspot(
+                        windowId,
+                        'hs_pager_set',
+                        (windowWidth / 2) - (middleWidth / 2),
+                        top,
+                        (windowWidth / 2) - (middleWidth / 2) + middleWidth,
+                        windowHeight,
+                        '',
+                        '',
+                        'OnWindowPagerHandler',
+                        '',
+                        '',
+                        'Pick by number',
+                        1, -- hand cursor
+                        0
+                    )
+
+                    -- right side
+                    if (current < max) then
+                        left = 10
+                        WindowText(
+                            windowId,
+                            's',
+                            '>>',
+                            windowWidth - left,
+                            top,
+                            0,
+                            0,
+                            ColourNameToRGB(Core.GetSettingValue(Window, 'linkcolor'))
+                        )
+                        WindowAddHotspot(
+                            windowId,
+                            'hs_pager_last',
+                            windowWidth - left,
+                            top,
+                            (windowWidth - left) + msgWidth,
+                            top + lineHeight,
+                            '',
+                            '',
+                            'OnWindowPagerHandler',
+                            '',
+                            '',
+                            'Last',
+                            1, -- hand cursor
+                            0
+                        )
+                        left = left + msgWidth
+
+                        WindowText(
+                            windowId,
+                            's',
+                            '>',
+                            windowWidth - left,
+                            top,
+                            0,
+                            0,
+                            ColourNameToRGB(Core.GetSettingValue(Window, 'linkcolor'))
+                        )
+                        WindowAddHotspot(
+                            windowId,
+                            'hs_pager_older',
+                            windowWidth - left,
+                            top,
+                            (windowWidth - left) + msgWidth,
+                            top + lineHeight,
+                            '',
+                            '',
+                            'OnWindowPagerHandler',
+                            '',
+                            '',
+                            'Older',
+                            1, -- hand cursor
+                            0
+                        )
+                        left = left + msgWidth
+                    end
+                end
+            end
         end
     }
 }
+
+function OnWindowPagerHandler(a, name)
+    local view = Views[Core.GetSettingValue(Window, 'view') + 1]
+    if (view == nil or view.Pager == nil) then
+        return
+    end
+
+    if (name == 'hs_pager_first') then
+        if (view.Pager.First ~= nil) then
+            view.Pager.First()
+        end
+    end
+    if (name == 'hs_pager_newer') then
+        if (view.Pager.Newer ~= nil) then
+            view.Pager.Newer()
+        end
+    end
+    if (name == 'hs_pager_older') then
+        if (view.Pager.Older ~= nil) then
+            view.Pager.Older()
+        end
+    end
+    if (name == 'hs_pager_last') then
+        if (view.Pager.Last ~= nil) then
+            view.Pager.Last()
+        end
+    end
+
+    if (name == 'hs_pager_set') then
+        if (view.Pager.Set ~= nil) then
+            view.Pager.Set()
+        end
+    end
+end
 
 function OnWindowMouseDown()
     local windowId = Core.GetSettingValue(Window, 'windowid')
@@ -536,17 +752,10 @@ function Window.Tick()
     Window.Drawing.DrawWindow()
 end
 
-function Window.RegisterView(name, drawingCallback, atStart)
+function Window.RegisterView(name, drawingCallback, pager)
     Core.Log('View ' .. name .. ' registered in window.', Core.LogLevel.DEBUG)
-    if (atStart == nil) then
-        atStart = false
-    end
 
-    if (atStart) then
-        table.insert(Views, 0, {Name = name, Callback = drawingCallback, Cache = nil, LastUpdate = nil})
-    else
-        table.insert(Views, {Name = name, Callback = drawingCallback, Cache = nil, LastUpdate = nil})
-    end
+    table.insert(Views, {Name = name, Pager = pager, Callback = drawingCallback, Cache = nil, LastUpdate = nil})
 end
 
 function Window.UnregisterView(name)

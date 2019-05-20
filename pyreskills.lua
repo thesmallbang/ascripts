@@ -513,6 +513,7 @@ function Skills.CheckOnSkills()
 end
 
 function Skills.PyreAttack()
+    PH.ResetAfk()
     local inCombat = (Core.Status.State == Core.States.COMBAT)
 
     local skillFilter = function(skill)
@@ -565,20 +566,6 @@ function Skills.PyreAttack()
             function(action)
                 local askill = Core.GetClassSkillByName(action.Name)
                 if (isValid(askill, Core.Status.State, Core.Status.IsLeader, leaderinitiate)) then
-                    -- AddTriggerEx(
-                    --     triggerName,
-                    --     '^' .. regexForAttempt .. '$',
-                    --     '',
-                    --     trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace +
-                    --         trigger_flag.Temporary +
-                    --         trigger_flag.KeepEvaluating,
-                    --     -1,
-                    --     0,
-                    --     '',
-                    --     'OnSkillAttempted',
-                    --     0
-                    -- )
-
                     Core.Execute(askill.Name)
                 end
             end

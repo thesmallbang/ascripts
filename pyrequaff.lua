@@ -253,13 +253,10 @@ function Quaff.OnQuaffFailed(line, wildcards)
 
     if (wildcards[1] == 'A powerful force quenches your magic.') then
         Quaff.RoomFailed = true
-        Core.Log("Quaff RoomDisabled type 'pyre setting quaff clear' to reset", Core.LogLevel.INFO)
+        Core.Log("Quaff RoomDisabled type 'pyre quaffreset", Core.LogLevel.INFO)
     else
         table.insert(Quaff.DetectedFailures, potion.Info.Name)
-        Core.Log(
-            'Quaff Disabled for ' .. potion.Info.Name .. " type 'pyre setting quaff clear' to reset",
-            Core.LogLevel.INFO
-        )
+        Core.Log('Quaff Disabled for ' .. potion.Info.Name .. " type 'pyre quaffreset' to reset", Core.LogLevel.INFO)
     end
 
     Quaff.LastQuaff = 0

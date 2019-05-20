@@ -593,7 +593,12 @@ function Tracker.Start()
 
                 local summary = Tracker.Factory.CreateSessionSummary(Tracker.Session)
 
-                addcontent({'Session', Core.SecondsToClock(summary.Normal.Duration)}, '', 'textcolor2')
+                local duration = Core.SecondsToClock(summary.Normal.Duration)
+                if (Core.IsAFK) then
+                    duration = 'AFK'
+                end
+
+                addcontent({'Session', duration}, '', 'textcolor2')
                 addcontent({'Fighting', tostring(Tracker.EnemyCounter)}, '', 'textcolor3')
                 addcontent({'Queue', tostring(#Core.ActionQueue)}, '', 'textcolor3')
 
@@ -619,6 +624,33 @@ function Tracker.Start()
                 return content
             end
         )
+
+        local pager = {
+            Current = function()
+                return Tracker.AreaIndex
+            end,
+            Min = function()
+                return 0
+            end,
+            Max = function()
+                return #Tracker.AreaTracker.History
+            end,
+            Set = function()
+                Core.Execute('pyre setarea')
+            end,
+            First = function()
+                Core.Execute('pyre firstarea')
+            end,
+            Newer = function()
+                Core.Execute('pyre newerarea')
+            end,
+            Older = function()
+                Core.Execute('pyre olderarea')
+            end,
+            Last = function()
+                Core.Execute('pyre lastarea')
+            end
+        }
 
         Window.RegisterView(
             'Areas',
@@ -634,7 +666,12 @@ function Tracker.Start()
                 end
                 local summary = Tracker.Factory.CreateAreaSummary(area)
 
-                addcontent({summary.Area, Core.SecondsToClock(summary.Normal.Duration)}, '', 'textcolor2')
+                local duration = Core.SecondsToClock(summary.Normal.Duration)
+                if (Core.IsAFK) then
+                    duration = 'AFK'
+                end
+
+                addcontent({summary.Area, duration}, '', 'textcolor2')
                 addcontent({'Fighting', tostring(Tracker.EnemyCounter)}, '', 'textcolor3')
                 addcontent({'Queue', tostring(#Core.ActionQueue)}, '', 'textcolor3')
 
@@ -658,9 +695,36 @@ function Tracker.Start()
                 addcontent({'EDPCS', tostring(summary.Combat.EnemyDps)})
 
                 return content
-            end
+            end,
+            pager
         )
 
+        pager = {
+            Current = function()
+                return Tracker.FightIndex
+            end,
+            Min = function()
+                return 0
+            end,
+            Max = function()
+                return #Tracker.Session.Fights
+            end,
+            Set = function()
+                Core.Execute('pyre setfight')
+            end,
+            First = function()
+                Core.Execute('pyre firstfight')
+            end,
+            Newer = function()
+                Core.Execute('pyre newerfight')
+            end,
+            Older = function()
+                Core.Execute('pyre olderfight')
+            end,
+            Last = function()
+                Core.Execute('pyre lastfight')
+            end
+        }
         Window.RegisterView(
             'Fights',
             function()
@@ -682,7 +746,12 @@ function Tracker.Start()
                     return content
                 end
 
-                addcontent({'Duration', Core.SecondsToClock(summary.Normal.Duration)}, '', 'textcolor2')
+                local duration = Core.SecondsToClock(summary.Normal.Duration)
+                if (Core.IsAFK) then
+                    duration = 'AFK'
+                end
+
+                addcontent({'Duration', duration}, '', 'textcolor2')
                 addcontent({'Enemies', tostring(Tracker.EnemyCounter)}, '', 'textcolor3')
                 addcontent({'Queue', tostring(#Core.ActionQueue)}, '', 'textcolor3')
 
@@ -701,7 +770,8 @@ function Tracker.Start()
                 addcontent({'EDPS', tostring(summary.Normal.EnemyDps)})
 
                 return content
-            end
+            end,
+            pager
         )
     end
 end

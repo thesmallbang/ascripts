@@ -909,7 +909,7 @@ function Tracker.OnZoneChanged(zone)
 end
 
 function Tracker.OnExperienceGain(line, wildcards)
-    if (Tracker.FightTracker.Current.Area == nil) then
+    if (Tracker.FightTracker.Current == nil or Tracker.FightTracker.Current.Area == nil) then
         return
     end
 

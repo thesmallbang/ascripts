@@ -488,13 +488,12 @@ function Skills.CheckOnSkills()
                                     end
                                 ))
                              then
-                                Core.addedWait = 4
+                                Core.addedWait = 6
                                 Core.RemoveAction(spell.Name)
                             end
 
                             Core.Execute(spell.CastWith or ('cast ' .. spell.Name))
 
-                            Core.addedWait = spell.AddDelay or 0
                             if (spell.OnAfterCast ~= nil) then
                                 spell.OnAfterCast(spell, action)
                             end

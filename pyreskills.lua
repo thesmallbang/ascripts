@@ -478,6 +478,20 @@ function Skills.CheckOnSkills()
                         spell.Name,
                         spell.ActionType,
                         function(action)
+                            if
+                                (Core.Any(
+                                    Core.ActionQueue,
+                                    function(a)
+                                        return a.Info.ActionType == Core.ActionType.QuaffHeal or
+                                            a.Info.ActionType == Core.ActionType.QuaffMana or
+                                            a.Info.ActionType == Core.ActionType.QuaffMove
+                                    end
+                                ))
+                             then
+                                Core.addedWait = 4
+                                Core.RemoveAction(spell.Name)
+                            end
+
                             Core.Execute(spell.CastWith or ('cast ' .. spell.Name))
 
                             Core.addedWait = spell.AddDelay or 0

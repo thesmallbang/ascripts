@@ -551,6 +551,7 @@ function core_module.AddAction(name, atype, callback, pos)
             callback(a)
         end
     }
+
     if (pos == nil) then
         table.insert(core_module.ActionQueue, action)
     else

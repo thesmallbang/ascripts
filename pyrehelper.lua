@@ -755,7 +755,7 @@ function PH.InstallFeature(name)
 
     Core.Log('Installing ' .. feature.Name .. ' : ' .. feature.Version)
     download(
-        'https://raw.githubusercontent.com/thesmallbang/ascripts/RefactoringPluginEvents/' .. feature.Filename,
+        'https://raw.githubusercontent.com/thesmallbang/ascripts/master/' .. feature.Filename,
         function(retval, page, status, headers, full_status, request_url)
             saveDownload(retval, page, status, headers, full_status, request_url)
 

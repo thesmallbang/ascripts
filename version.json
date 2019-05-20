@@ -1,23 +1,23 @@
 {
   "Release": {
     "Version": "2.4",
-    "Url": "https://raw.githubusercontent.com/thesmallbang/ascripts/RefactoringPluginEvents/Pyre_Helper.xml",
+    "Url": "https://raw.githubusercontent.com/thesmallbang/ascripts/master/Pyre_Helper.xml",
     "Description": "Added pyre window"
   },
   "Dependencies": [{
       "Name": "Pyre_Updater",
-      "Url": "https://raw.githubusercontent.com/thesmallbang/ascripts/RefactoringPluginEvents/Pyre_Updater.xml",
+      "Url": "https://raw.githubusercontent.com/thesmallbang/ascripts/master/Pyre_Updater.xml",
       "Version": "1.2"
     },
     {
       "Name": "pyrehelper",
-      "Url": "https://raw.githubusercontent.com/thesmallbang/ascripts/RefactoringPluginEvents/pyrehelper.lua",
+      "Url": "https://raw.githubusercontent.com/thesmallbang/ascripts/master/pyrehelper.lua",
       "Version": "1.2",
       "Relay": "true"
     },
     {
       "Name": "pyrecore",
-      "Url": "https://raw.githubusercontent.com/thesmallbang/ascripts/RefactoringPluginEvents/pyrecore.lua",
+      "Url": "https://raw.githubusercontent.com/thesmallbang/ascripts/master/pyrecore.lua",
       "Version": "1.2"
     }
   ],

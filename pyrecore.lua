@@ -266,17 +266,61 @@ function core_module.AskIfEmpty(settingValue, settingName, default)
     return result
 end
 
+function core_module.GetClassSkillByLevel(subclassToCheck, level, filterFn)
+    local foundSkill = nil
+
+    if (filterFn == nil) then
+        filterFn = function(skill)
+            return true
+        end
+    end
+
+    for _, subclass in ipairs(Pyre.Classes) do
+        if (string.lower(subclass.Name) == string.lower(subclassToCheck)) then
+            local skillTable = subclass.Skills
+
+            local previousSkillLoopItem = nil
+            for _, skill in ipairs(skillTable) do
+                if
+                    ((skill.Level <= level) and (foundSkill == nil or foundSkill.Level < skill.Level) and
+                        not (not (SkillFeature.SkillFail == nil) and (skill.Level > SkillFeature.SkillFail.Level)) and
+                        (filterFn(skill)))
+                 then
+                    foundSkill = skill
+                    if (not (SkillFeature.SkillFail == nil) and skill.Name == SkillFeature.SkillFail.Name) then
+                        foundSkill = previousSkillLoopItem
+                    end
+                end
+                previousSkillLoopItem = skill
+            end
+        end
+    end
+    return foundSkill
+end
+
+function core_module.GetClassByName(className)
+    return core_module.First(
+        core_module.Classes,
+        function(c)
+            return string.lower(c.Name) == string.lower(className)
+        end
+    )
+end
+
 function core_module.GetClassSkillByName(skillName)
     local matchSkill = nil
 
     for _, subclass in ipairs(core_module.Classes) do
-        if string.lower(subclass.Name) == string.lower(core_module.Status.Subclass) then
-            local skillTable = subclass.Skills
+        if
+            ((string.lower(subclass.Name) == string.lower(core_module.Status.Subclass)) or
+                (string.lower(subclass.Name) == string.lower('custom')))
+         then
+            local searchTable = subclass.Skills or subclass.Spells
 
-            for _, skill in ipairs(skillTable) do
+            for _, skill in ipairs(searchTable) do
                 if
                     (string.match(string.lower(skillName), string.lower(skill.Name)) or
-                        (string.match(string.lower(skillName), string.lower(skill.Alias))))
+                        (string.match(string.lower(skillName), string.lower(skill.Alias or 'noaliastomatchbaby'))))
                  then
                     matchSkill = skill
                 end
@@ -945,6 +989,8 @@ end
 
 core_module.ActionType = {
     Basic = 0,
+    Buff = 2,
+    BuffDurationOnly = 3,
     Heal = 20,
     CombatInitiate = 100,
     CombatMove = 110,
@@ -955,6 +1001,10 @@ core_module.ActionType = {
 }
 
 core_module.Classes = {
+    {
+        Name = 'Custom',
+        Spells = {}
+    },
     {
         Name = 'Blacksmith',
         Skills = {

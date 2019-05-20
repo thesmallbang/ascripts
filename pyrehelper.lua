@@ -1086,10 +1086,14 @@ function PH.ChangeSetting(line, wildcards)
         end
 
         local originalValue = setting.Value or ''
-        local result = setting:OnBeforeSet(originalValue, p3)
-        if (result == false) then
-            return
+
+        if (setting.OnBeforeSet ~= nil) then
+            local result = setting:OnBeforeSet(originalValue, p3)
+            if (result == false) then
+                return
+            end
         end
+
         if (setting.Min ~= nil or setting.Max ~= nil) then
             setting.Value = tonumber(p3) or tonumber(setting.Default)
             if (setting.Min ~= nil and setting.Value < setting.Min) then

@@ -128,6 +128,7 @@ Skills.Config = {
 
 function Skills.Start()
     Skills.AddCustomSkills()
+    -- Core.Execute('saf')
 end
 
 function Skills.AddCustomSkills()
@@ -336,8 +337,6 @@ function Skills.CheckOnSkills()
     Core.Each(
         custom.Spells,
         function(spell)
-            -- check each spell for an expiration
-
             if
                 (spell.ActionType == Core.ActionType.BuffDurationOnly and
                     (spell.Expiration == nil or spell.Expiration < os.time()))
@@ -413,6 +412,28 @@ function Skills.CheckOnSkills()
                     )
                 end
             end
+
+            if (spell.Expiration ~= nil) then
+                -- check for expiration warning
+                local warningTime = Core.GetSettingValue(Skills, 'expirationwarn')
+                local warnAt = spell.Expiration - os.time()
+
+                if (warningTime > 0 and warnAt > 0 and (spell.Warnings or 1) < 3) then
+                    local d = spell.Warnings or 1
+                    if (d == 0) then
+                        d = 1
+                    end
+                    if (warnAt <= (warningTime / d)) then
+                        Core.CleanLog(
+                            spell.Name .. ' will expire in ' .. Core.SecondsToClock(warnAt),
+                            'white',
+                            '',
+                            Core.LogLevel.INFO
+                        )
+                        spell.Warnings = (spell.Warnings or 1) + 1
+                    end
+                end
+            end
         end
     )
 end
@@ -438,6 +459,9 @@ function OnSkillFailedDetected(name, line, wildcards)
         Core.RemoveAction(name)
         return
     end
+    spell.Expiration = nil
+    spell.Applied = nil
+    spell.Warnings = nil
     Core.RemoveAction(spell.Name)
 end
 

@@ -305,6 +305,9 @@ function PH.Save()
                 Core.Each(
                     f.Reference.Config.Settings,
                     function(s)
+                        if (s.Name == 'container') then
+                        --print('saving setting ' .. f.Name .. '_' .. s.Name .. ' val ' .. (s.Value or '[nil]'))
+                        end
                         SetVariable(f.Name .. '_' .. s.Name, (s.Value or s.Default))
                     end
                 )

@@ -128,7 +128,6 @@ Skills.Config = {
             Name = 'CheckSkillUsed',
             Match = '(\\*)?\\[.*\\]?\\s?Your\\s(\\w*) -?<?(.*)>?-? (.*)! \\[(.*)\\]',
             Callback = function(line, wildcards)
-                print('in used match')
                 local match = wildcards[2]
 
                 local skill = Core.GetClassSkillByName(match)

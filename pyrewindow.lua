@@ -80,7 +80,7 @@ Window = {
                 Value = nil,
                 Min = 200,
                 Max = 999999,
-                Default = 380
+                Default = 300
             },
             {
                 Name = 'left',
@@ -314,7 +314,7 @@ Window = {
             WindowDragHandler(windowId, 'movewindowhs', 'OnWindowMove', 'OnWindowMoveRelease', 0)
 
             local textleft = (windowWidth / 2) - (titleWidth / 2)
-            local texttop = 1.5
+            local texttop = 2
             WindowText(
                 windowId,
                 'm',

@@ -1,5 +1,8 @@
 local Core = require('pyrecore')
 require('socket')
+
+local Views = {}
+
 Window = {
     IsMoving = false,
     MovingPositions = {X = 0, Y = 0},
@@ -20,14 +23,14 @@ Window = {
                 Name = 'show',
                 Description = 'Show pyre window',
                 Callback = function(line, wildcards)
-                    Window.Visible = true
+                    Window.SetVisible(true)
                 end
             },
             {
                 Name = 'hide',
                 Description = 'Hide pyre window',
                 Callback = function(line, wildcards)
-                    Window.Visible = false
+                    Window.SetVisible(false)
                 end
             }
         },
@@ -42,15 +45,16 @@ Window = {
             },
             {
                 Name = 'view',
-                Description = 'What amount of plugin activity to show. (0 None, 1 Verbose, 2 Debug, 3 *Info, 4 Errors)',
+                Description = 'Different features register different views to show data',
                 Value = nil,
                 Min = 0,
                 Max = 999999,
                 Default = 0,
-                OnAfterSet = function(setting)
-                    if (setting.Value > #Window.Views) then
+                OnBeforeSet = function(setting, oldvalue, newvalue)
+                    if (tonumber(newvalue) >= (#Views)) then
                         Core.Log('Invalid view. Using ' .. setting.Default, Core.LogLevel.ERROR)
                         setting.Value = setting.Default
+                        return false
                     end
                 end
             },
@@ -76,7 +80,7 @@ Window = {
                 Value = nil,
                 Min = 200,
                 Max = 999999,
-                Default = 400
+                Default = 300
             },
             {
                 Name = 'left',
@@ -150,7 +154,7 @@ Window = {
                 Name = 'textcolor3',
                 Description = 'theme text color 3',
                 Value = nil,
-                Default = 'red',
+                Default = 'tan',
                 OnBeforeSet = function(ov, nv)
                     local test = ColourNameToRGB(nv or '')
                     return test >= 0
@@ -167,22 +171,46 @@ Window = {
                 end
             },
             {
-                Name = 'rowheight',
-                Description = 'how tall is each line of data',
+                Name = 'rowspacer',
+                Description = 'how much space between rows',
                 Value = nil,
-                Min = 10,
-                Max = 30,
-                Default = 20
+                Min = 1,
+                Max = 50,
+                Default = 5
+            },
+            {
+                Name = 'columnspacer',
+                Description = 'how much space between columns (formula is a little off atm)',
+                Value = nil,
+                Min = 1,
+                Max = 50,
+                Default = 5
+            },
+            {
+                Name = 'columns',
+                Description = 'how many columns per row. 0 for auto',
+                Value = nil,
+                Min = 0,
+                Max = 10,
+                Default = 0
             },
             {
                 Name = 'font',
                 Description = 'What font the text will be',
                 Value = nil,
-                Default = 'Times Roman'
+                Default = 'Lucida Console'
             },
             {
-                Name = 'fontandpitch',
-                Description = 'No need to change in most cases',
+                Name = 'fontsize',
+                Description = 'What size the text will be',
+                Value = nil,
+                Min = 6,
+                Max = 24,
+                Default = 10
+            },
+            {
+                Name = 'pitchandfamily',
+                Description = 'No need to change this for most fonts. Google "MushClient PitchAndFamily" for more. Often 0 or 1 is OK.',
                 Value = nil,
                 Min = 0,
                 Max = 88,
@@ -192,19 +220,16 @@ Window = {
     },
     Drawing = {
         DrawWindow = function()
-            if (Window.LastDraw > socket.gettime() - Core.GetSettingValue(Window.Config.Settings, 'refreshrate')) then
+            if (Window.LastDraw > socket.gettime() - Core.GetSettingValue(Window, 'refreshrate')) then
                 return
             end
             Window.LastDraw = socket.gettime()
 
-            local windowId = Core.GetSettingValue(Window.Config.Settings, 'windowid')
-            local windowWidth = Core.GetSettingValue(Window.Config.Settings, 'width')
-            local windowHeight = Core.GetSettingValue(Window.Config.Settings, 'height')
-            local left = Core.GetSettingValue(Window.Config.Settings, 'left')
-            local top = Core.GetSettingValue(Window.Config.Settings, 'top')
-            local rowHeight = Core.GetSettingValue(Window.Config.Settings, 'rowheight')
-            local fontName = Core.GetSettingValue(Window.Config.Settings, 'font')
-            local fontPitch = Core.GetSettingValue(Window.Config.Settings, 'fontandpitch')
+            local windowId = Core.GetSettingValue(Window, 'windowid')
+            local windowWidth = Core.GetSettingValue(Window, 'width')
+            local windowHeight = Core.GetSettingValue(Window, 'height')
+            local left = Core.GetSettingValue(Window, 'left')
+            local top = Core.GetSettingValue(Window, 'top')
 
             WindowCreate(
                 windowId,
@@ -214,17 +239,32 @@ Window = {
                 windowHeight,
                 0,
                 miniwin.create_absolute_location,
-                ColourNameToRGB(Core.GetSettingValue(Window.Config.Settings, 'backcolor'))
+                ColourNameToRGB(Core.GetSettingValue(Window, 'backcolor'))
             )
 
+            local fontName = Core.GetSettingValue(Window, 'font')
+
+            local fontPitch = Core.GetSettingValue(Window, 'pitchandfamily')
+            local fontsize = Core.GetSettingValue(Window, 'fontsize')
             WindowFont(windowId, 'l', fontName, 12, false, false, false, false, 1, fontPitch)
             WindowFont(windowId, 'm', fontName, 10, false, false, false, false, fontPitch)
             WindowFont(windowId, 'mb', fontName, 10, true, false, false, false, fontPitch)
-            WindowFont(windowId, 's', fontName, 8, false, false, false, false, fontPitch)
-            WindowFont(windowId, 'sb', fontName, 8, true, false, false, false, fontPitch)
-            WindowFont(windowId, 'su', fontName, 8, false, false, true, false, fontPitch)
+            WindowFont(windowId, 's', fontName, fontsize, false, false, false, false, fontPitch)
+            WindowFont(windowId, 'sb', fontName, fontsize, true, false, false, false, fontPitch)
+            WindowFont(windowId, 'su', fontName, fontsize, false, false, true, false, fontPitch)
 
-            WindowSetZOrder(windowId, Core.GetSettingValue(Window.Config.Settings, 'layer'))
+            local viewName = ''
+            local view = Views[Core.GetSettingValue(Window, 'view') + 1]
+            if (view ~= nil) then
+                viewName = view.Name
+            end
+
+            local title = 'Pyre Helper ' .. PH.Config.Versions.Release.Version .. ' | ' .. viewName
+            local titleWidth = WindowTextWidth(windowId, 'm', title, false)
+            local titleHeight = WindowFontInfo(windowId, 'm', 1)
+            local rowSpacer = Core.GetSettingValue(Window, 'rowspacer')
+
+            WindowSetZOrder(windowId, Core.GetSettingValue(Window, 'layer'))
 
             -- Primary Window Border
             WindowCircleOp(
@@ -234,10 +274,10 @@ Window = {
                 0,
                 windowWidth,
                 windowHeight,
-                ColourNameToRGB(Core.GetSettingValue(Window.Config.Settings, 'bordercolor')),
+                ColourNameToRGB(Core.GetSettingValue(Window, 'bordercolor')),
                 0,
                 0,
-                ColourNameToRGB('transparent'),
+                ColourNameToRGB(Core.GetSettingValue(Window, 'backcolor')),
                 0,
                 0,
                 0
@@ -247,10 +287,10 @@ Window = {
             WindowLine(
                 windowId,
                 0,
-                rowHeight + 3,
+                titleHeight + 3,
                 windowWidth,
-                rowHeight + 3,
-                ColourNameToRGB(Core.GetSettingValue(Window.Config.Settings, 'bordercolor')),
+                titleHeight + 3,
+                ColourNameToRGB(Core.GetSettingValue(Window, 'bordercolor')),
                 0,
                 1
             )
@@ -260,8 +300,8 @@ Window = {
                 'movewindowhs',
                 0,
                 0,
-                windowWidth - rowHeight,
-                rowHeight + 3,
+                windowWidth - 20,
+                titleHeight + 3,
                 '',
                 '',
                 'OnWindowMouseDown',
@@ -273,34 +313,37 @@ Window = {
             ) -- flags
             WindowDragHandler(windowId, 'movewindowhs', 'OnWindowMove', 'OnWindowMoveRelease', 0)
 
-            local title = 'PH ' .. PH.Config.Versions.Release.Version .. ' SomeViewName'
-            local titleWidth = WindowTextWidth(windowId, 'm', title, false)
             local textleft = (windowWidth / 2) - (titleWidth / 2)
-
-            Window.Drawing.DrawTextLine(
+            local texttop = 1.5
+            WindowText(
                 windowId,
-                1,
+                'm',
                 title,
-                textleft,
-                Core.GetSettingValue(Window.Config.Settings, 'textcolor2'),
-                'm'
+                10,
+                texttop,
+                0,
+                0,
+                ColourNameToRGB(Core.GetSettingValue(Window, 'textcolor2'))
             )
 
-            Window.Drawing.DrawTextLine(
+            WindowText(
                 windowId,
-                1,
+                'm',
                 'O',
-                windowWidth - rowHeight,
-                Core.GetSettingValue(Window.Config.Settings, 'linkcolor'),
-                'su'
+                windowWidth - 20,
+                texttop,
+                0,
+                0,
+                ColourNameToRGB(Core.GetSettingValue(Window, 'linkcolor'))
             )
+
             WindowAddHotspot(
                 windowId,
                 'contextmenu',
-                windowWidth - rowHeight,
+                windowWidth - 20,
                 0,
                 windowWidth,
-                rowHeight,
+                titleHeight,
                 '',
                 '',
                 'OnTrackerWindowShowContextMenu',
@@ -311,71 +354,107 @@ Window = {
                 miniwin.hotspot_got_rh_mouse
             ) -- flags
 
+            Window.Drawing.DrawView(titleHeight + 3 + rowSpacer, Views[Core.GetSettingValue(Window, 'view') + 1])
+
             WindowShow(windowId, Window.Visible)
         end,
-        DrawTextLine = function(windowid, line, text, left, color, fontid, clickFnName, tooltip)
-            left = left or 10
-            top = Window.Drawing.GetLineHeight(line)
-            if (color == nil or color == '') then
-                color = 'white'
-            end
-            fontid = fontid or 's'
-            if (text == nil) then
-                text = ''
-            end
-
-            WindowText(
-                windowid,
-                fontid,
-                text,
-                left,
-                top + 1.5,
-                0,
-                0,
-                ColourNameToRGB(color) or ColourNameToRGB('white')
-            )
-
-            if (clickFnName ~= nil) then
-                local msgWidth = WindowTextWidth(windowId, fontid, text, false)
-                local msgHeight = WindowFontInfo(windowId, fontid, 1)
-                WindowAddHotspot(
+        DrawView = function(ystart, view)
+            local windowId = Core.GetSettingValue(Window, 'windowid')
+            if (view == nil) then
+                WindowText(
                     windowId,
-                    'hs_' .. line .. '_' .. left,
-                    left,
-                    top,
-                    left + msgWidth,
-                    top + msgHeight,
-                    '',
-                    '',
-                    clickFnName,
-                    '',
-                    '',
-                    tooltip or '',
-                    1, -- hand cursor
-                    0
+                    's',
+                    'No active views at the moment',
+                    10,
+                    30,
+                    0,
+                    0,
+                    ColourNameToRGB(Core.GetSettingValue(Window, 'textcolor3'))
                 )
+                return
             end
-        end,
-        GetLineHeight = function(line)
-            local top = 2
-            if (line > 1) then
-                top = 3 + ((line - 1) * Core.GetSettingValue(Window.Config.Settings, 'rowheight'))
+
+            local oldCache = view.Cache
+            view.Cache = view.Callback()
+            if (view.Cache == nil) then
+                view.Cache = oldCache
             end
-            return top
+            if (view.Cache == nil) then
+                return
+            end
+
+            local windowWidth = Core.GetSettingValue(Window, 'width')
+            local windowHeight = Core.GetSettingValue(Window, 'height')
+            local lineHeight = WindowFontInfo(windowId, 's', 1)
+            local rowspacer = Core.GetSettingValue(Window, 'rowspacer')
+            local totalColumns = Core.GetSettingValue(Window, 'columns')
+            local lineNumber = 0
+            -- columns are in auto mode so.. lets just do something simple for now
+            if (totalColumns == 0) then
+                totalColumns = Core.Round((windowWidth / 150), 0)
+            end
+
+            -- subtract a bit of window width so we can have some border padding
+            local xmargin = (windowWidth / 15) / 2
+            local ymargin = rowspacer
+            windowWidth = windowWidth - xmargin * 2
+
+            local columnSpacer = Core.GetSettingValue(Window, 'columnspacer')
+
+            -- figure out how big our columns are going to be
+            local columnWidth = Core.Round(windowWidth / (totalColumns), 0) + (totalColumns + columnSpacer)
+
+            local column = 0
+            Core.Each(
+                view.Cache,
+                function(content)
+                    local leftpos = (column * columnWidth) + xmargin
+                    local toppos = ystart + ((lineNumber) * (lineHeight + ymargin))
+
+                    local xoffset = 0
+                    Core.Each(
+                        content.Display,
+                        function(d)
+                            local subwidth = Core.Round((columnWidth / (#content.Display)), 0)
+                            local charwidth = WindowTextWidth(windowId, 's', 'a', false)
+                            local maxwidth = Core.Round((subwidth / charwidth), 0)
+
+                            d = string.sub(d, 1, maxwidth)
+                            -- is the text bigger than our subset
+                            WindowText(
+                                windowId,
+                                's',
+                                d,
+                                leftpos + xoffset,
+                                toppos,
+                                0,
+                                0,
+                                ColourNameToRGB(Core.GetSettingValue(Window, content.ColorSetting))
+                            )
+
+                            xoffset = xoffset + subwidth
+                        end
+                    )
+
+                    column = column + 1
+                    if (column >= totalColumns) then
+                        lineNumber = lineNumber + 1
+                        column = 0
+                    end
+                end
+            )
         end
     }
 }
 
-local Views = {}
-
 function OnWindowMouseDown()
-    local windowId = Core.GetSettingValue(Window.Config.Settings, 'windowid')
+    local windowId = Core.GetSettingValue(Window, 'windowid')
     Window.MovingPositions.X = WindowInfo(windowId, 14)
     Window.MovingPositions.Y = WindowInfo(windowId, 15)
 end
 
 function OnWindowMove()
-    local windowId = Core.GetSettingValue(Window.Config.Settings, 'windowid')
+    local windowId = Core.GetSettingValue(Window, 'windowid')
 
     local posx, posy = WindowInfo(windowId, 17), WindowInfo(windowId, 18)
     Window.IsMoving = true
@@ -389,39 +468,39 @@ function OnWindowMove()
 end
 
 function OnWindowMoveRelease()
-    local windowId = Core.GetSettingValue(Window.Config.Settings, 'windowid')
-    local left = Core.GetSetting(Window.Config.Settings, 'left')
+    local windowId = Core.GetSettingValue(Window, 'windowid')
+    local left = Core.GetSetting(Window, 'left')
     left.Value = WindowInfo(windowId, 10)
 
-    local top = Core.GetSetting(Window.Config.Settings, 'top')
+    local top = Core.GetSetting(Window, 'top')
     top.Value = WindowInfo(windowId, 11)
 
     Window.IsMoving = false
 end
 
 function OnTrackerWindowShowContextMenu()
-    local windowId = Core.GetSettingValue(Window.Config.Settings, 'windowid')
+    local windowId = Core.GetSettingValue(Window, 'windowid')
 
-    local nameAndCheckedTab = function(name)
-        local checked = ''
-        if (name == 'Session' and Core.GetSettingValue(Window.Config.Settings, 'view') == 0) then
-            checked = '+'
+    local views = ''
+    local selected = ''
+
+    Core.Each(
+        Views,
+        function(v, i)
+            if ((i - 1) == Core.GetSettingValue(Window, 'view')) then
+                selected = '+'
+            end
+            views = views .. selected .. (i - 1) .. ' ' .. v.Name .. '|'
+            selected = ''
         end
-        if (name == 'Area' and Core.GetSettingValue(Window.Config.Settings, 'view') == 1) then
-            checked = '+'
-        end
-        if (name == 'Fight' and Core.GetSettingValue(Window.Config.Settings, 'view') == 2) then
-            checked = '+'
-        end
-        return checked .. name
-    end
+    )
 
     result =
         WindowMenu(
         windowId,
         WindowInfo(windowId, 14), -- x
         WindowInfo(windowId, 15), -- y
-        '>View|' .. '|<|Help'
+        '>View|' .. views .. '|<|Help'
     )
 
     if (result == 'Help') then
@@ -429,15 +508,16 @@ function OnTrackerWindowShowContextMenu()
         Execute('pyre help window')
     end
 
-    if (result == 'Session') then
-        Execute('pyre set tracker view 0')
-    end
-    if (result == 'Area') then
-        Execute('pyre set tracker view 1')
-    end
-    if (result == 'Fight') then
-        Execute('pyre set tracker view 2')
-    end
+    Core.Each(
+        Views,
+        function(v, i)
+            if (result == (i - 1) .. ' ' .. v.Name) then
+                if ((i - 1) ~= Core.GetSettingValue(Window, 'view')) then
+                    Execute('pyre set window view ' .. (i - 1))
+                end
+            end
+        end
+    )
 end
 
 function Window.Start()
@@ -482,7 +562,7 @@ end
 
 function Window.SetVisible(visible)
     Window.Visible = visible
-    WindowShow(Core.GetSettingValue(Window.Config.Settings, 'windowid'), visible)
+    WindowShow(Core.GetSettingValue(Window, 'windowid'), visible)
 end
 
 return Window

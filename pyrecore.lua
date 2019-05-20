@@ -1,5 +1,56 @@
 core_module = {
-    addedWait = 0
+    addedWait = 0,
+    IsAFK = false,
+    Config = {
+        Settings = {
+            {
+                Name = 'channel',
+                Description = 'What channel output will be sent to',
+                Value = nil,
+                Default = 'echo'
+            },
+            {
+                Name = 'afkminutes',
+                Description = 'How many minutes define an afk',
+                Value = nil,
+                Min = 3,
+                Max = 10,
+                Default = 3
+            },
+            {
+                Name = 'loglevel',
+                Description = 'What amount of plugin activity to show. (0 None, 1 Verbose, 2 Debug, 3 *Info, 4 Errors)',
+                Value = nil,
+                Min = 0,
+                Max = 4,
+                Default = 3
+            },
+            {
+                Name = 'addtoqueuedelay',
+                Description = 'Require a duration to pass inbetween adding commands to the activity queue',
+                Value = nil,
+                Min = 0,
+                Max = 10,
+                Default = 0
+            },
+            {
+                Name = 'queuesize',
+                Description = 'Maximum size of commands that can be stored in the activity queue',
+                Value = nil,
+                Min = 0,
+                Max = 4,
+                Default = 3
+            },
+            {
+                Name = 'showpyrecommands',
+                Description = 'When the plugin sends commands they can be visible or hidden',
+                Value = nil,
+                Min = 0,
+                Max = 1,
+                Default = 1
+            }
+        }
+    }
 }
 
 local json = require('json')
@@ -28,7 +79,7 @@ function core_module.Log(msg, loglevel)
 end
 
 function core_module.Execute(cmd)
-    local showCommands = core_module.Settings.ShowPyreCommands or 1
+    local showCommands = core_module.GetSettingValue(core_module, 'showpyrecommands')
     if (showCommands == 1) then
         Execute(cmd)
     else
@@ -37,11 +88,11 @@ function core_module.Execute(cmd)
 end
 
 function core_module.ReportToChannel(reportType, msg)
-    local channel = core_module.Settings.Channel or 'echo'
+    local channel = core_module.GetSettingValue(core_module, 'channel')
     if (channel == 'echo') then
         core_module.Log(msg, core_module.LogLevel.INFO)
     else
-        Pyre.Execute(channel .. ' @cPR ' .. reportType .. '@w ' .. msg)
+        core_module.Execute(channel .. ' @cPR ' .. reportType .. '@w ' .. msg)
     end
 end
 
@@ -70,7 +121,9 @@ function core_module.ColorLog(msg, color, backcolor, loglevel)
         loglevel = core_module.LogLevel.INFO
     end
 
-    if (core_module.Settings.LogLevel > loglevel) then
+    local val = core_module.GetSettingValue(core_module, 'loglevel')
+
+    if (val > loglevel) then
         return
     end
 
@@ -156,29 +209,35 @@ function core_module.AlignmentCategoryToString(category)
     return setting
 end
 
-function core_module.GetSettingValue(settings, settingName, default)
+function core_module.GetSettingValue(source, settingName, default)
     if (default == nil) then
         default = 0
     end
 
-    local setting = core_module.GetSetting(settings, settingName)
-    if (setting == nil) then
+    if (source == nil or source.Config == nil or source.Config.Settings == nil) then
+        core_module.Log('Attempted to get misconfigured setting [' .. settingName .. ']', core_module.LogLevel.ERROR)
+
         return default
+    end
+
+    local setting = core_module.GetSetting(source, settingName)
+    if (setting == nil or setting.Value == nil) then
+        return setting.Default
     end
     return setting.Value
 end
 
-function core_module.GetSetting(settings, settingName)
+function core_module.GetSetting(source, settingName)
     local setting =
         core_module.First(
-        settings,
+        source.Config.Settings,
         function(s)
-            return s.Name == settingName
+            return string.lower(s.Name) == string.lower(settingName)
         end
     )
     if (setting == nil) then
         core_module.Log('Attempted to get missing setting [' .. settingName .. ']', core_module.LogLevel.ERROR)
-        return default
+        return nil
     end
     return setting
 end
@@ -348,7 +407,7 @@ function core_module.QueueCleanExpired()
         i = i + 1
         if not (item.Expiration == nil) then
             if (socket.gettime() > item.Expiration) then
-                core_module.Log('Queue had expiration: ' .. item.Skill.Name, core_module.LogLevel.DEBUG)
+                core_module.Log('Queue had expiration: ' .. item.Info.Name, core_module.LogLevel.DEBUG)
 
                 if (core_module.ActionQueue == nil) then
                     return
@@ -357,7 +416,7 @@ function core_module.QueueCleanExpired()
                     core_module.Except(
                     core_module.ActionQueue,
                     function(v)
-                        return (v.Skill.Name == item.Skill.Name)
+                        return (v.Info.Name == item.Info.Name)
                     end,
                     1
                 )
@@ -374,7 +433,7 @@ function core_module.QueueProcessNext()
         core_module.First(
         core_module.ActionQueue,
         function(s)
-            return s.Skill.SkillType == core_module.SkillType.QuaffHeal
+            return s.Info.ActionType == core_module.ActionType.QuaffHeal
         end
     )
 
@@ -402,7 +461,7 @@ function core_module.QueueProcessNext()
     -- i think the wait needs to be passed in instead of having it all in core
     local waitTime = 0
 
-    if (item.Skill.SkillType ~= core_module.SkillType.QuaffHeal and ((core_module.addedWait or 0) > 0)) then
+    if (item.Info.ActionType ~= core_module.ActionType.QuaffHeal and ((core_module.addedWait or 0) > 0)) then
         waitTime = waitTime + core_module.addedWait
 
         local queueWait = false
@@ -428,7 +487,7 @@ function core_module.QueueProcessNext()
     item.uid = newUniqueId
     item.Expiration = socket.gettime() + 10
     core_module.addedWait = 0
-    item.Execute(item.Skill, item)
+    item.Execute(item.Info, item)
 
     core_module.LastSkillUniqueId = item.uid
     core_module.LastSkillExecute = socket.gettime()
@@ -440,28 +499,37 @@ function core_module.QueueReset()
         core_module.Filter(
         core_module.ActionQueue,
         function(v)
-            return ((v.Skill.SkillType == core_module.SkillType.QuaffHeal) or
-                (v.Skill.SkillType == core_module.SkillType.QuaffMana) or
-                (v.Skill.SkillType == core_module.SkillType.QuaffMove))
+            return ((v.Info.ActionType == core_module.ActionType.QuaffHeal) or
+                (v.Info.ActionType == core_module.ActionType.QuaffMana) or
+                (v.Info.ActionType == core_module.ActionType.QuaffMove))
         end
     )
 end
 
--------------------------------------
---  AFK Functionality
--------------------------------------
-
-function CheckForAFK()
-    if (core_module.IsAFK == true) then
-        return
+function core_module.AddAction(name, atype, callback, pos)
+    local action = {
+        Info = {Name = name, ActionType = atype, Queued = os.time()},
+        Execute = function(a)
+            callback(a)
+        end
+    }
+    if (pos == nil) then
+        table.insert(core_module.ActionQueue, action)
+    else
+        table.insert(core_module.ActionQueue, pos, action)
     end
+    return action
+end
 
-    local afkTime = socket.gettime() - (3 * 60) -- 3 minutes = afk
-    core_module.IsAFK = ((lastRoomChanged <= afkTime) and (core_module.Status.State == core_module.States.IDLE))
-
-    if (core_module.IsAFK == true) then
-        core_module.Log('AFK - Some features will have limited or no functionality.')
-    end
+function core_module.RemoveAction(name)
+    core_module.ActionQueue =
+        core_module.Except(
+        core_module.ActionQueue,
+        function(a)
+            return string.lower(a.Info.Name) == string.lower(name)
+        end,
+        1
+    )
 end
 
 -------------------------------------
@@ -743,6 +811,10 @@ end
 function core_module.First(tbl, checkFn, default)
     local match = default
 
+    if (tbl == nil) then
+        return nil
+    end
+
     for _, v in pairs(tbl) do
         if (checkFn(v)) then
             return v
@@ -802,13 +874,16 @@ function core_module.Any(table, checkFn, limit)
     return false
 end
 
-function core_module.Each(table, executeFn, limit)
+function core_module.Each(tbl, executeFn, limit)
     if (limit == nil) then
         limit = 50000000
     end
     local counter = 0
+    if (tbl == nil) then
+        return
+    end
 
-    for _, v in pairs(table) do
+    for _, v in pairs(tbl) do
         counter = counter + 1
         if (counter > limit) then
             return
@@ -817,9 +892,9 @@ function core_module.Each(table, executeFn, limit)
     end
 end
 
-function core_module.Sum(table, executeFn)
+function core_module.Sum(tbl, executeFn)
     local sum = 0
-    for _, v in pairs(table) do
+    for _, v in pairs(tbl) do
         sum = sum + (executeFn(v, _)) or 0
     end
     return sum
@@ -868,15 +943,7 @@ end
 -- OTHER OBJECTS
 -------------------------------------
 
-core_module.Settings = {
-    Channel = GetVariable('Channel') or 'echo',
-    LogLevel = tonumber(GetVariable('LogLevel')) or core_module.LogLevel.INFO,
-    AddToQueueDelay = tonumber(GetVariable('AddToQueueDelay')) or 0,
-    QueueSize = tonumber(GetVariable('QueueSize')) or 30,
-    ShowPyreCommands = tonumber(GetVariable('showpyrecommands')) or 1
-}
-
-core_module.SkillType = {
+core_module.ActionType = {
     Basic = 0,
     Heal = 20,
     CombatInitiate = 100,
@@ -892,7 +959,7 @@ core_module.Classes = {
         Name = 'Blacksmith',
         Skills = {
             {
-                SkillType = core_module.SkillType.Flee,
+                ActionType = core_module.ActionType.Flee,
                 Name = 'Flee',
                 Level = 1,
                 AutoSend = true,
@@ -900,7 +967,7 @@ core_module.Classes = {
                 Attempts = {'You fail to run away!', "You aren't fighting anyone."}
             },
             {
-                SkillType = core_module.SkillType.CombatInitiate,
+                ActionType = core_module.ActionType.CombatInitiate,
                 Name = 'Attack ',
                 Level = 1,
                 AutoSend = false,
@@ -908,7 +975,7 @@ core_module.Classes = {
                 Attempts = {'Who are you trying to attack?'}
             },
             {
-                SkillType = core_module.SkillType.CombatInitiate,
+                ActionType = core_module.ActionType.CombatInitiate,
                 Name = 'Hammerswing',
                 Level = 51,
                 AutoSend = true,
@@ -921,7 +988,7 @@ core_module.Classes = {
                 }
             },
             {
-                SkillType = core_module.SkillType.CombatMove,
+                ActionType = core_module.ActionType.CombatMove,
                 Name = 'Bash',
                 Level = 11,
                 AutoSend = true,
@@ -929,7 +996,7 @@ core_module.Classes = {
                 Attempts = {'Bash whom?', "You don't know how to bash someone.", 'You are stunned.'}
             },
             {
-                SkillType = core_module.SkillType.CombatMove,
+                ActionType = core_module.ActionType.CombatMove,
                 Name = 'Sap',
                 Level = 50,
                 AutoSend = true,
@@ -937,7 +1004,7 @@ core_module.Classes = {
                 Attempts = {'Sap whom?', "You don't know how to sap someone.", 'You are stunned.'}
             },
             {
-                SkillType = core_module.SkillType.CombatMove,
+                ActionType = core_module.ActionType.CombatMove,
                 Name = 'Scalp',
                 Level = 60,
                 AutoSend = true,
@@ -945,7 +1012,7 @@ core_module.Classes = {
                 Attempts = {'Scalp whom?', "You don't know how to scalp someone.", 'You are stunned.'}
             },
             {
-                SkillType = core_module.SkillType.CombatMove,
+                ActionType = core_module.ActionType.CombatMove,
                 Name = 'Assault',
                 Level = 88,
                 AutoSend = true,
@@ -953,7 +1020,7 @@ core_module.Classes = {
                 Attempts = {'Assault whom?', "You don't know how to assault someone.", 'You are stunned.'}
             },
             {
-                SkillType = core_module.SkillType.CombatMove,
+                ActionType = core_module.ActionType.CombatMove,
                 Name = 'Uppercut',
                 Level = 101,
                 AutoSend = true,
@@ -961,7 +1028,7 @@ core_module.Classes = {
                 Attempts = {'Uppercut whom?', "You don't know how to uppercut someone.", 'You are stunned.'}
             },
             {
-                SkillType = core_module.SkillType.CombatMove,
+                ActionType = core_module.ActionType.CombatMove,
                 Name = 'Stomp',
                 Level = 137,
                 AutoSend = true,
@@ -969,7 +1036,7 @@ core_module.Classes = {
                 Attempts = {'Stomp whom?', "You don't know how to stomp someone.", 'You are stunned.'}
             },
             {
-                SkillType = core_module.SkillType.CombatMove,
+                ActionType = core_module.ActionType.CombatMove,
                 Name = 'Bodycheck',
                 Level = 151,
                 AutoSend = true,
@@ -977,7 +1044,7 @@ core_module.Classes = {
                 Attempts = {'Bodycheck whom?', "You don't know how to bodycheck someone.", 'You are stunned.'}
             },
             {
-                SkillType = core_module.SkillType.CombatMove,
+                ActionType = core_module.ActionType.CombatMove,
                 Name = 'Cleave',
                 Level = 165,
                 AutoSend = true,
@@ -985,7 +1052,7 @@ core_module.Classes = {
                 Attempts = {'Cleave whom?', "You don't know how to cleave.", 'You are stunned.'}
             },
             {
-                SkillType = core_module.SkillType.CombatMove,
+                ActionType = core_module.ActionType.CombatMove,
                 Name = 'Hammering',
                 Level = 178,
                 AutoSend = true,

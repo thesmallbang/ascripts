@@ -14,6 +14,12 @@ Tracker = {
                 Callback = function(o)
                     Tracker.OnZoneChanged(o)
                 end
+            },
+            {
+                Type = Core.Event.AFKChanged,
+                Callback = function(o)
+                    Tracker.OnAFKChanged(o)
+                end
             }
         },
         Commands = {
@@ -366,6 +372,10 @@ Tracker.Factory = {
         return summary
     end,
     CreateAreaSummary = function(area)
+        if (area == nil) then
+            return nil
+        end
+
         local exp =
             Core.Sum(
             area.Fights,
@@ -568,6 +578,132 @@ Tracker.Factory = {
 
 function Tracker.Start()
     Tracker.Session = Tracker.Factory.NewSession()
+
+    if (Window ~= nil) then
+        Window.RegisterView(
+            'Session',
+            function()
+                local content = {}
+                local addcontent = function(msgs, tooltip, color)
+                    if (color == nil) then
+                        color = 'textcolor1'
+                    end
+                    table.insert(content, {Display = msgs, ColorSetting = color, Tooltip = tooltip})
+                end
+
+                local summary = Tracker.Factory.CreateSessionSummary(Tracker.Session)
+
+                addcontent({'Session', Core.SecondsToClock(summary.Normal.Duration)}, '', 'textcolor2')
+                addcontent({'Fighting', tostring(Tracker.EnemyCounter)}, '', 'textcolor3')
+                addcontent({'Queue', tostring(#Core.ActionQueue)}, '', 'textcolor3')
+
+                addcontent({'Exp', tostring(summary.Experience)})
+                addcontent({'Normal', tostring(summary.NormalExperience)})
+                addcontent({'Rare', tostring(summary.RareExperience)})
+                addcontent({'Bonus', tostring(summary.BonusExperience)})
+
+                addcontent({'Fights', tostring(summary.Fights)})
+                addcontent({'Souls', tostring(summary.Souls)})
+                addcontent({'SPF', tostring(summary.AverageSoulsPerFight)})
+
+                addcontent({'XPM', tostring(summary.Normal.ExpPerMinute)})
+                addcontent({'XPCM', tostring(summary.Combat.ExpPerMinute)})
+                addcontent({'Dmg', tostring(summary.PlayerDamage)})
+                addcontent({'DPS', tostring(summary.Normal.PlayerDps)})
+                addcontent({'DPCS', tostring(summary.Combat.PlayerDps)})
+
+                addcontent({'EDmg', tostring(summary.EnemyDamage)})
+                addcontent({'EDPS', tostring(summary.Normal.EnemyDps)})
+                addcontent({'EDPCS', tostring(summary.Combat.EnemyDps)})
+
+                return content
+            end
+        )
+
+        Window.RegisterView(
+            'Areas',
+            function()
+                local content = {}
+                local addcontent = function(msgs, tooltip, color, callback)
+                    table.insert(content, {Display = msgs, ColorSetting = (color or 'textcolor1'), Tooltip = tooltip})
+                end
+
+                local area = Tracker.GetAreaByIndex(Tracker.AreaIndex)
+                if (area.Area == '') then
+                    area.Area = Core.Status.Zone
+                end
+                local summary = Tracker.Factory.CreateAreaSummary(area)
+
+                addcontent({summary.Area, Core.SecondsToClock(summary.Normal.Duration)}, '', 'textcolor2')
+                addcontent({'Fighting', tostring(Tracker.EnemyCounter)}, '', 'textcolor3')
+                addcontent({'Queue', tostring(#Core.ActionQueue)}, '', 'textcolor3')
+
+                addcontent({'Exp', tostring(summary.Experience)})
+                addcontent({'Normal', tostring(summary.NormalExperience)})
+                addcontent({'Rare', tostring(summary.RareExperience)})
+                addcontent({'Bonus', tostring(summary.BonusExperience)})
+
+                addcontent({'Fights', tostring(summary.Fights)})
+                addcontent({'Souls', tostring(summary.Souls)})
+                addcontent({'SPF', tostring(summary.AverageSoulsPerFight)})
+
+                addcontent({'XPM', tostring(summary.Normal.ExpPerMinute)})
+                addcontent({'XPCM', tostring(summary.Combat.ExpPerMinute)})
+                addcontent({'Dmg', tostring(summary.PlayerDamage)})
+                addcontent({'DPS', tostring(summary.Normal.PlayerDps)})
+                addcontent({'DPCS', tostring(summary.Combat.PlayerDps)})
+
+                addcontent({'EDmg', tostring(summary.EnemyDamage)})
+                addcontent({'EDPS', tostring(summary.Normal.EnemyDps)})
+                addcontent({'EDPCS', tostring(summary.Combat.EnemyDps)})
+
+                return content
+            end
+        )
+
+        Window.RegisterView(
+            'Fights',
+            function()
+                local content = {}
+                local addcontent = function(msgs, tooltip, color)
+                    table.insert(content, {Display = msgs, ColorSetting = (color or 'textcolor1'), Tooltip = tooltip})
+                end
+
+                local fight = Tracker.GetFightByIndex(Tracker.FightIndex)
+                local summary = Tracker.Factory.CreateFightSummary(fight)
+
+                if (summary == nil and Tracker.FightIndex == 0) then
+                    fight = Tracker.GetFightByIndex(1)
+                    summary = Tracker.Factory.CreateFightSummary(fight)
+                end
+
+                if (summary == nil) then
+                    addcontent({'Waiting on data'}, '', 'textcolor3')
+                    return content
+                end
+
+                addcontent({'Duration', Core.SecondsToClock(summary.Normal.Duration)}, '', 'textcolor2')
+                addcontent({'Enemies', tostring(Tracker.EnemyCounter)}, '', 'textcolor3')
+                addcontent({'Queue', tostring(#Core.ActionQueue)}, '', 'textcolor3')
+
+                addcontent({'Exp', tostring(summary.Experience)})
+                addcontent({'Normal', tostring(summary.NormalExperience)})
+                addcontent({'Rare', tostring(summary.RareExperience)})
+                addcontent({'Bonus', tostring(summary.BonusExperience)})
+
+                addcontent({'Souls', tostring(summary.Souls)})
+
+                addcontent({'XPS', tostring(summary.Normal.ExpPerSecond)})
+                addcontent({'Dmg', tostring(summary.PlayerDamage)})
+                addcontent({'DPS', tostring(summary.Normal.PlayerDps)})
+
+                addcontent({'EDmg', tostring(summary.EnemyDamage)})
+                addcontent({'EDPS', tostring(summary.Normal.EnemyDps)})
+
+                return content
+            end
+        )
+    end
 end
 
 function Tracker.Stop()
@@ -575,6 +711,12 @@ function Tracker.Stop()
     Tracker.FightTracker.Current = nil
     Tracker.AreaTracker.Current = nil
     Tracker.AreaTracker.History = {}
+
+    if (Window ~= nil) then
+        Window.UnregisterView('Session')
+        Window.UnregisterView('Areas')
+        Window.UnregisterView('Fights')
+    end
 end
 
 function Tracker.GetFightByIndex(i)
@@ -626,7 +768,7 @@ function Tracker.ArchiveCurrentFight()
                 end
             end
 
-            local maxSessionFights = Core.GetSettingValue(Tracker.Config.Settings, 'sessionsize')
+            local maxSessionFights = Core.GetSettingValue(Tracker, 'sessionsize')
             if (#Tracker.Session.Fights > maxSessionFights) then
                 -- trim our session data
                 local difference = (#Tracker.Session.Fights - maxSessionFights)
@@ -663,7 +805,7 @@ function Tracker.ArchiveCurrentArea()
             end
         end
 
-        local maxSize = Core.GetSettingValue(Tracker.Config.Settings, 'areasize')
+        local maxSize = Core.GetSettingValue(Tracker, 'areasize')
         local difference = (#Tracker.AreaTracker.History - maxSize)
         if (difference > 0) then
             Tracker.AreaTracker.History =
@@ -681,6 +823,10 @@ function Tracker.ArchiveCurrentArea()
 end
 
 function Tracker.OnStateChanged(state)
+    if (Tracker.AreaTracker.Current == nil or Tracker.AreaTracker.Current.Fights == nil) then
+        Tracker.AreaTracker.Current = Tracker.Factory.NewArea()
+    end
+
     if (state.New == Core.States.COMBAT) then
         Tracker.FightTracker.Current = Tracker.Factory.NewFight()
     else
@@ -725,6 +871,12 @@ function Tracker.OnExperienceGain(line, wildcards)
                 Tracker.FightTracker.Current.XP.Bonus + (main + additional1 + additional2)
         end
     }
+end
+
+function Tracker.OnAFKChanged(afk)
+    if (afk.New == true) then
+    else
+    end
 end
 
 function Tracker.OnPlayerDidDamage(line, wildcards)

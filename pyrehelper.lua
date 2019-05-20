@@ -4,7 +4,7 @@
 -- import our dependencies
 local Core = require('pyrecore')
 require('json')
-require 'gmcphelper'
+require('gmcphelper')
 
 PH = {}
 
@@ -57,51 +57,12 @@ PH.Config = {
             end
         }
     },
-    Settings = {
-        {
-            Name = 'channel',
-            Description = 'What channel output will be sent to',
-            Value = nil,
-            Default = 'echo'
-        },
-        {
-            Name = 'loglevel',
-            Description = 'What amount of plugin activity to show. (0 None, 1 Verbose, 2 Debug, 3 *Info, 4 Errors)',
-            Value = nil,
-            Min = 0,
-            Max = 4,
-            Default = 3
-        },
-        {
-            Name = 'addtoqueuedelay',
-            Description = 'Require a duration to pass inbetween adding commands to the activity queue',
-            Value = nil,
-            Min = 0,
-            Max = 10,
-            Default = 0
-        },
-        {
-            Name = 'queuesize',
-            Description = 'Maximum size of commands that can be stored in the activity queue',
-            Value = nil,
-            Min = 0,
-            Max = 4,
-            Default = 3
-        },
-        {
-            Name = 'showpyrecommands',
-            Description = 'When the plugin sends commands they can be visible or hidden',
-            Value = nil,
-            Min = 0,
-            Max = 1,
-            Default = 1
-        }
-    },
-    Triggers = {},
     LatestVersions = {},
     Versions = {},
     LoadedFeatures = {}
 }
+
+local afkcheckin = os.time()
 
 -- Plugin install. This really happens at plugin startup from a mush perspective.
 function PH.Install(remoteVersionData, featuresOnDisk)
@@ -162,9 +123,9 @@ function PH.Install(remoteVersionData, featuresOnDisk)
     )
 
     -- load settings
-    if (PH.Config.Settings ~= nil) then
+    if (Core.Config.Settings ~= nil) then
         Core.Each(
-            PH.Config.Settings,
+            Core.Config.Settings,
             function(s)
                 s.Value = GetVariable('ph_' .. s.Name)
                 if (s.Value == nil) then
@@ -220,8 +181,15 @@ function PH.LoadFeature(feature)
     if (loadedFeature ~= nil) then
         if (loadedFeature.Reference.Stop ~= nil) then
             loadedFeature.Reference.Stop()
+            PH.UnregisterFeature(
+                Core.First(
+                    PH.Config.Versions.Features,
+                    function(f)
+                        return f.Name == loadedFeature.Name
+                    end
+                )
+            )
         end
-
         PH.Config.LoadedFeatures =
             Core.Except(
             PH.Config.LoadedFeatures,
@@ -232,7 +200,9 @@ function PH.LoadFeature(feature)
     end
 
     loadedFeature = require(feature.Name)
-    table.insert(PH.Config.LoadedFeatures, {Name = feature.Name, Version = feature.Version, Reference = loadedFeature})
+    local fref = {Name = feature.Name, Version = feature.Version, Reference = loadedFeature}
+    table.insert(PH.Config.LoadedFeatures, fref)
+    return fref
 end
 
 function PH.Start()
@@ -279,6 +249,10 @@ function PH.Stop()
     Core.Status.Started = false
 end
 
+function PH.ResetAfk()
+    afkcheckin = os.time()
+end
+
 -- Start on all features
 function PH.StartFeatures()
     Core.Each(
@@ -310,7 +284,7 @@ function PH.Save()
     SetVariable('ph_version', json.encode(PH.Config.Versions))
 
     Core.Each(
-        PH.Config.Settings,
+        Core.Config.Settings,
         function(s)
             SetVariable('ph_' .. s.Name, s.Value or s.Default or 0)
         end
@@ -323,7 +297,7 @@ function PH.Save()
                 Core.Each(
                     f.Reference.Config.Settings,
                     function(s)
-                        SetVariable(f.Name .. '_' .. s.Name, s.Value)
+                        SetVariable(f.Name .. '_' .. s.Name, (s.Value or s.Default))
                     end
                 )
             end
@@ -334,6 +308,21 @@ end
 -- Tick on all features.
 -- This occurs on an interval that mushclient estimates at 25 hits per second. We are limiting the ticks based on a time setting to slow our tick down
 function PH.Tick()
+    local secondsafk = os.time() - afkcheckin
+    local allowedminutes = Core.GetSettingValue(Core, 'afkminutes')
+
+    if (Core.IsAFK == true and (secondsafk < (allowedminutes * 60))) then
+        Core.IsAFK = false
+        Core.ShareEvent(Core.Event.AFKChanged, {New = false, Old = new})
+    end
+
+    if (Core.IsAFK == false and (secondsafk >= (allowedminutes * 60))) then
+        Core.IsAFK = true
+        Core.ShareEvent(Core.Event.AFKChanged, {New = true, Old = false})
+    end
+
+    Core.QueueCleanExpired()
+    Core.QueueProcessNext()
     Core.ShareEvent(Core.Event.Tick)
 end
 
@@ -341,6 +330,7 @@ function PH.OnPluginBroadcast(msg, id, name, text)
     if (Core.Status.State == Core.States.NONE) then
         Core.SetState(Core.States.REQUESTED) -- sent request
         Send_GMCP_Packet('request char')
+        Send_GMCP_Packet('request room')
         Send_GMCP_Packet('request group')
     end
 
@@ -378,82 +368,83 @@ function PH.OnGMCP(text)
             Core.ShareEvent(Core.Event.NewEnemy, {new = newEnemy, old = oldEnemy})
         end
     end
+    if (text == 'room.info') then
+        res, gmcparg = CallPlugin('3e7dedbe37e44942dd46d264', 'gmcpval', 'room')
+        luastmt = 'gmcpdata = ' .. gmcparg
+        assert(loadstring(luastmt or ''))()
+        Core.SetMap(tonumber(gmcpval('info.num')), gmcpval('info.name') or '', gmcpval('info.zone') or '')
+    end
 
-    if (Core.Status.State >= Core.States.IDLE) then
-        if (text == 'char.vitals') then
-            res, gmcparg = CallPlugin('3e7dedbe37e44942dd46d264', 'gmcpval', 'char')
-            luastmt = 'gmcpdata = ' .. gmcparg
-            assert(loadstring(luastmt or ''))()
-            Core.Status.RawHp = tonumber(gmcpval('vitals.hp')) or 0
-            Core.Status.RawMana = tonumber(gmcpval('vitals.mana')) or 0
-            Core.Status.RawMoves = tonumber(gmcpval('vitals.moves')) or 0
+    -- if (Core.Status.State >= Core.States.IDLE) then
+    if (text == 'char.vitals') then
+        res, gmcparg = CallPlugin('3e7dedbe37e44942dd46d264', 'gmcpval', 'char')
+        luastmt = 'gmcpdata = ' .. gmcparg
+        assert(loadstring(luastmt or ''))()
+        Core.Status.RawHp = tonumber(gmcpval('vitals.hp')) or 0
+        Core.Status.RawMana = tonumber(gmcpval('vitals.mana')) or 0
+        Core.Status.RawMoves = tonumber(gmcpval('vitals.moves')) or 0
 
-            local hpPercent = tonumber((Core.Status.RawHp / Core.Status.MaxHp) * 100)
-            if (hpPercent == nil) then
-                Core.SetHp(0)
-            else
-                Core.SetHp(Core.Round(hpPercent, 0))
-            end
+        local hpPercent = tonumber((Core.Status.RawHp / Core.Status.MaxHp) * 100)
+        if (hpPercent == nil) then
+            Core.SetHp(0)
+        else
+            Core.SetHp(Core.Round(hpPercent, 0))
+        end
 
-            if (Core.Status.RawMana == 0) then
-                Core.Status.Mana = 0
-            else
-                Core.Status.Mana = tonumber((Core.Status.RawMana / Core.Status.MaxMana) * 100) or 0
-            end
-            if (Core.Status.RawMoves == 0) then
-                Core.Status.Moves = 0
-            else
-                Core.Status.Moves = tonumber((Core.Status.RawMoves / Core.Status.MaxMoves) * 100) or 0
-            end
+        if (Core.Status.RawMana == 0) then
+            Core.Status.Mana = 0
+        else
+            Core.Status.Mana = tonumber((Core.Status.RawMana / Core.Status.MaxMana) * 100) or 0
         end
-        if (text == 'char.maxstats') then
-            res, gmcparg = CallPlugin('3e7dedbe37e44942dd46d264', 'gmcpval', 'char')
-            luastmt = 'gmcpdata = ' .. gmcparg
-            assert(loadstring(luastmt or ''))()
-            Core.Status.MaxHp = tonumber(gmcpval('maxstats.maxhp')) or 0
-            Core.Status.MaxMana = tonumber(gmcpval('maxstats.maxmana')) or 0
-            Core.Status.MaxMoves = tonumber(gmcpval('maxstats.maxmoves')) or 0
-
-            if (Core.Status.RawHp == 0) then
-                Core.Status.Hp = 0
-            else
-                Core.Status.Hp = tonumber((Core.Status.RawHp / Core.Status.MaxHp) * 100) or 0
-            end
-            if (Core.Status.RawMana == 0) then
-                Core.Status.Mana = 0
-            else
-                Core.Status.Mana = tonumber((Core.Status.RawMana / Core.Status.MaxMana) * 100) or 0
-            end
-            if (Core.Status.RawMoves == 0) then
-                Core.Status.Moves = 0
-            else
-                Core.Status.Moves = tonumber((Core.Status.RawMoves / Core.Status.MaxMoves) * 100) or 0
-            end
-        end
-        if (text == 'char.base') then
-            res, gmcparg = CallPlugin('3e7dedbe37e44942dd46d264', 'gmcpval', 'char')
-            luastmt = 'gmcpdata = ' .. gmcparg
-            assert(loadstring(luastmt or ''))()
-            Core.Status.Name = gmcpval('base.name')
-            Core.Status.Tier = tonumber(gmcpval('base.tier'))
-            Core.Status.Subclass = gmcpval('base.subclass')
-            Core.Status.Clan = gmcpval('base.clan')
-            Core.Status.Level = Core.Status.RawLevel + (10 * Core.Status.Tier)
-        end
-        if (text == 'room.info') then
-            res, gmcparg = CallPlugin('3e7dedbe37e44942dd46d264', 'gmcpval', 'room')
-            luastmt = 'gmcpdata = ' .. gmcparg
-            assert(loadstring(luastmt or ''))()
-            Core.SetMap(tonumber(gmcpval('info.num')), gmcpval('info.name') or '', gmcpval('info.zone') or '')
-        end
-        if (text == 'group') then
-            res, gmcparg = CallPlugin('3e7dedbe37e44942dd46d264', 'gmcpval', 'group')
-            luastmt = 'gmcpdata = ' .. gmcparg
-            assert(loadstring(luastmt or ''))()
-            local leader = gmcpval('group.leader')
-            Core.Status.IsLeader = ((Core.Status.Name == leader) or (leader == ''))
+        if (Core.Status.RawMoves == 0) then
+            Core.Status.Moves = 0
+        else
+            Core.Status.Moves = tonumber((Core.Status.RawMoves / Core.Status.MaxMoves) * 100) or 0
         end
     end
+    if (text == 'char.maxstats') then
+        res, gmcparg = CallPlugin('3e7dedbe37e44942dd46d264', 'gmcpval', 'char')
+        luastmt = 'gmcpdata = ' .. gmcparg
+        assert(loadstring(luastmt or ''))()
+        Core.Status.MaxHp = tonumber(gmcpval('maxstats.maxhp')) or 0
+        Core.Status.MaxMana = tonumber(gmcpval('maxstats.maxmana')) or 0
+        Core.Status.MaxMoves = tonumber(gmcpval('maxstats.maxmoves')) or 0
+
+        if (Core.Status.RawHp == 0) then
+            Core.Status.Hp = 0
+        else
+            Core.Status.Hp = tonumber((Core.Status.RawHp / Core.Status.MaxHp) * 100) or 0
+        end
+        if (Core.Status.RawMana == 0) then
+            Core.Status.Mana = 0
+        else
+            Core.Status.Mana = tonumber((Core.Status.RawMana / Core.Status.MaxMana) * 100) or 0
+        end
+        if (Core.Status.RawMoves == 0) then
+            Core.Status.Moves = 0
+        else
+            Core.Status.Moves = tonumber((Core.Status.RawMoves / Core.Status.MaxMoves) * 100) or 0
+        end
+    end
+    if (text == 'char.base') then
+        res, gmcparg = CallPlugin('3e7dedbe37e44942dd46d264', 'gmcpval', 'char')
+        luastmt = 'gmcpdata = ' .. gmcparg
+        assert(loadstring(luastmt or ''))()
+        Core.Status.Name = gmcpval('base.name')
+        Core.Status.Tier = tonumber(gmcpval('base.tier'))
+        Core.Status.Subclass = gmcpval('base.subclass')
+        Core.Status.Clan = gmcpval('base.clan')
+        Core.Status.Level = Core.Status.RawLevel + (10 * Core.Status.Tier)
+    end
+
+    if (text == 'group') then
+        res, gmcparg = CallPlugin('3e7dedbe37e44942dd46d264', 'gmcpval', 'group')
+        luastmt = 'gmcpdata = ' .. gmcparg
+        assert(loadstring(luastmt or ''))()
+        local leader = gmcpval('group.leader')
+        Core.Status.IsLeader = ((Core.Status.Name == leader) or (leader == ''))
+    end
+    --  end
 end
 
 function PHCommandHandler(name, line, wildcards)
@@ -614,8 +605,8 @@ function PH.ShowHelp(line, wildcards)
     end
 
     if (topic == 'core' or topic == 'pyrecore') then
-        if (PH.Config ~= nil) then
-            PH.BuildConfigHelp('core', PH.Config)
+        if (Core.Config ~= nil) then
+            PH.BuildConfigHelp('core', Core.Config)
             return
         end
     end
@@ -754,7 +745,7 @@ function PH.InstallFeature(name)
         'https://raw.githubusercontent.com/thesmallbang/ascripts/RefactoringPluginEvents/' .. feature.Filename,
         function(retval, page, status, headers, full_status, request_url)
             saveDownload(retval, page, status, headers, full_status, request_url)
-            PH.LoadFeature(feature)
+
             -- update our Versions to include or replace the existing feature data
             PH.Config.Versions.Features =
                 Core.Except(
@@ -763,7 +754,14 @@ function PH.InstallFeature(name)
                     return f.Name == feature.Name
                 end
             )
+
             table.insert(PH.Config.Versions.Features, feature)
+
+            local lf = PH.LoadFeature(feature)
+
+            if (Core.Status.Started == true and lf.Reference ~= nil and lf.Reference.Start ~= nil) then
+                lf.Reference.Start()
+            end
             PH.Save()
             Core.Log('Installed ' .. feature.Name .. ' : ' .. feature.Version)
         end
@@ -773,7 +771,7 @@ end
 function PH.UninstallFeature(name)
     local feature =
         Core.First(
-        PH.Config.Versions.Features,
+        PH.Config.LoadedFeatures,
         function(f)
             return (string.upper(f.Name) == string.upper(name))
         end
@@ -787,6 +785,7 @@ function PH.UninstallFeature(name)
     if (feature.Reference ~= nil and feature.Reference.Stop ~= nil) then
         feature.Reference.Stop()
     end
+
     PH.UnregisterFeature(feature)
 
     PH.Config.Versions.Features =
@@ -803,7 +802,7 @@ function PH.UninstallFeature(name)
             return f.Name == feature.Name
         end
     )
-    os.execute('del /S ' .. feature.Filename)
+    os.execute('del /S ' .. feature.Name .. '.lua')
     PH.Save()
     Core.Log('Uninstalled ' .. feature.Name .. ' : ' .. feature.Version)
 end
@@ -961,7 +960,7 @@ function PH.ChangeSetting(line, wildcards)
     -- see if p1 is a primary helper setting before going to features
     local setting =
         Core.First(
-        PH.Config.Settings,
+        Core.Config.Settings,
         function(s)
             return (string.lower(s.Name) == string.lower(p1))
         end
@@ -996,7 +995,7 @@ function PH.ChangeSetting(line, wildcards)
             setting.Value = p2
         end
         if (setting.OnAfterSet ~= nil) then
-            setting:OnAfterSet()
+            setting:OnAfterSet(setting.Value, originalValue)
         end
         PH.Save()
         Core.Log(setting.Name .. ' changed from ' .. originalValue .. ' to ' .. setting.Value)
@@ -1007,7 +1006,7 @@ function PH.ChangeSetting(line, wildcards)
     if (p1 == 'core') then
         local setting =
             Core.First(
-            PH.Config.Settings,
+            Core.Config.Settings,
             function(s)
                 return (string.lower(s.Name) == string.lower(p2))
             end
@@ -1024,6 +1023,10 @@ function PH.ChangeSetting(line, wildcards)
             end
 
             local originalValue = setting.Value or ''
+            local result = setting:OnBeforeSet(originalValue, p3)
+            if (result == false) then
+                return
+            end
 
             if (setting.Min ~= nil or setting.Max ~= nil) then
                 setting.Value = tonumber(p3) or tonumber(setting.Default)
@@ -1037,7 +1040,7 @@ function PH.ChangeSetting(line, wildcards)
                 setting.Value = p3
             end
             if (setting.OnAfterSet ~= nil) then
-                setting:OnAfterSet()
+                setting:OnAfterSet(setting.Value, originalValue)
             end
             PH.Save()
             Core.Log(setting.Name .. ' changed from ' .. originalValue .. ' to ' .. setting.Value)
@@ -1083,7 +1086,10 @@ function PH.ChangeSetting(line, wildcards)
         end
 
         local originalValue = setting.Value or ''
-
+        local result = setting:OnBeforeSet(originalValue, p3)
+        if (result == false) then
+            return
+        end
         if (setting.Min ~= nil or setting.Max ~= nil) then
             setting.Value = tonumber(p3) or tonumber(setting.Default)
             if (setting.Min ~= nil and setting.Value < setting.Min) then
@@ -1094,6 +1100,9 @@ function PH.ChangeSetting(line, wildcards)
             end
         else
             setting.Value = p3
+        end
+        if (setting.OnAfterSet ~= nil) then
+            setting:OnAfterSet(setting.Value, originalValue)
         end
         PH.Save()
         Core.Log(feature.Name .. ' ' .. setting.Name .. ' changed from ' .. originalValue .. ' to ' .. setting.Value)

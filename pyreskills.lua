@@ -543,7 +543,7 @@ function Skills.PyreAttack()
             (Core.Any(
                 Core.ActionQueue,
                 function(v)
-                    return (v.Skill.SkillType == Core.SkillType.CombatInitiate)
+                    return (v.Info.ActionType == Core.ActionType.CombatInitiate)
                 end
             ))
          then

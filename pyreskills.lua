@@ -479,6 +479,8 @@ function Skills.CheckOnSkills()
                         spell.ActionType,
                         function(action)
                             Core.Execute(spell.CastWith or ('cast ' .. spell.Name))
+
+                            Core.addedWait = spell.AddDelay or 0
                             if (spell.OnAfterCast ~= nil) then
                                 spell.OnAfterCast(spell, action)
                             end

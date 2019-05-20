@@ -294,7 +294,9 @@ function PH.Save()
     Core.Each(
         Core.Config.Settings,
         function(s)
-            SetVariable('ph_' .. s.Name, s.Value or s.Default or 0)
+            if (s.Value ~= nil) then
+                SetVariable('ph_' .. s.Name, s.Value or s.Default or 0)
+            end
         end
     )
 
@@ -308,7 +310,9 @@ function PH.Save()
                         if (s.Name == 'container') then
                         --print('saving setting ' .. f.Name .. '_' .. s.Name .. ' val ' .. (s.Value or '[nil]'))
                         end
-                        SetVariable(f.Name .. '_' .. s.Name, (s.Value or s.Default))
+                        if (s.Value ~= nil) then
+                            SetVariable(f.Name .. '_' .. s.Name, (s.Value or s.Default))
+                        end
                     end
                 )
             end

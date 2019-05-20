@@ -29,7 +29,7 @@
 
 function OnUpdate()
    os.execute('del /S pyre*.lua')
-   os.remove('worlds/plugins/pyreversion.json')
+   SetVariable('ph_version', '')
    OnReload()
 end
 

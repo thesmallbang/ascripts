@@ -9,12 +9,12 @@
 <plugin
    name="Pyre_Helper"
    author="Tamon"
-   id="c74be251554149f1929c4d75"
+   id="c74be251554149f1929c4d79"
    language="Lua"
    purpose="pyre helper plugin"
    date_written="2019-04-07 00:57:33"
    requires="5.06"
-   version="2.0"
+   version="2.4"
    save_state="y"
    >
 
@@ -113,10 +113,8 @@ function async_xml_download_complete(retval, page, status, headers, full_status,
         end
 
         if (pluginFoundId == '') then
-            print('installing plugin')
             LoadPlugin(savePath);
         else
-            print('reloading plugin')
             ReloadPlugin (pluginFoundId)
         end
 
@@ -172,67 +170,168 @@ function saveDownload(retval, page, status, headers, full_status, request_url)
             request_url
         )
     end
-   checkVersionFile()
 end
 
-function download(url)
+function download(url, completedCallback)
+print('downloading ' .. url)
     downloadsRequested = downloadsRequested + 1
-    async.doAsyncRemoteRequest(url, saveDownload, "HTTPS", 120)
+    async.doAsyncRemoteRequest(url, completedCallback, "HTTPS", 120)
 end
+            local function endsWith(str, ending)
+            return ending == "" or str:sub(-#ending) == ending
+            end
 
 function checkVersionFile()
 
     if  (remoteData == nil) then
-        download("https://raw.githubusercontent.com/thesmallbang/ascripts/master/version.json")
+        download("https://raw.githubusercontent.com/thesmallbang/ascripts/master/version.json", 
+        function(retval, page, status, headers, full_status, request_url) 
+            saveDownload(retval, page, status, headers, full_status, request_url)
+            checkVersionFile()
+            return
+        end)
         return
     end
 
-    if  file_exists("worlds/plugins/pyreversion.json") then
-         local filetext = readFile('worlds/plugins/pyreversion.json')
-         localData = json.decode(filetext)
+    local localdata = GetVariable('ph_version')
+
+    if  (localdata ~= nil) then
+            localData = json.decode(localdata)
+         else
+            local tempData = remoteData
+            tempData.downloaded = os.date()
+            tempData.Features = {}
+            SetVariable('ph_version', json.encode(tempData))
     end
-    
+
+
     if (remoteData ~= nil and localData == nil) then
-        localData = { release = { version = 0 }, dependencies = {}, features = {}}
+        localData = { Release = { Version = 0 }, Dependencies = {}, Features = {}}
     end
 
-     remoteData.downloaded = os.date()
-     saveFile("worlds/plugins/pyreversion.json",json.encode(remoteData))
+    if (tonumber(remoteData.Release.Version) ~= tonumber(GetPluginInfo(GetPluginID(), 19)) ) then
+        download(remoteData.Release.Url, function(retval, page, status, headers, full_status, request_url) 
+                saveDownload(retval, page, status, headers, full_status, request_url)
+                localData.Release = remoteData.Release
+                SetVariable('ph_version', json.encode(localData))
+                print('Your main .xml was updated and requires you to "pyre reload" manually.')    
+            end)
+                return
+    end
 
-    for _, remoteDep in pairs(remoteData.dependencies) do
+
+    for _, remoteDep in pairs(remoteData.Dependencies) do
         local found = false
-        for _, localDep in pairs(localData.dependencies) do
-            if ((remoteDep.name == localDep.name) and ((tonumber(remoteDep.version) or 1) == (tonumber(localDep.version) or 0))) then
+        for _, localDep in pairs(localData.Dependencies) do
+
+
+            -- only apply the following if we have the local dep installed
+            if (localDep.Name == remoteDep.Name) then
                 found = true
+                
+                -- is this file on disk?
+                if (endsWith(remoteDep.Url,'.xml') and not (file_exists('worlds//plugins//' .. remoteDep.Name .. '.xml'))) then
+                    -- we have the local dep configured but it is not on disk
+                    found = false
+                end
+
+                if (endsWith(remoteDep.Url,'.lua') and not (file_exists('lua//' .. remoteDep.Name .. '.lua'))) then
+                    -- we have the local dep configured but it is not on disk
+                    found = false
+                end
+
+                if (remoteDep.Version ~= localDep.Version) then
+                        download(remoteDep.Url, function(retval, page, status, headers, full_status, request_url) 
+                            saveDownload(retval, page, status, headers, full_status, request_url)
+                            localDep.Version = remoteDep.Version
+                            localDep.Url = remoteDep.Url
+                              SetVariable('ph_version', json.encode(localData))
+                            checkVersionFile()
+                        end)
+                        return
+                end
+
             end
+
         end
 
         if (found == false) then
-            download(remoteDep.url)
+            download(remoteDep.Url, function(retval, page, status, headers, full_status, request_url) 
+            saveDownload(retval, page, status, headers, full_status, request_url)
+            
+            table.insert(localData.Dependencies, remoteDep)
+            SetVariable('ph_version', json.encode(localData))
+            
+            checkVersionFile()
+        end)
+            return
         end
     end
+
+
+
+    local features = {}
+
+    for _, remoteDep in pairs(remoteData.Features) do
+        local found = false
+
+        for _, localDep in pairs(localData.Features) do
+
+            -- only apply the following if we have the local dep installed
+            if (localDep.Name == remoteDep.Name) then
+                found = true
+                table.insert(features,remoteDep)
+
+                if (endsWith(remoteDep.Filename,'.lua') and not (file_exists('lua//' .. remoteDep.Filename))) then
+                    -- we have the local dep configured but it is not on disk
+                        download('https://raw.githubusercontent.com/thesmallbang/ascripts/master/' .. remoteDep.Filename, function(retval, page, status, headers, full_status, request_url) 
+                            saveDownload(retval, page, status, headers, full_status, request_url)
+                            localDep.Version = remoteDep.Version
+                            localDep.Name = remoteDep.Name
+                            localDep.Filename = remoteDep.Filename
+                            localDep.Description = remoteDep.Description
+                            SetVariable('ph_version', json.encode(localData))
+                            checkVersionFile()
+                        end)
+                        return
+                end
+
+                if (remoteDep.Version ~= localDep.Version) then
+                        download('https://raw.githubusercontent.com/thesmallbang/ascripts/master/' .. remoteDep.Filename, function(retval, page, status, headers, full_status, request_url) 
+                            saveDownload(retval, page, status, headers, full_status, request_url)
+                            localDep.Version = remoteDep.Version
+                            localDep.Name = remoteDep.Name
+                            localDep.Filename = remoteDep.Filename
+                            localDep.Description = remoteDep.Description
+                            SetVariable('ph_version', json.encode(localData))
+                            checkVersionFile()
+                        end)
+                        return
+                end
+            end
+
+        end
+
+    end
+
 
     if(downloadsRequested > downloadsCompleted) then
         return
     end
 
-    local features = {}
 
-    for _, dep in pairs(localData.dependencies) do
-        if ((dep.relay ~= nil) and (dep.relay == "true")) then
-            Helper = require(dep.name)
+    for _, dep in pairs(remoteData.Dependencies) do
+        if (dep.Relay == "true") then
+            Helper = require(dep.Name)
         end
     end
 
-    for _, feature in pairs(localData.features) do
-        if file_exists('lua//' .. feature.filename) then
-            table.insert(features,feature)
-        end
+    if (Helper ~= nil) then
+        Helper.Install(remoteData, features)
     end
-    
-    Helper.OnStart(localData, features)
 
 end
+
 
 
 -- ---------------------------------------------------- 
@@ -252,7 +351,9 @@ end
 
 function OnPluginSaveState() if Helper then Helper.Save() end end
 
-function OnPluginInstall() if Helper then Helper.OnInstall(localData) end end
+function OnPluginInstall() 
+    checkVersionFile()
+end
 
 function OnPluginBroadcast(msg, id, name, text)
     if Helper then Helper.OnPluginBroadcast(msg, id, name, text) end
@@ -261,20 +362,13 @@ end
 function OnPluginPacketReceived(sText)
 end
 
+function OnPluginDisable () if Helper then Helper.Stop() end end
+function OnPluginEnable () if Helper then Helper.Start() end end
+function OnPluginClose() if Helper then Helper.Stop() end end
+function OnPluginDisconnect() if Helper then Helper.Stop() end end
+function OnPluginCommandEntered (sText)  if Helper then Helper.ResetAfk() end end
+function OnPluginCommandChanged ()   if Helper then Helper.ResetAfk() end end 
 
-function OnPluginClose() if Helper then Helper.OnStop() end end
-
-function OnPluginDisconnect() if Helper then Helper.OnStop() end end
-
-
--- ---------------------------------------------------- 
--- Startup
--- ----------------------------------------------------
-
-
-checkVersionFile()
-
-    
 ]]>
 
 

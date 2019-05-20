@@ -1,5 +1,169 @@
-local Pyre = require('pyrecore')
-local Tracker = {
+local Core = require('pyrecore')
+
+Tracker = {
+    Config = {
+        Events = {
+            {
+                Type = Core.Event.StateChanged,
+                Callback = function(o)
+                    Tracker.OnStateChanged(o)
+                end
+            },
+            {
+                Type = Core.Event.ZoneChanged,
+                Callback = function(o)
+                    Tracker.OnZoneChanged(o)
+                end
+            },
+            {
+                Type = Core.Event.AFKChanged,
+                Callback = function(o)
+                    Tracker.OnAFKChanged(o)
+                end
+            }
+        },
+        Commands = {
+            {
+                Name = 'setarea',
+                Description = 'switch the area for view/reporting',
+                Callback = function(line, wildcards)
+                    Tracker.SetArea(line, wildcards)
+                end
+            },
+            {
+                Name = 'firstarea',
+                Description = 'switch to the first area for view/reporting',
+                Callback = function(line, wildcards)
+                    Tracker.SetFirstArea()
+                end
+            },
+            {
+                Name = 'newerarea',
+                Description = 'switch to a newer area for view/reporting',
+                Callback = function(line, wildcards)
+                    Tracker.SetNewerArea()
+                end
+            },
+            {
+                Name = 'olderarea',
+                Description = 'switch to the first area for view/reporting',
+                Callback = function(line, wildcards)
+                    Tracker.SetOlderArea()
+                end
+            },
+            {
+                Name = 'lastarea',
+                Description = 'switch to the first area for view/reporting',
+                Callback = function(line, wildcards)
+                    Tracker.SetLastArea()
+                end
+            },
+            {
+                Name = 'resetarea',
+                Description = 'reset the current area tracking',
+                Callback = function(line, wildcards)
+                    Tracker.ResetCurrentArea()
+                end
+            },
+            {
+                Name = 'resetareas',
+                Description = 'reset all areas',
+                Callback = function(line, wildcards)
+                    Tracker.ResetAreas()
+                end
+            },
+            {
+                Name = 'resetsession',
+                Description = 'reset all fight data for the session',
+                Callback = function(line, wildcards)
+                    Tracker.ResetSession()
+                end
+            },
+            {
+                Name = 'resetfight',
+                Description = 'reset the current fight data',
+                Callback = function(line, wildcards)
+                    Tracker.ResetCurrentFight()
+                end
+            },
+            {
+                Name = 'setfight',
+                Description = 'switch the fight for view/reporting',
+                Callback = function(line, wildcards)
+                    Tracker.SetFight(line, wildcards)
+                end
+            },
+            {
+                Name = 'firstfight',
+                Description = 'switch to the first fight for view/reporting',
+                Callback = function(line, wildcards)
+                    Tracker.SetFirstFight()
+                end
+            },
+            {
+                Name = 'newerfight',
+                Description = 'switch to a newer fight for view/reporting',
+                Callback = function(line, wildcards)
+                    Tracker.SetNewerFight()
+                end
+            },
+            {
+                Name = 'olderfight',
+                Description = 'switch to the first fight for view/reporting',
+                Callback = function(line, wildcards)
+                    Tracker.SetOlderFight()
+                end
+            },
+            {
+                Name = 'lastfight',
+                Description = 'switch to the first fight for view/reporting',
+                Callback = function(line, wildcards)
+                    Tracker.SetLastFight()
+                end
+            }
+        },
+        Settings = {
+            {
+                Name = 'areasize',
+                Description = 'How many previous areas to keep data on',
+                Value = nil,
+                Min = 1,
+                Max = 1000000,
+                Default = 10
+            },
+            {
+                Name = 'sessionsize',
+                Description = 'How fights to limit the session to',
+                Value = nil,
+                Min = 1,
+                Max = 1000000,
+                Default = 100000
+            }
+        },
+        Triggers = {
+            {
+                Name = 'ExperienceGain',
+                Match = "You receive ([0-9]+)\\+?([0-9]+)?\\+?([0-9]+)? ?('rare kill'|bonus)? experience (points|bonus|).*",
+                Callback = function(line, wildcards)
+                    Tracker.OnExperienceGain(line, wildcards)
+                end
+            },
+            {
+                Name = 'PlayerDidDamage',
+                Match = '(\\*)?\\[.*\\]?\\s?Your (\\w*) -?<?(.*)>?-? (.*)! \\[(.*)\\]',
+                Callback = function(line, wildcards)
+                    Tracker.OnPlayerDidDamage(line, wildcards)
+                end
+            },
+            {
+                Name = 'EnemyDidDamage',
+                Match = "(\\*)?\\[.*\\]?\\s?(.*)'s (\\w*) (.*) you[!|\\.] \\[(.*)\\]",
+                Callback = function(line, wildcards)
+                    Tracker.OnEnemyDidDamage(line, wildcards)
+                end
+            }
+        }
+    },
     EnemyCounter = 0,
     EnemyCounterLastReset = 0,
     AreaIndex = 0,
@@ -15,65 +179,6 @@ local Tracker = {
     }
 }
 
-Tracker.Commands = {
-    {name = 'setarea', description = 'Nav to specific area', callback = 'OnTrackerSetAreaIndex'},
-    {name = 'firstarea', description = 'Nav to current area', callback = 'OnTrackerSetAreaIndexFirst'},
-    {name = 'newerarea', description = 'Nav to newer area', callback = 'OnTrackerSetAreaIndexNewer'},
-    {name = 'olderarea', description = 'Nav to older area', callback = 'OnTrackerSetAreaIndexOlder'},
-    {name = 'lastarea', description = 'Nav to oldest area', callback = 'OnTrackerSetAreaIndexLast'},
-    {name = 'setfight', description = 'Nav to specific fight', callback = 'OnTrackerSetFightIndex'},
-    {name = 'firstfight', description = 'Nav to current fight', callback = 'OnTrackerSetFightIndexFirst'},
-    {name = 'newerfight', description = 'Nav to newer fight', callback = 'OnTrackerSetFightIndexNewer'},
-    {name = 'olderfight', description = 'Nav to older fight', callback = 'OnTrackerSetFightIndexOlder'},
-    {name = 'lastfight', description = 'Nav to oldest fight', callback = 'OnTrackerSetFightIndexLast'},
-    {
-        name = 'resetfights',
-        description = 'Reset the all fight data (same as resetsession)',
-        callback = 'OnResetSessionData'
-    },
-    {
-        name = 'resetsession',
-        description = 'Reset the all session data (same as resetfights)',
-        callback = 'OnResetSessionData'
-    },
-    {name = 'resetfight', description = 'Reset the current fight data', callback = 'OnResetFightData'},
-    {name = 'resetarea', description = 'Reset the current area tracking data', callback = 'OnResetAreaData'},
-    {name = 'resetareas', description = 'Reset all area tracking data', callback = 'OnResetAreasData'},
-    {name = 'reportfight', description = 'Report the current fight', callback = 'OnReportFightData'},
-    {name = 'reportarea', description = 'Report the current area', callback = 'OnReportAreaData'},
-    {name = 'reportareac', description = 'Report the current area', callback = 'OnReportAreaCData'},
-    {name = 'reportsessionxp', description = 'Report the current session xp rates', callback = 'OnReportSessionXPData'},
-    {
-        name = 'reportsessionxpc',
-        description = 'Report the current session xp rates while in combat',
-        callback = 'OnReportSessionXPCData'
-    },
-    {name = 'reportsessiondps', description = 'Report the current session dps', callback = 'OnReportSessionDPSData'}
-}
-
-Tracker.Settings = {
-    {
-        name = 'areasize',
-        description = 'How many previous areas to keep data on',
-        value = tonumber(GetVariable('areasize')) or 10,
-        setValue = function(setting, val)
-            local parsed = tonumber(val) or 0
-            setting.value = parsed
-            SetVariable('areasize', setting.value)
-        end
-    },
-    {
-        name = 'sessionsize',
-        description = 'How fights to limit the session to',
-        value = tonumber(GetVariable('sessionsize')) or 100000,
-        setValue = function(setting, val)
-            local parsed = tonumber(val) or 100000
-            setting.value = parsed
-            SetVariable('sessionsize', setting.value)
-        end
-    }
-}
-
 Tracker.Factory = {
     NewSession = function()
         return {
@@ -83,7 +188,7 @@ Tracker.Factory = {
     end,
     NewFight = function()
         return {
-            Area = Pyre.Status.Zone,
+            Area = Core.Status.Zone,
             StartTime = socket.gettime(),
             EndTime = nil,
             Duration = 0,
@@ -102,7 +207,7 @@ Tracker.Factory = {
     end,
     NewArea = function()
         return {
-            Area = Pyre.Status.Zone,
+            Area = Core.Status.Zone,
             StartTime = socket.gettime(),
             Duration = 0,
             Fights = {}
@@ -118,7 +223,7 @@ Tracker.Factory = {
     end,
     CreateSessionSummary = function(session)
         local exp =
-            Pyre.Sum(
+            Core.Sum(
             session.Fights,
             function(f)
                 return f.XP.Normal + f.XP.Rare + f.XP.Bonus
@@ -126,28 +231,28 @@ Tracker.Factory = {
         ) or 0
 
         local normalExp =
-            Pyre.Sum(
+            Core.Sum(
             session.Fights,
             function(f)
                 return f.XP.Normal
             end
         ) or 0
         local rareExp =
-            Pyre.Sum(
+            Core.Sum(
             session.Fights,
             function(f)
                 return f.XP.Rare
             end
         ) or 0
         local bonusExp =
-            Pyre.Sum(
+            Core.Sum(
             session.Fights,
             function(f)
                 return f.XP.Bonus
             end
         ) or 0
         local playerDamage =
-            Pyre.Sum(
+            Core.Sum(
             session.Fights,
             function(f)
                 return f.Damage.Player
@@ -155,7 +260,7 @@ Tracker.Factory = {
         ) or 0
 
         local enemyDamage =
-            Pyre.Sum(
+            Core.Sum(
             session.Fights,
             function(f)
                 return f.Damage.Enemy
@@ -163,8 +268,8 @@ Tracker.Factory = {
         ) or 0
 
         local combatDuration =
-            Pyre.Round(
-            Pyre.Sum(
+            Core.Round(
+            Core.Sum(
                 session.Fights,
                 function(f)
                     return f.Duration
@@ -174,14 +279,14 @@ Tracker.Factory = {
         )
 
         local fights =
-            Pyre.Sum(
+            Core.Sum(
             session.Fights,
             function(f)
                 return 1
             end
         ) or 0
 
-        local duration = Pyre.Round((socket.gettime() - session.StartTime), 1)
+        local duration = Core.Round((socket.gettime() - session.StartTime), 1)
 
         local fightSummary = Tracker.Factory.CreateFightSummary(Tracker.GetFightByIndex(0))
 
@@ -198,7 +303,7 @@ Tracker.Factory = {
         end
 
         local souls =
-            Pyre.Sum(
+            Core.Sum(
             session.Fights,
             function(f)
                 return f.Enemies
@@ -210,7 +315,7 @@ Tracker.Factory = {
             fightsForMath = fights
         end
 
-        local soulsPerFight = Pyre.Round((souls / fightsForMath), 1)
+        local soulsPerFight = Core.Round((souls / fightsForMath), 1)
 
         if (duration < combatDuration) then
             duration = combatDuration
@@ -227,39 +332,39 @@ Tracker.Factory = {
         local summary = {
             StartDate = os.date('%H:%M:%S - %d/%m/%Y', session.StartTime),
             EndDate = os.date('%H:%M:%S - %d/%m/%Y', socket.gettime()),
-            PlayerDamage = Pyre.Round(playerDamage, 1),
-            EnemyDamage = Pyre.Round(enemyDamage, 1),
-            Experience = Pyre.Round(exp, 1),
-            NormalExperience = Pyre.Round(normalExp, 1),
-            RareExperience = Pyre.Round(rareExp, 1),
-            BonusExperience = Pyre.Round(bonusExp, 1),
+            PlayerDamage = Core.Round(playerDamage, 1),
+            EnemyDamage = Core.Round(enemyDamage, 1),
+            Experience = Core.Round(exp, 1),
+            NormalExperience = Core.Round(normalExp, 1),
+            RareExperience = Core.Round(rareExp, 1),
+            BonusExperience = Core.Round(bonusExp, 1),
             AverageSoulsPerFight = soulsPerFight,
             Fights = fights,
             Normal = {
                 Duration = duration,
-                ExpPerMinute = Pyre.Round((((exp or 0) / duration) * 60) or 0, 1),
-                ExpPerSecond = Pyre.Round(((exp or 0) / duration) or 0, 1),
-                NormalPerMinute = Pyre.Round((((normalExp or 0) / duration) * 60) or 0, 1),
-                NormalPerSecond = Pyre.Round(((normalExp or 0) / duration) or 0, 1),
-                RarePerMinute = Pyre.Round((((rareExp or 0) / duration) * 60) or 0, 1),
-                RarePerSecond = Pyre.Round(((rareExp or 0) / duration) or 0, 1),
-                BonusPerMinute = Pyre.Round((((bonusExp or 0) / duration) * 60) or 0, 1),
-                BonusPerSecond = Pyre.Round(((bonusExp or 0) / duration) or 0, 1),
-                PlayerDps = Pyre.Round((playerDamage / duration) or 0, 1),
-                EnemyDps = Pyre.Round((enemyDamage / duration) or 0, 1)
+                ExpPerMinute = Core.Round((((exp or 0) / duration) * 60) or 0, 1),
+                ExpPerSecond = Core.Round(((exp or 0) / duration) or 0, 1),
+                NormalPerMinute = Core.Round((((normalExp or 0) / duration) * 60) or 0, 1),
+                NormalPerSecond = Core.Round(((normalExp or 0) / duration) or 0, 1),
+                RarePerMinute = Core.Round((((rareExp or 0) / duration) * 60) or 0, 1),
+                RarePerSecond = Core.Round(((rareExp or 0) / duration) or 0, 1),
+                BonusPerMinute = Core.Round((((bonusExp or 0) / duration) * 60) or 0, 1),
+                BonusPerSecond = Core.Round(((bonusExp or 0) / duration) or 0, 1),
+                PlayerDps = Core.Round((playerDamage / duration) or 0, 1),
+                EnemyDps = Core.Round((enemyDamage / duration) or 0, 1)
             },
             Combat = {
                 Duration = combatDuration,
-                ExpPerMinute = Pyre.Round((((exp or 0) / combatDuration) * 60) or 0, 1),
-                ExpPerSecond = Pyre.Round(((exp or 0) / combatDuration) or 0, 1),
-                NormalPerMinute = Pyre.Round((((normalExp or 0) / combatDuration) * 60) or 0, 1),
-                NormalPerSecond = Pyre.Round(((normalExp or 0) / combatDuration) or 0, 1),
-                RarePerMinute = Pyre.Round((((rareExp or 0) / combatDuration) * 60) or 0, 1),
-                RarePerSecond = Pyre.Round(((rareExp or 0) / combatDuration) or 0, 1),
-                BonusPerMinute = Pyre.Round((((bonusExp or 0) / combatDuration) * 60) or 0, 1),
-                BonusPerSecond = Pyre.Round(((bonusExp or 0) / combatDuration) or 0, 1),
-                PlayerDps = Pyre.Round((playerDamage / combatDuration) or 0, 1),
-                EnemyDps = Pyre.Round((enemyDamage / combatDuration) or 0, 1)
+                ExpPerMinute = Core.Round((((exp or 0) / combatDuration) * 60) or 0, 1),
+                ExpPerSecond = Core.Round(((exp or 0) / combatDuration) or 0, 1),
+                NormalPerMinute = Core.Round((((normalExp or 0) / combatDuration) * 60) or 0, 1),
+                NormalPerSecond = Core.Round(((normalExp or 0) / combatDuration) or 0, 1),
+                RarePerMinute = Core.Round((((rareExp or 0) / combatDuration) * 60) or 0, 1),
+                RarePerSecond = Core.Round(((rareExp or 0) / combatDuration) or 0, 1),
+                BonusPerMinute = Core.Round((((bonusExp or 0) / combatDuration) * 60) or 0, 1),
+                BonusPerSecond = Core.Round(((bonusExp or 0) / combatDuration) or 0, 1),
+                PlayerDps = Core.Round((playerDamage / combatDuration) or 0, 1),
+                EnemyDps = Core.Round((enemyDamage / combatDuration) or 0, 1)
             },
             Souls = souls
         }
@@ -267,8 +372,12 @@ Tracker.Factory = {
         return summary
     end,
     CreateAreaSummary = function(area)
+        if (area == nil) then
+            return nil
+        end
+
         local exp =
-            Pyre.Sum(
+            Core.Sum(
             area.Fights,
             function(f)
                 return f.XP.Normal + f.XP.Rare + f.XP.Bonus
@@ -276,28 +385,28 @@ Tracker.Factory = {
         ) or 0
 
         local normalExp =
-            Pyre.Sum(
+            Core.Sum(
             area.Fights,
             function(f)
                 return f.XP.Normal
             end
         ) or 0
         local rareExp =
-            Pyre.Sum(
+            Core.Sum(
             area.Fights,
             function(f)
                 return f.XP.Rare
             end
         ) or 0
         local bonusExp =
-            Pyre.Sum(
+            Core.Sum(
             area.Fights,
             function(f)
                 return f.XP.Bonus
             end
         ) or 0
         local playerDamage =
-            Pyre.Sum(
+            Core.Sum(
             area.Fights,
             function(f)
                 return f.Damage.Player
@@ -305,7 +414,7 @@ Tracker.Factory = {
         ) or 0
 
         local enemyDamage =
-            Pyre.Sum(
+            Core.Sum(
             area.Fights,
             function(f)
                 return f.Damage.Enemy
@@ -313,8 +422,8 @@ Tracker.Factory = {
         ) or 0
 
         local combatDuration =
-            Pyre.Round(
-            Pyre.Sum(
+            Core.Round(
+            Core.Sum(
                 area.Fights,
                 function(f)
                     return f.Duration
@@ -324,14 +433,14 @@ Tracker.Factory = {
         )
 
         local fights =
-            Pyre.Sum(
+            Core.Sum(
             area.Fights,
             function(f)
                 return 1
             end
         ) or 0
 
-        local duration = Pyre.Round(((area.EndTime or socket.gettime()) - area.StartTime), 1)
+        local duration = Core.Round(((area.EndTime or socket.gettime()) - area.StartTime), 1)
 
         local fightSummary = Tracker.Factory.CreateFightSummary(Tracker.GetFightByIndex(0))
 
@@ -348,7 +457,7 @@ Tracker.Factory = {
         end
 
         local souls =
-            Pyre.Sum(
+            Core.Sum(
             area.Fights,
             function(f)
                 return f.Enemies
@@ -360,7 +469,7 @@ Tracker.Factory = {
             fightsForMath = fights
         end
 
-        local soulsPerFight = Pyre.Round((souls / fightsForMath), 1)
+        local soulsPerFight = Core.Round((souls / fightsForMath), 1)
 
         if (duration < combatDuration) then
             duration = combatDuration
@@ -378,39 +487,39 @@ Tracker.Factory = {
             Area = string.upper(area.Area or ''),
             StartDate = os.date('%H:%M:%S - %d/%m/%Y', area.StartTime),
             EndDate = os.date('%H:%M:%S - %d/%m/%Y', socket.gettime()),
-            PlayerDamage = Pyre.Round(playerDamage, 1),
-            EnemyDamage = Pyre.Round(enemyDamage, 1),
-            Experience = Pyre.Round(exp, 1),
-            NormalExperience = Pyre.Round(normalExp, 1),
-            RareExperience = Pyre.Round(rareExp, 1),
-            BonusExperience = Pyre.Round(bonusExp, 1),
+            PlayerDamage = Core.Round(playerDamage, 1),
+            EnemyDamage = Core.Round(enemyDamage, 1),
+            Experience = Core.Round(exp, 1),
+            NormalExperience = Core.Round(normalExp, 1),
+            RareExperience = Core.Round(rareExp, 1),
+            BonusExperience = Core.Round(bonusExp, 1),
             AverageSoulsPerFight = soulsPerFight,
             Fights = fights,
             Normal = {
                 Duration = duration,
-                ExpPerMinute = Pyre.Round((((exp or 0) / duration) * 60) or 0, 1),
-                ExpPerSecond = Pyre.Round(((exp or 0) / duration) or 0, 1),
-                NormalPerMinute = Pyre.Round((((normalExp or 0) / duration) * 60) or 0, 1),
-                NormalPerSecond = Pyre.Round(((normalExp or 0) / duration) or 0, 1),
-                RarePerMinute = Pyre.Round((((rareExp or 0) / duration) * 60) or 0, 1),
-                RarePerSecond = Pyre.Round(((rareExp or 0) / duration) or 0, 1),
-                BonusPerMinute = Pyre.Round((((bonusExp or 0) / duration) * 60) or 0, 1),
-                BonusPerSecond = Pyre.Round(((bonusExp or 0) / duration) or 0, 1),
-                PlayerDps = Pyre.Round((playerDamage / duration) or 0, 1),
-                EnemyDps = Pyre.Round((enemyDamage / duration) or 0, 1)
+                ExpPerMinute = Core.Round((((exp or 0) / duration) * 60) or 0, 1),
+                ExpPerSecond = Core.Round(((exp or 0) / duration) or 0, 1),
+                NormalPerMinute = Core.Round((((normalExp or 0) / duration) * 60) or 0, 1),
+                NormalPerSecond = Core.Round(((normalExp or 0) / duration) or 0, 1),
+                RarePerMinute = Core.Round((((rareExp or 0) / duration) * 60) or 0, 1),
+                RarePerSecond = Core.Round(((rareExp or 0) / duration) or 0, 1),
+                BonusPerMinute = Core.Round((((bonusExp or 0) / duration) * 60) or 0, 1),
+                BonusPerSecond = Core.Round(((bonusExp or 0) / duration) or 0, 1),
+                PlayerDps = Core.Round((playerDamage / duration) or 0, 1),
+                EnemyDps = Core.Round((enemyDamage / duration) or 0, 1)
             },
             Combat = {
                 Duration = combatDuration,
-                ExpPerMinute = Pyre.Round((((exp or 0) / combatDuration) * 60) or 0, 1),
-                ExpPerSecond = Pyre.Round(((exp or 0) / combatDuration) or 0, 1),
-                NormalPerMinute = Pyre.Round((((normalExp or 0) / combatDuration) * 60) or 0, 1),
-                NormalPerSecond = Pyre.Round(((normalExp or 0) / combatDuration) or 0, 1),
-                RarePerMinute = Pyre.Round((((rareExp or 0) / combatDuration) * 60) or 0, 1),
-                RarePerSecond = Pyre.Round(((rareExp or 0) / combatDuration) or 0, 1),
-                BonusPerMinute = Pyre.Round((((bonusExp or 0) / combatDuration) * 60) or 0, 1),
-                BonusPerSecond = Pyre.Round(((bonusExp or 0) / combatDuration) or 0, 1),
-                PlayerDps = Pyre.Round((playerDamage / combatDuration) or 0, 1),
-                EnemyDps = Pyre.Round((enemyDamage / combatDuration) or 0, 1)
+                ExpPerMinute = Core.Round((((exp or 0) / combatDuration) * 60) or 0, 1),
+                ExpPerSecond = Core.Round(((exp or 0) / combatDuration) or 0, 1),
+                NormalPerMinute = Core.Round((((normalExp or 0) / combatDuration) * 60) or 0, 1),
+                NormalPerSecond = Core.Round(((normalExp or 0) / combatDuration) or 0, 1),
+                RarePerMinute = Core.Round((((rareExp or 0) / combatDuration) * 60) or 0, 1),
+                RarePerSecond = Core.Round(((rareExp or 0) / combatDuration) or 0, 1),
+                BonusPerMinute = Core.Round((((bonusExp or 0) / combatDuration) * 60) or 0, 1),
+                BonusPerSecond = Core.Round(((bonusExp or 0) / combatDuration) or 0, 1),
+                PlayerDps = Core.Round((playerDamage / combatDuration) or 0, 1),
+                EnemyDps = Core.Round((enemyDamage / combatDuration) or 0, 1)
             },
             Souls = souls
         }
@@ -431,7 +540,7 @@ Tracker.Factory = {
         local duration = (fight.EndTime or socket.gettime()) - (fight.StartTime or 0)
 
         local souls = fight.Enemies or 0
-        duration = Pyre.Round(duration, 1)
+        duration = Core.Round(duration, 1)
 
         if (duration == 0) then
             duration = 0.1
@@ -440,26 +549,26 @@ Tracker.Factory = {
         local summary = {
             StartDate = os.date('%H:%M:%S - %d/%m/%Y', fight.StartTime),
             EndDate = os.date('%H:%M:%S - %d/%m/%Y', fight.EndTime or socket.gettime()),
-            PlayerDamage = Pyre.Round(playerDamage, 1),
-            EnemyDamage = Pyre.Round(enemyDamage, 1),
-            Experience = Pyre.Round(exp, 1),
-            NormalExperience = Pyre.Round(normalExp, 1),
-            RareExperience = Pyre.Round(rareExp, 1),
-            BonusExperience = Pyre.Round(bonusExp, 1),
+            PlayerDamage = Core.Round(playerDamage, 1),
+            EnemyDamage = Core.Round(enemyDamage, 1),
+            Experience = Core.Round(exp, 1),
+            NormalExperience = Core.Round(normalExp, 1),
+            RareExperience = Core.Round(rareExp, 1),
+            BonusExperience = Core.Round(bonusExp, 1),
             AverageSoulsPerFight = soulsPerFight,
             Fights = fights,
             Normal = {
                 Duration = duration,
-                ExpPerMinute = Pyre.Round((((exp or 0) / duration) * 60) or 0, 1),
-                ExpPerSecond = Pyre.Round(((exp or 0) / duration) or 0, 1),
-                NormalPerMinute = Pyre.Round((((normalExp or 0) / duration) * 60) or 0, 1),
-                NormalPerSecond = Pyre.Round(((normalExp or 0) / duration) or 0, 1),
-                RarePerMinute = Pyre.Round((((rareExp or 0) / duration) * 60) or 0, 1),
-                RarePerSecond = Pyre.Round(((rareExp or 0) / duration) or 0, 1),
-                BonusPerMinute = Pyre.Round((((bonusExp or 0) / duration) * 60) or 0, 1),
-                BonusPerSecond = Pyre.Round(((bonusExp or 0) / duration) or 0, 1),
-                PlayerDps = Pyre.Round((playerDamage / duration) or 0, 1),
-                EnemyDps = Pyre.Round((enemyDamage / duration) or 0, 1)
+                ExpPerMinute = Core.Round((((exp or 0) / duration) * 60) or 0, 1),
+                ExpPerSecond = Core.Round(((exp or 0) / duration) or 0, 1),
+                NormalPerMinute = Core.Round((((normalExp or 0) / duration) * 60) or 0, 1),
+                NormalPerSecond = Core.Round(((normalExp or 0) / duration) or 0, 1),
+                RarePerMinute = Core.Round((((rareExp or 0) / duration) * 60) or 0, 1),
+                RarePerSecond = Core.Round(((rareExp or 0) / duration) or 0, 1),
+                BonusPerMinute = Core.Round((((bonusExp or 0) / duration) * 60) or 0, 1),
+                BonusPerSecond = Core.Round(((bonusExp or 0) / duration) or 0, 1),
+                PlayerDps = Core.Round((playerDamage / duration) or 0, 1),
+                EnemyDps = Core.Round((enemyDamage / duration) or 0, 1)
             },
             Souls = souls
         }
@@ -467,191 +576,217 @@ Tracker.Factory = {
     end
 }
 
-local started = false
-function Tracker.FeatureStart()
-    if (started == true) then
-        return
-    end
-
-    started = true
-    table.insert(Pyre.Events[Pyre.Event.StateChanged], TrackerOnStateChanged)
-    table.insert(Pyre.Events[Pyre.Event.ZoneChanged], TrackerOnZoneChanged)
+function Tracker.Start()
     Tracker.Session = Tracker.Factory.NewSession()
-    -- create an alias for each of our Tracker.Commands
-    Pyre.Each(
-        Tracker.Commands,
-        function(cmd)
-            if (cmd.callback ~= nil) then
-                AddAlias(
-                    'ph_trackercmd_' .. cmd.name,
-                    '^pyre tracker ' .. cmd.name .. '$',
-                    '',
-                    alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
-                    cmd.callback
-                )
+
+    if (Window ~= nil) then
+        Window.RegisterView(
+            'Session',
+            function()
+                local content = {}
+                local addcontent = function(msgs, tooltip, color)
+                    if (color == nil) then
+                        color = 'textcolor1'
+                    end
+                    table.insert(content, {Display = msgs, ColorSetting = color, Tooltip = tooltip})
+                end
+
+                local summary = Tracker.Factory.CreateSessionSummary(Tracker.Session)
+
+                local duration = Core.SecondsToClock(summary.Normal.Duration)
+                if (Core.IsAFK) then
+                    duration = 'AFK'
+                end
+
+                addcontent({'Session', duration}, '', 'textcolor2')
+                addcontent({'Fighting', tostring(Tracker.EnemyCounter)}, '', 'textcolor3')
+                addcontent({'Queue', tostring(#Core.ActionQueue)}, '', 'textcolor3')
+
+                addcontent({'Exp', tostring(summary.Experience)})
+                addcontent({'Normal', tostring(summary.NormalExperience)})
+                addcontent({'Rare', tostring(summary.RareExperience)})
+                addcontent({'Bonus', tostring(summary.BonusExperience)})
+
+                addcontent({'Fights', tostring(summary.Fights)})
+                addcontent({'Souls', tostring(summary.Souls)})
+                addcontent({'SPF', tostring(summary.AverageSoulsPerFight)})
+
+                addcontent({'XPM', tostring(summary.Normal.ExpPerMinute)})
+                addcontent({'XPCM', tostring(summary.Combat.ExpPerMinute)})
+                addcontent({'Dmg', tostring(summary.PlayerDamage)})
+                addcontent({'DPS', tostring(summary.Normal.PlayerDps)})
+                addcontent({'DPCS', tostring(summary.Combat.PlayerDps)})
+
+                addcontent({'EDmg', tostring(summary.EnemyDamage)})
+                addcontent({'EDPS', tostring(summary.Normal.EnemyDps)})
+                addcontent({'EDPCS', tostring(summary.Combat.EnemyDps)})
+
+                return content
             end
-        end
-    )
+        )
 
-    AddTriggerEx(
-        'ph_tracker_exp',
-        "^You receive ([0-9]+)\\+?([0-9]+)?\\+?([0-9]+)? ?('rare kill'|bonus)? experience (points|bonus|).*$",
-        '',
-        trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
-        -1,
-        0,
-        '',
-        'OnTrackerExperienceGain',
-        0
-    )
+        local pager = {
+            Current = function()
+                return Tracker.AreaIndex
+            end,
+            Min = function()
+                return 0
+            end,
+            Max = function()
+                return #Tracker.AreaTracker.History
+            end,
+            Set = function()
+                Core.Execute('pyre setarea')
+            end,
+            First = function()
+                Core.Execute('pyre firstarea')
+            end,
+            Newer = function()
+                Core.Execute('pyre newerarea')
+            end,
+            Older = function()
+                Core.Execute('pyre olderarea')
+            end,
+            Last = function()
+                Core.Execute('pyre lastarea')
+            end
+        }
 
-    AddTriggerEx(
-        'ph_trackerpdmg',
-        '^(\\*)?\\[.*\\]?\\s?Your (\\w*) -?<?(.*)>?-? (.*)! \\[(.*)\\]$',
-        '',
-        trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.KeepEvaluating + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
-        -1,
-        0,
-        '',
-        'OnTrackerPlayerDamage',
-        0
-    )
+        Window.RegisterView(
+            'Areas',
+            function()
+                local content = {}
+                local addcontent = function(msgs, tooltip, color, callback)
+                    table.insert(content, {Display = msgs, ColorSetting = (color or 'textcolor1'), Tooltip = tooltip})
+                end
 
-    AddTriggerEx(
-        'ph_tracker_edmg',
-        "^(\\*)?\\[.*\\]?\\s?(.*)'s (\\w*) (.*) you[!|\\.] \\[(.*)\\]$",
-        '',
-        trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
-        -1,
-        0,
-        '',
-        'OnTrackerEnemyDamage',
-        0
-    )
+                local area = Tracker.GetAreaByIndex(Tracker.AreaIndex)
+                if (area.Area == '') then
+                    area.Area = Core.Status.Zone
+                end
+                local summary = Tracker.Factory.CreateAreaSummary(area)
+
+                local duration = Core.SecondsToClock(summary.Normal.Duration)
+                if (Core.IsAFK) then
+                    duration = 'AFK'
+                end
+
+                addcontent({summary.Area, duration}, '', 'textcolor2')
+                addcontent({'Fighting', tostring(Tracker.EnemyCounter)}, '', 'textcolor3')
+                addcontent({'Queue', tostring(#Core.ActionQueue)}, '', 'textcolor3')
+
+                addcontent({'Exp', tostring(summary.Experience)})
+                addcontent({'Normal', tostring(summary.NormalExperience)})
+                addcontent({'Rare', tostring(summary.RareExperience)})
+                addcontent({'Bonus', tostring(summary.BonusExperience)})
+
+                addcontent({'Fights', tostring(summary.Fights)})
+                addcontent({'Souls', tostring(summary.Souls)})
+                addcontent({'SPF', tostring(summary.AverageSoulsPerFight)})
+
+                addcontent({'XPM', tostring(summary.Normal.ExpPerMinute)})
+                addcontent({'XPCM', tostring(summary.Combat.ExpPerMinute)})
+                addcontent({'Dmg', tostring(summary.PlayerDamage)})
+                addcontent({'DPS', tostring(summary.Normal.PlayerDps)})
+                addcontent({'DPCS', tostring(summary.Combat.PlayerDps)})
+
+                addcontent({'EDmg', tostring(summary.EnemyDamage)})
+                addcontent({'EDPS', tostring(summary.Normal.EnemyDps)})
+                addcontent({'EDPCS', tostring(summary.Combat.EnemyDps)})
+
+                return content
+            end,
+            pager
+        )
+
+        pager = {
+            Current = function()
+                return Tracker.FightIndex
+            end,
+            Min = function()
+                return 0
+            end,
+            Max = function()
+                return #Tracker.Session.Fights
+            end,
+            Set = function()
+                Core.Execute('pyre setfight')
+            end,
+            First = function()
+                Core.Execute('pyre firstfight')
+            end,
+            Newer = function()
+                Core.Execute('pyre newerfight')
+            end,
+            Older = function()
+                Core.Execute('pyre olderfight')
+            end,
+            Last = function()
+                Core.Execute('pyre lastfight')
+            end
+        }
+        Window.RegisterView(
+            'Fights',
+            function()
+                local content = {}
+                local addcontent = function(msgs, tooltip, color)
+                    table.insert(content, {Display = msgs, ColorSetting = (color or 'textcolor1'), Tooltip = tooltip})
+                end
+
+                local fight = Tracker.GetFightByIndex(Tracker.FightIndex)
+                local summary = Tracker.Factory.CreateFightSummary(fight)
+
+                if (summary == nil and Tracker.FightIndex == 0) then
+                    fight = Tracker.GetFightByIndex(1)
+                    summary = Tracker.Factory.CreateFightSummary(fight)
+                end
+
+                if (summary == nil) then
+                    addcontent({'Waiting on data'}, '', 'textcolor3')
+                    return content
+                end
+
+                local duration = Core.SecondsToClock(summary.Normal.Duration)
+                if (Core.IsAFK) then
+                    duration = 'AFK'
+                end
+
+                addcontent({'Duration', duration}, '', 'textcolor2')
+                addcontent({'Enemies', tostring(Tracker.EnemyCounter)}, '', 'textcolor3')
+                addcontent({'Queue', tostring(#Core.ActionQueue)}, '', 'textcolor3')
+
+                addcontent({'Exp', tostring(summary.Experience)})
+                addcontent({'Normal', tostring(summary.NormalExperience)})
+                addcontent({'Rare', tostring(summary.RareExperience)})
+                addcontent({'Bonus', tostring(summary.BonusExperience)})
+
+                addcontent({'Souls', tostring(summary.Souls)})
+
+                addcontent({'XPS', tostring(summary.Normal.ExpPerSecond)})
+                addcontent({'Dmg', tostring(summary.PlayerDamage)})
+                addcontent({'DPS', tostring(summary.Normal.PlayerDps)})
+
+                addcontent({'EDmg', tostring(summary.EnemyDamage)})
+                addcontent({'EDPS', tostring(summary.Normal.EnemyDps)})
+
+                return content
+            end,
+            pager
+        )
+    end
 end
 
-function OnTrackerExperienceGain(name, line, wildcards)
-    if (Tracker.FightTracker.Current.Area == nil) then
-        return
+function Tracker.Stop()
+    Tracker.Session = nil
+    Tracker.FightTracker.Current = nil
+    Tracker.AreaTracker.Current = nil
+    Tracker.AreaTracker.History = {}
+
+    if (Window ~= nil) then
+        Window.UnregisterView('Session')
+        Window.UnregisterView('Areas')
+        Window.UnregisterView('Fights')
     end
-
-    local main = tonumber(wildcards[1]) or 0
-    local additional1 = tonumber(wildcards[2]) or 0
-    local additional2 = tonumber(wildcards[3]) or 0
-    local isRare = (wildcards[4] == "'rare kill'") or false
-    local isBonus = (wildcards[4] == 'bonus')
-    local xpType = 1
-    if (isRare) then
-        xpType = 2
-    end
-    if (isBonus) then
-        xpType = 3
-    end
-
-    Pyre.Switch(xpType) {
-        [1] = function()
-            Tracker.FightTracker.Current.XP.Normal =
-                Tracker.FightTracker.Current.XP.Normal + (main + additional1 + additional2)
-            Tracker.FightTracker.Current.Enemies = Tracker.FightTracker.Current.Enemies + 1
-        end,
-        [2] = function()
-            Tracker.FightTracker.Current.XP.Rare =
-                Tracker.FightTracker.Current.XP.Rare + (main + additional1 + additional2)
-        end,
-        [3] = function()
-            Tracker.FightTracker.Current.XP.Bonus =
-                Tracker.FightTracker.Current.XP.Bonus + (main + additional1 + additional2)
-        end
-    }
-end
-
-function OnTrackerPlayerDamage(name, line, wildcards)
-    local damage = tonumber(wildcards[5]) or 0
-    local element = wildcards[2]
-
-    if (element == 'swing') then
-        if (Tracker.EnemyCounterLastReset < socket.gettime() - 0.5) then
-            Tracker.EnemyCounter = 0
-            Tracker.EnemyCounterLastReset = socket.gettime()
-        end
-        Tracker.EnemyCounter = Tracker.EnemyCounter + 1
-    else
-        Tracker.EnemyCounterLastReset = socket.gettime() - 10
-    end
-
-    if (Tracker.FightTracker.Current ~= nil and Tracker.FightTracker.Current.Damage ~= nil) then
-        Tracker.FightTracker.Current.Damage.Player = (Tracker.FightTracker.Current.Damage.Player or 0) + damage
-    end
-end
-
-function OnTrackerEnemyDamage(name, line, wildcards)
-    local damage = tonumber(wildcards[5]) or 0
-    if (Tracker.FightTracker.Current ~= nil and Tracker.FightTracker.Current.Damage ~= nil) then
-        Tracker.FightTracker.Current.Damage.Enemy = (Tracker.FightTracker.Current.Damage.Enemy or 0) + damage
-    end
-end
-
-function Tracker.FeatureSettingHandle(settingName, p1, p2, p3, p4)
-    if (settingName ~= 'tracker') then
-        return
-    end
-    for _, setting in ipairs(Tracker.Settings) do
-        if (string.lower(setting.name) == string.lower(p1)) then
-            setting:setValue(p2)
-            Pyre.Log(settingName .. ' ' .. setting.name .. ' : ' .. setting.value)
-        end
-    end
-end
-
-function Tracker.FeatureHelp()
-    local logTable = {}
-
-    Pyre.Each(
-        Tracker.Commands,
-        function(command)
-            table.insert(
-                logTable,
-                {
-                    {
-                        Value = command.name,
-                        Tooltip = command.description,
-                        Color = 'orange',
-                        Action = 'pyre tracker ' .. command.name
-                    },
-                    {Value = command.description, Tooltip = command.description}
-                }
-            )
-        end
-    )
-
-    -- spacer
-    table.insert(logTable, {{Value = ''}})
-
-    Pyre.Each(
-        Tracker.Settings,
-        function(setting)
-            table.insert(
-                logTable,
-                {
-                    {
-                        Value = setting.name,
-                        Tooltip = setting.description
-                    },
-                    {Value = setting.value}
-                }
-            )
-        end
-    )
-
-    Pyre.LogTable(
-        'Feature: Tracker ',
-        'teal',
-        {'cmd/setting', 'value'},
-        logTable,
-        1,
-        true,
-        'usage: pyre tracker <cmd> or pyre set tracker <setting> <value>'
-    )
 end
 
 function Tracker.GetFightByIndex(i)
@@ -680,7 +815,7 @@ end
 function Tracker.ArchiveCurrentFight()
     Tracker.EnemyCounter = 0
     -- if the fight has anything useful then we archive it
-    if ((Tracker.FightTracker.Current.Area or '') ~= '') then
+    if (Tracker.FightTracker.Current ~= nil and (Tracker.FightTracker.Current.Area or '') ~= '') then
         Tracker.FightTracker.Current = Tracker.Factory.EndFight(Tracker.FightTracker.Current)
 
         if
@@ -703,13 +838,13 @@ function Tracker.ArchiveCurrentFight()
                 end
             end
 
-            local maxSessionFights = Pyre.GetSettingValue(Tracker.Settings, 'sessionsize')
+            local maxSessionFights = Core.GetSettingValue(Tracker, 'sessionsize')
             if (#Tracker.Session.Fights > maxSessionFights) then
                 -- trim our session data
                 local difference = (#Tracker.Session.Fights - maxSessionFights)
                 if (difference > 0) then
                     Tracker.Session.Fights =
-                        Pyre.Filter(
+                        Core.Filter(
                         Tracker.Session.Fights,
                         function()
                             return true
@@ -740,11 +875,11 @@ function Tracker.ArchiveCurrentArea()
             end
         end
 
-        local maxSize = Pyre.GetSettingValue(Tracker.Settings, 'areasize')
+        local maxSize = Core.GetSettingValue(Tracker, 'areasize')
         local difference = (#Tracker.AreaTracker.History - maxSize)
         if (difference > 0) then
             Tracker.AreaTracker.History =
-                Pyre.Filter(
+                Core.Filter(
                 Tracker.AreaTracker.History,
                 function()
                     return true
@@ -757,60 +892,91 @@ function Tracker.ArchiveCurrentArea()
     Tracker.AreaTracker.Current = Tracker.Factory.NewArea()
 end
 
-function TrackerOnStateChanged(stateObject)
-    if (stateObject.New == Pyre.States.COMBAT) then
+function Tracker.OnStateChanged(state)
+    if (Tracker.AreaTracker.Current == nil or Tracker.AreaTracker.Current.Fights == nil) then
+        Tracker.AreaTracker.Current = Tracker.Factory.NewArea()
+    end
+
+    if (state.New == Core.States.COMBAT) then
         Tracker.FightTracker.Current = Tracker.Factory.NewFight()
     else
         Tracker.ArchiveCurrentFight()
     end
 end
 
-function TrackerOnZoneChanged(changeInfo)
+function Tracker.OnZoneChanged(zone)
     Tracker.ArchiveCurrentArea()
 end
 
-function OnTrackerSetFightIndex()
-    local i = Pyre.AskIfEmpty(nil, 'Fight Index', Tracker.FightIndex)
-    if (i ~= nil and i ~= '') then
-        Tracker.FightIndex = tonumber(i) or 0
-        if (Tracker.FightIndex > #Tracker.Session.Fights) then
-            Tracker.FightIndex = #Tracker.Session.Fights
+function Tracker.OnExperienceGain(line, wildcards)
+    if (Tracker.FightTracker.Current.Area == nil) then
+        return
+    end
+
+    local main = tonumber(wildcards[1]) or 0
+    local additional1 = tonumber(wildcards[2]) or 0
+    local additional2 = tonumber(wildcards[3]) or 0
+    local isRare = (wildcards[4] == "'rare kill'") or false
+    local isBonus = (wildcards[4] == 'bonus')
+    local xpType = 1
+    if (isRare) then
+        xpType = 2
+    end
+    if (isBonus) then
+        xpType = 3
+    end
+
+    Core.Switch(xpType) {
+        [1] = function()
+            Tracker.FightTracker.Current.XP.Normal =
+                Tracker.FightTracker.Current.XP.Normal + (main + additional1 + additional2)
+            Tracker.FightTracker.Current.Enemies = Tracker.FightTracker.Current.Enemies + 1
+        end,
+        [2] = function()
+            Tracker.FightTracker.Current.XP.Rare =
+                Tracker.FightTracker.Current.XP.Rare + (main + additional1 + additional2)
+        end,
+        [3] = function()
+            Tracker.FightTracker.Current.XP.Bonus =
+                Tracker.FightTracker.Current.XP.Bonus + (main + additional1 + additional2)
         end
-        if (Tracker.FightIndex < 0) then
-            Tracker.FightIndex = 0
+    }
+end
+
+function Tracker.OnAFKChanged(afk)
+    if (afk.New == true) then
+    else
+    end
+end
+
+function Tracker.OnPlayerDidDamage(line, wildcards)
+    local damage = tonumber(wildcards[5]) or 0
+    local element = wildcards[2]
+
+    if (element == 'swing') then
+        if (Tracker.EnemyCounterLastReset < socket.gettime() - 0.5) then
+            Tracker.EnemyCounter = 0
+            Tracker.EnemyCounterLastReset = socket.gettime()
         end
-        Pyre.Log('Fight index set to ' .. (Tracker.FightIndex or 0) .. ' of ' .. (#Tracker.Session.Fights or 0))
+        Tracker.EnemyCounter = Tracker.EnemyCounter + 1
+    else
+        Tracker.EnemyCounterLastReset = socket.gettime() - 10
+    end
+
+    if (Tracker.FightTracker.Current ~= nil and Tracker.FightTracker.Current.Damage ~= nil) then
+        Tracker.FightTracker.Current.Damage.Player = (Tracker.FightTracker.Current.Damage.Player or 0) + damage
     end
 end
 
-function OnTrackerSetFightIndexFirst()
-    Tracker.FightIndex = 0
-    Pyre.Log('Fight index set to ' .. (Tracker.FightIndex or 0) .. ' of ' .. (#Tracker.Session.Fights or 0))
-end
-
-function OnTrackerSetFightIndexNewer()
-    Tracker.FightIndex = Tracker.FightIndex - 1
-    if (Tracker.FightIndex < 0) then
-        Tracker.FightIndex = 0
+function Tracker.OnEnemyDidDamage(line, wildcards)
+    local damage = tonumber(wildcards[5]) or 0
+    if (Tracker.FightTracker.Current ~= nil and Tracker.FightTracker.Current.Damage ~= nil) then
+        Tracker.FightTracker.Current.Damage.Enemy = (Tracker.FightTracker.Current.Damage.Enemy or 0) + damage
     end
-    Pyre.Log('Fight index set to ' .. (Tracker.FightIndex or 0) .. ' of ' .. (#Tracker.Session.Fights or 0))
 end
 
-function OnTrackerSetFightIndexOlder()
-    Tracker.FightIndex = Tracker.FightIndex + 1
-    if (Tracker.FightIndex > #Tracker.Session.Fights) then
-        Tracker.FightIndex = #Tracker.Session.Fights
-    end
-    Pyre.Log('Fight index set to ' .. (Tracker.FightIndex or 0) .. ' of ' .. (#Tracker.Session.Fights or 0))
-end
-
-function OnTrackerSetFightIndexLast()
-    Tracker.FightIndex = #Tracker.Session.Fights or 0
-    Pyre.Log('Fight index set to ' .. (Tracker.FightIndex or 0) .. ' of ' .. (#Tracker.Session.Fights or 0))
-end
-
-function OnTrackerSetAreaIndex()
-    local i = Pyre.AskIfEmpty(nil, 'Area Index', Tracker.AreaIndex)
+function Tracker.SetArea(line, wildcards)
+    local i = Core.AskIfEmpty(wildcards[1], 'Area Index', Tracker.AreaIndex)
     if (i ~= nil and i ~= '') then
         Tracker.AreaIndex = tonumber(i) or 0
         if (Tracker.AreaIndex > #Tracker.AreaTracker.History) then
@@ -819,207 +985,92 @@ function OnTrackerSetAreaIndex()
         if (Tracker.AreaIndex < 0) then
             Tracker.AreaIndex = 0
         end
-        Pyre.Log('Area index set to ' .. (Tracker.AreaIndex or 0) .. ' of ' .. (#Tracker.AreaTracker.History or 0))
+        Core.Log('Area index set to ' .. (Tracker.AreaIndex or 0) .. ' of ' .. (#Tracker.AreaTracker.History or 0))
     end
 end
 
-function OnTrackerSetAreaIndexFirst()
+function Tracker.SetFirstArea()
     Tracker.AreaIndex = 0
-    Pyre.Log('Area index set to ' .. (Tracker.AreaIndex or 0) .. ' of ' .. (#Tracker.AreaTracker.History or 0))
+    Core.Log('Area index set to ' .. (Tracker.AreaIndex or 0) .. ' of ' .. (#Tracker.AreaTracker.History or 0))
 end
 
-function OnTrackerSetAreaIndexNewer()
+function Tracker.SetNewerArea()
     Tracker.AreaIndex = Tracker.AreaIndex - 1
     if (Tracker.AreaIndex < 0) then
         Tracker.AreaIndex = 0
     end
-    Pyre.Log('Area index set to ' .. (Tracker.AreaIndex or 0) .. ' of ' .. (#Tracker.AreaTracker.History or 0))
+    Core.Log('Area index set to ' .. (Tracker.AreaIndex or 0) .. ' of ' .. (#Tracker.AreaTracker.History or 0))
 end
 
-function OnTrackerSetAreaIndexOlder()
+function Tracker.SetOlderArea()
     Tracker.AreaIndex = Tracker.AreaIndex + 1
     if (Tracker.AreaIndex > #Tracker.AreaTracker.History) then
         Tracker.AreaIndex = #Tracker.AreaTracker.History
     end
-    Pyre.Log('Area index set to ' .. (Tracker.AreaIndex or 0) .. ' of ' .. (#Tracker.AreaTracker.History or 0))
+    Core.Log('Area index set to ' .. (Tracker.AreaIndex or 0) .. ' of ' .. (#Tracker.AreaTracker.History or 0))
 end
 
-function OnTrackerSetAreaIndexLast()
+function Tracker.SetLastArea()
     Tracker.AreaIndex = #Tracker.AreaTracker.History or 0
-    Pyre.Log('Area index set to ' .. (Tracker.AreaIndex or 0) .. ' of ' .. (#Tracker.AreaTracker.History or 0))
+    Core.Log('Area index set to ' .. (Tracker.AreaIndex or 0) .. ' of ' .. (#Tracker.AreaTracker.History or 0))
 end
 
-function OnResetFightData()
-    Pyre.Log('Resetting fight data', Pyre.LogLevel.INFO)
+function Tracker.ResetSession()
+    Core.Log('Resetting all session data', Core.LogLevel.INFO)
+    Tracker.Session = Tracker.Factory.NewSession()
+end
+function Tracker.ResetCurrentArea()
+    Core.Log('Resetting area data', Core.LogLevel.INFO)
+    Tracker.AreaTracker.Current = Tracker.Factory.NewArea()
+end
+function Tracker.ResetAreas()
+    Core.Log('Resetting all area data', Core.LogLevel.INFO)
+    Tracker.ResetCurrentArea()
+    Tracker.AreaTracker.History = {}
+end
+function Tracker.ResetCurrentFight()
+    Core.Log('Resetting fight data', Core.LogLevel.INFO)
     Tracker.FightTracker.Current = Tracker.Factory.NewFight()
 end
 
-function OnResetAreaData()
-    Pyre.Log('Resetting area data', Pyre.LogLevel.INFO)
-    Tracker.AreaTracker.Current = Tracker.Factory.NewArea()
-end
-
-function OnResetAreasData()
-    Pyre.Log('Resetting all area data', Pyre.LogLevel.INFO)
-    OnResetAreaData()
-    Tracker.AreaTracker.History = {}
-end
-
-function OnResetSessionData()
-    Pyre.Log('Resetting all session data', Pyre.LogLevel.INFO)
-    Tracker.Session = Tracker.Factory.NewSession()
-end
-
-function OnReportFightData()
-    Pyre.Log('OnReportFightData', Pyre.LogLevel.DEBUG)
-
-    local fight = Tracker.FightTracker.Current
-
-    if (fight.Area == nil) then
-        Tracker.FightIndex = 1
-    end
-
-    if (Tracker.FightIndex > 0) then
-        fight = Tracker.FightTracker.History[Tracker.FightIndex]
-        if (fight == nil) then
+function Tracker.SetFight(line, wildcards)
+    local i = Core.AskIfEmpty(nil, 'Fight Index', Tracker.FightIndex)
+    if (i ~= nil and i ~= '') then
+        Tracker.FightIndex = tonumber(i) or 0
+        if (Tracker.FightIndex > #Tracker.Session.Fights) then
+            Tracker.FightIndex = #Tracker.Session.Fights
+        end
+        if (Tracker.FightIndex < 0) then
             Tracker.FightIndex = 0
-            fight = Tracker.FightTracker.Current
         end
+        Core.Log('Fight index set to ' .. (Tracker.FightIndex or 0) .. ' of ' .. (#Tracker.Session.Fights or 0))
     end
+end
 
-    if (fight.Area == nil) then
+function Tracker.SetFirstFight()
+    Tracker.FightIndex = 0
+    Core.Log('Fight index set to ' .. (Tracker.FightIndex or 0) .. ' of ' .. (#Tracker.Session.Fights or 0))
+end
+
+function Tracker.SetNewerFight()
+    Tracker.FightIndex = Tracker.FightIndex - 1
+    if (Tracker.FightIndex < 0) then
         Tracker.FightIndex = 0
-        Pyre.Log('no current or last fight to report', Pyre.LogLevel.ERROR)
-        return
     end
-    Pyre.ReportToChannel('Fight', '..fight data')
+    Core.Log('Fight index set to ' .. (Tracker.FightIndex or 0) .. ' of ' .. (#Tracker.Session.Fights or 0))
 end
 
-function OnReportAreaData()
-    Pyre.Log('OnReportAreaData', Pyre.LogLevel.DEBUG)
-
-    local area = Tracker.AreaTracker.Current
-
-    if (area.Area == nil) then
-        Tracker.AreaIndex = 1
+function Tracker.SetOlderFight()
+    Tracker.FightIndex = Tracker.FightIndex + 1
+    if (Tracker.FightIndex > #Tracker.Session.Fights) then
+        Tracker.FightIndex = #Tracker.Session.Fights
     end
-
-    if (Tracker.AreaIndex > 0) then
-        area = Tracker.AreaTracker.History[Tracker.AreaIndex]
-        if (area == nil) then
-            Tracker.AreaIndex = 0
-            area = Tracker.AreaTracker.Current
-        end
-    end
-
-    if (area.Area == nil) then
-        Tracker.AreaIndex = 0
-        Pyre.Log('no current or last area to report', Pyre.LogLevel.ERROR)
-        return
-    end
-
-    Pyre.ReportToChannel('Area Report', 'Duration: ' .. Pyre.SecondsToClock(area.Duration))
+    Core.Log('Fight index set to ' .. (Tracker.FightIndex or 0) .. ' of ' .. (#Tracker.Session.Fights or 0))
 end
 
-function OnReportSessionXPData()
-    Pyre.Log('Reporting session xp', Pyre.LogLevel.DEBUG)
-
-    local session = Tracker.Session
-    if (session.StartTime == nil) then
-        Pyre.Log('No session data to report', Pyre.LogLevel.ERROR)
-        return
-    end
-
-    local summary = Tracker.Factory.CreateSessionSummary(session)
-
-    local normal = summary.Normal
-    local combat = summary.Combat
-
-    Pyre.ReportToChannel('Session XP Report', 'Duration: ' .. Pyre.SecondsToClock(normal.Duration))
-    Pyre.ReportToChannel(
-        'TOTAL',
-        'XP: ' ..
-            summary.Experience ..
-                ' Normal: ' ..
-                    summary.NormalExperience ..
-                        ' Rare: ' .. summary.RareExperience .. ' Bonus: ' .. summary.BonusExperience
-    )
-
-    Pyre.ReportToChannel(
-        'PERMIN',
-        'Normal: ' .. normal.NormalPerMinute .. ' Rare: ' .. normal.RarePerMinute .. ' Bonus: ' .. normal.BonusPerMinute
-    )
-
-    Pyre.ReportToChannel(
-        'PERSEC',
-        'Normal: ' .. normal.NormalPerSecond .. ' Rare: ' .. normal.RarePerSecond .. ' Bonus: ' .. normal.BonusPerSecond
-    )
-end
-
-function OnReportSessionXPCData()
-    Pyre.Log('Reporting session xp', Pyre.LogLevel.DEBUG)
-
-    local session = Tracker.Session
-    if (session.StartTime == nil) then
-        Pyre.Log('No session data to report', Pyre.LogLevel.ERROR)
-        return
-    end
-
-    local summary = Tracker.Factory.CreateSessionSummary(session)
-
-    local normal = summary.Normal
-    local combat = summary.Combat
-
-    Pyre.ReportToChannel(
-        'Session XP Combat Report',
-        'Duration: ' .. Pyre.SecondsToClock(normal.Duration) .. ' Combat: ' .. Pyre.SecondsToClock(combat.Duration)
-    )
-    Pyre.ReportToChannel(
-        'TOTAL',
-        'XP: ' ..
-            summary.Experience ..
-                ' Normal: ' ..
-                    summary.NormalExperience ..
-                        ' Rare: ' .. summary.RareExperience .. ' Bonus: ' .. summary.BonusExperience
-    )
-
-    Pyre.ReportToChannel(
-        'PERMIN',
-        'Normal: ' .. combat.NormalPerMinute .. ' Rare: ' .. combat.RarePerMinute .. ' Bonus: ' .. combat.BonusPerMinute
-    )
-
-    Pyre.ReportToChannel(
-        'PERSEC',
-        'Normal: ' .. combat.NormalPerSecond .. ' Rare: ' .. combat.RarePerSecond .. ' Bonus: ' .. combat.BonusPerSecond
-    )
-end
-
-function OnReportSessionDPSData()
-    Pyre.Log('Reporting session dps', Pyre.LogLevel.DEBUG)
-
-    local session = Tracker.Session
-    if (session.StartTime == nil) then
-        Pyre.Log('No session data to report', Pyre.LogLevel.ERROR)
-        return
-    end
-
-    local summary = Tracker.Factory.CreateSessionSummary(session)
-
-    local normal = summary.Normal
-    local combat = summary.Combat
-
-    Pyre.ReportToChannel(
-        'Session DPS Report',
-        'Duration: ' .. Pyre.SecondsToClock(normal.Duration) .. ' Combat: ' .. Pyre.SecondsToClock(combat.Duration)
-    )
-    Pyre.ReportToChannel(
-        'Player ',
-        'Damage: ' .. summary.PlayerDamage .. ' DPS: ' .. normal.PlayerDps .. ' DPCS: ' .. combat.PlayerDps
-    )
-    Pyre.ReportToChannel(
-        'Enemies',
-        'Damage: ' .. summary.EnemyDamage .. ' DPS: ' .. normal.EnemyDps .. ' DPCS: ' .. combat.EnemyDps
-    )
+function Tracker.SetLastFight()
+    Tracker.FightIndex = #Tracker.Session.Fights or 0
+    Core.Log('Fight index set to ' .. (Tracker.FightIndex or 0) .. ' of ' .. (#Tracker.Session.Fights or 0))
 end
 
 return Tracker

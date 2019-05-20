@@ -1,290 +1,534 @@
-require 'gmcphelper'
+-- "namespace" for all public helper functions
+-- The helper is mostly a relay between our xml plugin and our .lua features
 
-local Pyre = require('pyrecore')
+-- import our dependencies
+local Core = require('pyrecore')
+require('json')
+require('gmcphelper')
 
-Pyre.Log('helper.lua loaded', Pyre.LogLevel.DEBUG)
+PH = {}
 
-local Helper = {}
+PH.Config = {
+    Events = {
+        {
+            Type = Core.Event.StateChanged,
+            Callback = function(o)
+                PH.StateChanged(o)
+                Core.QueueReset()
+            end
+        },
+        {
+            Type = Core.Event.RoomChanged,
+            Callback = function(o)
+                Core.QueueReset()
+            end
+        }
+    },
+    Commands = {
+        {
+            Name = 'features',
+            Description = 'View available features',
+            Callback = function(line, wildcards)
+                PH.ShowFeatures()
+            end
+        },
+        {
+            Name = 'install',
+            ExecuteWith = 'pyre install (.*)',
+            Description = 'Install a feature',
+            Callback = function(line, wildcards)
+                PH.InstallFeature(wildcards[1])
+            end
+        },
+        {
+            Name = 'uninstall',
+            ExecuteWith = 'pyre uninstall (.*)',
+            Description = 'Uninstall a feature',
+            Callback = function(line, wildcards)
+                PH.UninstallFeature(wildcards[1])
+            end
+        },
+        {
+            Name = 'set',
+            ExecuteWith = "pyre set ([a-zA-Z0-9']+\\s?)?([\\(\\)\\#a-zA-Z0-9']+\\s?)?([\\(\\)\\#a-zA-Z0-9\\.']+\\s?)?([\\(\\)\\#a-zA-Z0-9\\.']+\\s?)?([\\(\\)\\#a-zA-Z0-9\\.']+\\s?)?([\\(\\)\\#a-zA-Z0-9\\.']+\\s?)?([\\(\\)\\#a-zA-Z0-9\\.']+\\s?)?([\\(\\)\\#a-zA-Z0-9\\.']+\\s?)?",
+            Description = 'Change settings',
+            Callback = function(line, wildcards)
+                PH.ChangeSetting(line, wildcards)
+            end
+        },
+        {
+            Name = 'help',
+            Description = 'show help ',
+            Callback = function(line, wildcards)
+                PH.ShowHelp(line, wildcards)
+            end
+        }
+    },
+    LatestVersions = {},
+    Versions = {},
+    LoadedFeatures = {}
+}
 
-Version = '0.0'
-local Features = {}
-local VersionData = {}
-function Helper.LoadFeatures()
-    if (#Features == 0) then
-        Pyre.Log("No features are installed. Type 'pyre features ' for a list")
-        return
+local afkcheckin = os.time()
+
+-- Plugin install. This really happens at plugin startup from a mush perspective.
+function PH.Install(remoteVersionData, featuresOnDisk)
+    PH.Config.LatestVersions = remoteVersionData
+    PH.Config.Versions = json.decode(GetVariable('ph_version') or '[]')
+
+    if (PH.Config.Versions.Release == nil) then
+        PH.Config.Versions = remoteVersionData
+        PH.Config.Versions.Features = {}
+    else
+        -- remove any features no longer found on disk
+        PH.Config.Versions.Features =
+            Core.Filter(
+            PH.Config.Versions.Features or {},
+            function(vf)
+                return Core.Any(
+                    featuresOnDisk or {},
+                    function(df)
+                        return (df.Name == vf.Name and df.Version == vf.Version)
+                    end
+                )
+            end
+        ) or {}
     end
 
-    for _, feature in ipairs(Features) do
-        Helper.LoadFeature(feature)
-    end
-end
-
-function Helper.LoadFeature(feature)
-    feature.Feature = require(feature.name)
-
-    if (feature.Feature.FeatureStart ~= nil) then
-        feature.Feature.FeatureStart(Features, VersionData)
-    end
-    Pyre.Log('Loaded Feature ' .. feature.name, Pyre.LogLevel.DEBUG)
-end
-
-function Helper.RestartFeatures()
-    Pyre.Each(
-        Features,
+    Core.Each(
+        PH.Config.Versions.Features,
         function(feature)
-            if (feature.Feature.FeatureStart ~= nil) then
-                feature.Feature.FeatureStart(Features, VersionData)
+            PH.LoadFeature(feature)
+        end
+    )
+
+    Core.Each(
+        PH.Config.Events,
+        function(evt)
+            evt.Source = 'ph'
+            table.insert(Core.Events[evt.Type], evt)
+        end
+    )
+
+    Core.Each(
+        PH.Config.Commands,
+        function(cmd)
+            local safename = cmd.Name:gsub('%s+', '')
+
+            if (cmd.ExecuteWith == nil or cmd.ExecuteWith == '') then
+                cmd.ExecuteWith = 'pyre ' .. string.lower(safename) .. '\\s?(.*)?'
+            end
+
+            AddAlias(
+                'phc_' .. safename,
+                '^' .. cmd.ExecuteWith .. '$',
+                '',
+                alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary + alias_flag.KeepEvaluating,
+                'PHCommandHandler'
+            )
+        end
+    )
+
+    -- load settings
+    if (Core.Config.Settings ~= nil) then
+        Core.Each(
+            Core.Config.Settings,
+            function(s)
+                s.Value = GetVariable('ph_' .. s.Name)
+                if (s.Value == nil) then
+                    s.Value = (s.Default or 0)
+                end
+                if (s.Min ~= nil or s.Max ~= nil) then
+                    s.Value = tonumber(s.Value) or tonumber(s.Default)
+                    if (s.Min ~= nil and s.Value < s.Min) then
+                        s.Value = s.Min
+                    end
+                    if (s.Max ~= nil and s.Value > s.Max) then
+                        s.Value = s.Max
+                    end
+                end
+                Core.Log('setting loaded ph_' .. s.Name .. ' : ' .. s.Value, Core.LogLevel.VERBOSE)
+            end
+        )
+    end
+
+    -- register triggers
+    if (PH.Config.Triggers ~= nil) then
+        Core.Each(
+            PH.Config.Triggers,
+            function(trigger)
+                local safename = trigger.Name:gsub('%s+', '')
+
+                AddTriggerEx(
+                    'phth_' .. safename,
+                    '^' .. trigger.Match .. '$',
+                    '',
+                    trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
+                    -1,
+                    0,
+                    '',
+                    'PHTriggerHandler',
+                    0
+                )
+            end
+        )
+    end
+
+    Core.Log('PH Version ' .. PH.Config.Versions.Release.Version .. ' - ' .. PH.Config.Versions.Release.Description)
+end
+
+function PH.LoadFeature(feature)
+    local loadedFeature =
+        Core.First(
+        PH.Config.LoadedFeatures,
+        function(lf)
+            return (lf.Name == feature.Name)
+        end
+    )
+
+    if (loadedFeature ~= nil) then
+        if (loadedFeature.Reference.Stop ~= nil) then
+            loadedFeature.Reference.Stop()
+            PH.UnregisterFeature(
+                Core.First(
+                    PH.Config.Versions.Features,
+                    function(f)
+                        return f.Name == loadedFeature.Name
+                    end
+                )
+            )
+        end
+        PH.Config.LoadedFeatures =
+            Core.Except(
+            PH.Config.LoadedFeatures,
+            function(f)
+                return f.Name == feature.Name
+            end
+        )
+    end
+
+    loadedFeature = require(feature.Name)
+    local fref = {Name = feature.Name, Version = feature.Version, Reference = loadedFeature}
+    table.insert(PH.Config.LoadedFeatures, fref)
+    return fref
+end
+
+function PH.Start()
+    -- enable our aliases
+    Core.Each(
+        PH.Config.Commands,
+        function(c)
+            EnableAlias('phc_' .. c.Name:gsub('%s+', ''), true)
+        end
+    )
+
+    Core.Each(
+        PH.Config.Triggers,
+        function(t)
+            EnableTrigger('phth_' .. t.Name:gsub('%s+', ''), true)
+        end
+    )
+
+    -- start features
+    PH.StartFeatures()
+
+    Core.Status.Started = true
+end
+
+function PH.Stop()
+    Core.SetState(Core.States.NONE)
+    Core.Each(
+        PH.Config.Commands,
+        function(c)
+            EnableAlias('phc_' .. c.Name:gsub('%s+', ''), false)
+        end
+    )
+
+    Core.Each(
+        PH.Config.Triggers,
+        function(t)
+            EnableTrigger('phth_' .. t.Name:gsub('%s+', ''), false)
+        end
+    )
+
+    -- same for each features
+    PH.StopFeatures()
+
+    Core.Status.Started = false
+end
+
+function PH.ResetAfk()
+    afkcheckin = os.time()
+end
+
+-- Start on all features
+function PH.StartFeatures()
+    Core.Each(
+        PH.Config.LoadedFeatures,
+        function(lf)
+            PH.RegisterFeature(lf)
+            if (lf.Reference.Start ~= nil) then
+                lf.Reference.Start()
             end
         end
     )
 end
 
-function Helper.ShowInstalledFeatureHelp()
-    local installed = tostring(GetVariable('plugininstalled')) or ''
-    if (installed ~= '') then
-        Pyre.Execute('pyre help ' .. installed)
-    end
-end
-function Helper.AddNewFeature(feature)
-    Helper.LoadFeature(feature)
-    table.insert(Features, feature)
-    SetVariable('plugininstalled', feature.name)
-    SetVariable('feature_version_' .. feature.name, feature.version or '')
-    Pyre.Log('It is recommended you pyre reload after feature installs')
-end
-function Helper.RemoveFeature(feature)
-    if (feature ~= nil and feature.Feature ~= nil and feature.Feature.FeatureStop ~= nil) then
-        feature.Feature.FeatureStop()
-    end
-    Features =
-        Pyre.Filter(
-        Features,
+-- Stop on all features
+function PH.StopFeatures()
+    Core.Each(
+        PH.Config.LoadedFeatures,
         function(f)
-            return (f.name ~= feature.name)
+            if (f.Reference.Stop ~= nil) then
+                f.Reference.Stop()
+            end
+            PH.UnregisterFeature(lf)
+        end
+    )
+end
+
+-- Save on all features
+function PH.Save()
+    SetVariable('ph_version', json.encode(PH.Config.Versions))
+
+    Core.Each(
+        Core.Config.Settings,
+        function(s)
+            SetVariable('ph_' .. s.Name, s.Value or s.Default or 0)
         end
     )
 
-    SetVariable('feature_' .. feature.name, '')
-    SetVariable('feature_version_' .. feature.name, '')
-
-    os.remove('lua/' .. feature.name .. '.lua')
-    Pyre.Log('Uninstalled Feature ' .. feature.name)
-end
-
-function csplit(inputstr, sep)
-    if sep == nil then
-        sep = '%s'
-    end
-    local t = {}
-    for str in string.gmatch(inputstr, '([^' .. sep .. ']+)') do
-        table.insert(t, str)
-    end
-    return t
-end
-
-function getFileName(path)
-    local fileParts = csplit(path, '/')
-    local fileName = fileParts[table.getn(fileParts)]
-    return fileName
-end
-function saveFile(path, data)
-    local file = io.open(path, 'w')
-    file:write(data)
-    file:flush()
-    file:close()
-end
-function getFeatureName(path)
-    local fileName = getFileName(path)
-    local extParts = csplit(fileName, '.')
-    return extParts[1]
-end
-function OnFeatureDownloaded(retval, page, status, headers, full_status, request_url)
-    if status == 200 then
-        local fileName = getFileName(request_url)
-        saveFile('lua/' .. fileName, page)
-        Helper.AddNewFeature({name = getFeatureName(fileName)})
-    else
-        Pyre.Log('Unable to download ' .. request_url, Pyre.LogLevel.ERROR)
-    end
-end
-
-function Helper.DownloadFeature(feature)
-    Pyre.Log('Downloading feature' .. feature.name)
-    async.doAsyncRemoteRequest(
-        'https://raw.githubusercontent.com/thesmallbang/ascripts/master/' .. feature.filename,
-        OnFeatureDownloaded,
-        'HTTPS',
-        120
+    Core.Each(
+        PH.Config.LoadedFeatures,
+        function(f)
+            if (f.Reference ~= nil and f.Reference.Config ~= nil and f.Reference.Config.Settings ~= nil) then
+                Core.Each(
+                    f.Reference.Config.Settings,
+                    function(s)
+                        if (s.Name == 'container') then
+                        --print('saving setting ' .. f.Name .. '_' .. s.Name .. ' val ' .. (s.Value or '[nil]'))
+                        end
+                        SetVariable(f.Name .. '_' .. s.Name, (s.Value or s.Default))
+                    end
+                )
+            end
+        end
     )
 end
 
---------------------------------------------------------------------------------------
+-- Tick on all features.
+-- This occurs on an interval that mushclient estimates at 25 hits per second. We are limiting the ticks based on a time setting to slow our tick down
+function PH.Tick()
+    local secondsafk = os.time() - afkcheckin
+    local allowedminutes = Core.GetSettingValue(Core, 'afkminutes')
 
---                  PLUGIN RELAY FUNCTIONS
-
---------------------------------------------------------------------------------------
-
-function Helper.OnStart(data, features)
-    Version = data.release.version
-    VersionData = data
-    Features = features
-    Pyre.CleanLog('[' .. Version .. '] Loaded. (pyre help)', nil, nil, Pyre.LogLevel.INFO)
-
-    Helper.Setup()
-    Pyre.Status.Started = true
-end
-
-function Helper.OnStop()
-    Pyre.Log('OnStop', Pyre.LogLevel.DEBUG)
-
-    Pyre.Status.Started = false
-    Pyre.Status.State = Pyre.States.NONE
-
-    for _, feat in ipairs(Features) do
-        if ((feat ~= nil) and (feat.Feature ~= nil) and feat.Feature.FeatureStop ~= nil) then
-            feat.Feature.FeatureStop()
-        end
-    end
-end
-
-function Helper.Save()
-    if (Pyre.Status.State == Pyre.States.NONE) then
-        return
-    end
-    Pyre.Log('Saving', Pyre.LogLevel.DEBUG)
-    Pyre.SaveSettings()
-    for _, feat in ipairs(Features) do
-        if ((feat ~= nil) and (feat.Feature ~= nil) and feat.Feature.FeatureSave ~= nil) then
-            feat.Feature.FeatureSave()
-        end
+    if (Core.IsAFK == true and (secondsafk < (allowedminutes * 60))) then
+        Core.IsAFK = false
+        Core.ShareEvent(Core.Event.AFKChanged, {New = false, Old = new})
     end
 
-    -- SaveSkills()
+    if (Core.IsAFK == false and (secondsafk >= (allowedminutes * 60))) then
+        Core.IsAFK = true
+        Core.ShareEvent(Core.Event.AFKChanged, {New = true, Old = false})
+    end
+
+    Core.QueueCleanExpired()
+    Core.QueueProcessNext()
+    Core.ShareEvent(Core.Event.Tick)
 end
 
-function Helper.OnInstall()
-    Pyre.Log('Installed', Pyre.LogLevel.DEBUG)
-end
-
-function Helper.OnPluginBroadcast(msg, id, name, text)
-    if (Pyre.Status.State == Pyre.States.NONE) then
-        Pyre.SetState(Pyre.States.REQUESTED) -- sent request
+function PH.OnPluginBroadcast(msg, id, name, text)
+    if (Core.Status.State == Core.States.NONE) then
+        Core.SetState(Core.States.REQUESTED) -- sent request
         Send_GMCP_Packet('request char')
         Send_GMCP_Packet('request room')
         Send_GMCP_Packet('request group')
     end
 
     if (id == '3e7dedbe37e44942dd46d264') then
-        Helper.OnGMCP(text)
+        PH.OnGMCP(text)
         return
     end
 
-    for _, feature in pairs(Features) do
-        if (not (feature == nil) and not (feature.Feature == nil) and not (feature.OnBroadCast == nil)) then
+    for _, feature in pairs(PH.Config.LoadedFeatures) do
+        if (not (feature == nil) and not (feature.Reference == nil) and not (feature.Reference.OnBroadCast == nil)) then
             feature.OnBroadCast(msg, id, name, text)
         end
     end
 end
 
-function Helper.OnGMCP(text)
-    Pyre.Log('gmcp ' .. text, Pyre.LogLevel.VERBOSE)
+function PH.OnGMCP(text)
+    Core.Log('gmcp ' .. text, Core.LogLevel.VERBOSE)
+
+    if (text == 'char.status') then
+        res, gmcparg = CallPlugin('3e7dedbe37e44942dd46d264', 'gmcpval', 'char')
+        luastmt = 'gmcpdata = ' .. gmcparg
+        assert(loadstring(luastmt or ''))()
+        Core.SetState(tonumber(gmcpval('status.state')))
+        Core.Status.RawAlignment = tonumber(gmcpval('status.align'))
+
+        Core.Status.RawLevel = tonumber(gmcpval('status.level'))
+        local newEnemy = gmcpval('status.enemy')
+        local oldEnemy = Core.Status.Enemy
+        Core.Status.Enemy = newEnemy
+        Core.Status.EnemyHp = tonumber(gmcpval('status.enemypct'))
+        Core.Status.Level = Core.Status.RawLevel + (10 * Core.Status.Tier)
+
+        -- broadcast some change events
+        if (not (string.lower(newEnemy) == string.lower(oldEnemy))) then
+            Core.ShareEvent(Core.Event.NewEnemy, {new = newEnemy, old = oldEnemy})
+        end
+    end
+    if (text == 'room.info') then
+        res, gmcparg = CallPlugin('3e7dedbe37e44942dd46d264', 'gmcpval', 'room')
+        luastmt = 'gmcpdata = ' .. gmcparg
+        assert(loadstring(luastmt or ''))()
+        Core.SetMap(tonumber(gmcpval('info.num')), gmcpval('info.name') or '', gmcpval('info.zone') or '')
+    end
+
+    -- if (Core.Status.State >= Core.States.IDLE) then
     if (text == 'char.vitals') then
         res, gmcparg = CallPlugin('3e7dedbe37e44942dd46d264', 'gmcpval', 'char')
         luastmt = 'gmcpdata = ' .. gmcparg
         assert(loadstring(luastmt or ''))()
-        Pyre.Status.RawHp = tonumber(gmcpval('vitals.hp')) or 0
-        Pyre.Status.RawMana = tonumber(gmcpval('vitals.mana')) or 0
-        Pyre.Status.RawMoves = tonumber(gmcpval('vitals.moves')) or 0
+        Core.Status.RawHp = tonumber(gmcpval('vitals.hp')) or 0
+        Core.Status.RawMana = tonumber(gmcpval('vitals.mana')) or 0
+        Core.Status.RawMoves = tonumber(gmcpval('vitals.moves')) or 0
 
-        local hpPercent = tonumber((Pyre.Status.RawHp / Pyre.Status.MaxHp) * 100)
+        local hpPercent = tonumber((Core.Status.RawHp / Core.Status.MaxHp) * 100)
         if (hpPercent == nil) then
-            Pyre.SetHp(0)
+            Core.SetHp(0)
         else
-            Pyre.SetHp(Pyre.Round(hpPercent, 0))
+            Core.SetHp(Core.Round(hpPercent, 0))
         end
 
-        if (Pyre.Status.RawMana == 0) then
-            Pyre.Status.Mana = 0
+        if (Core.Status.RawMana == 0) then
+            Core.Status.Mana = 0
         else
-            Pyre.Status.Mana = tonumber((Pyre.Status.RawMana / Pyre.Status.MaxMana) * 100) or 0
+            Core.Status.Mana = tonumber((Core.Status.RawMana / Core.Status.MaxMana) * 100) or 0
         end
-        if (Pyre.Status.RawMoves == 0) then
-            Pyre.Status.Moves = 0
+        if (Core.Status.RawMoves == 0) then
+            Core.Status.Moves = 0
         else
-            Pyre.Status.Moves = tonumber((Pyre.Status.RawMoves / Pyre.Status.MaxMoves) * 100) or 0
+            Core.Status.Moves = tonumber((Core.Status.RawMoves / Core.Status.MaxMoves) * 100) or 0
         end
     end
     if (text == 'char.maxstats') then
         res, gmcparg = CallPlugin('3e7dedbe37e44942dd46d264', 'gmcpval', 'char')
         luastmt = 'gmcpdata = ' .. gmcparg
         assert(loadstring(luastmt or ''))()
-        Pyre.Status.MaxHp = tonumber(gmcpval('maxstats.maxhp')) or 0
-        Pyre.Status.MaxMana = tonumber(gmcpval('maxstats.maxmana')) or 0
-        Pyre.Status.MaxMoves = tonumber(gmcpval('maxstats.maxmoves')) or 0
+        Core.Status.MaxHp = tonumber(gmcpval('maxstats.maxhp')) or 0
+        Core.Status.MaxMana = tonumber(gmcpval('maxstats.maxmana')) or 0
+        Core.Status.MaxMoves = tonumber(gmcpval('maxstats.maxmoves')) or 0
 
-        if (Pyre.Status.RawHp == 0) then
-            Pyre.Status.Hp = 0
+        if (Core.Status.RawHp == 0) then
+            Core.Status.Hp = 0
         else
-            Pyre.Status.Hp = tonumber((Pyre.Status.RawHp / Pyre.Status.MaxHp) * 100) or 0
+            Core.Status.Hp = tonumber((Core.Status.RawHp / Core.Status.MaxHp) * 100) or 0
         end
-        if (Pyre.Status.RawMana == 0) then
-            Pyre.Status.Mana = 0
+        if (Core.Status.RawMana == 0) then
+            Core.Status.Mana = 0
         else
-            Pyre.Status.Mana = tonumber((Pyre.Status.RawMana / Pyre.Status.MaxMana) * 100) or 0
+            Core.Status.Mana = tonumber((Core.Status.RawMana / Core.Status.MaxMana) * 100) or 0
         end
-        if (Pyre.Status.RawMoves == 0) then
-            Pyre.Status.Moves = 0
+        if (Core.Status.RawMoves == 0) then
+            Core.Status.Moves = 0
         else
-            Pyre.Status.Moves = tonumber((Pyre.Status.RawMoves / Pyre.Status.MaxMoves) * 100) or 0
-        end
-    end
-
-    if (text == 'char.status') then
-        res, gmcparg = CallPlugin('3e7dedbe37e44942dd46d264', 'gmcpval', 'char')
-        luastmt = 'gmcpdata = ' .. gmcparg
-        assert(loadstring(luastmt or ''))()
-        Pyre.SetState(tonumber(gmcpval('status.state')))
-        Pyre.Status.RawAlignment = tonumber(gmcpval('status.align'))
-
-        Pyre.Status.RawLevel = tonumber(gmcpval('status.level'))
-        local newEnemy = gmcpval('status.enemy')
-        local oldEnemy = Pyre.Status.Enemy
-        Pyre.Status.Enemy = newEnemy
-        Pyre.Status.EnemyHp = tonumber(gmcpval('status.enemypct'))
-        Pyre.Status.Level = Pyre.Status.RawLevel + (10 * Pyre.Status.Tier)
-
-        -- broadcast some change events
-        if (not (string.lower(newEnemy) == string.lower(oldEnemy))) then
-            Pyre.ShareEvent(Pyre.Event.NewEnemy, {new = newEnemy, old = oldEnemy})
+            Core.Status.Moves = tonumber((Core.Status.RawMoves / Core.Status.MaxMoves) * 100) or 0
         end
     end
     if (text == 'char.base') then
         res, gmcparg = CallPlugin('3e7dedbe37e44942dd46d264', 'gmcpval', 'char')
         luastmt = 'gmcpdata = ' .. gmcparg
         assert(loadstring(luastmt or ''))()
-        Pyre.Status.Name = gmcpval('base.name')
-        Pyre.Status.Tier = tonumber(gmcpval('base.tier'))
-        Pyre.Status.Subclass = gmcpval('base.subclass')
-        Pyre.Status.Clan = gmcpval('base.clan')
-        Pyre.Status.Level = Pyre.Status.RawLevel + (10 * Pyre.Status.Tier)
+        Core.Status.Name = gmcpval('base.name')
+        Core.Status.Tier = tonumber(gmcpval('base.tier'))
+        Core.Status.Subclass = gmcpval('base.subclass')
+        Core.Status.Clan = gmcpval('base.clan')
+        Core.Status.Level = Core.Status.RawLevel + (10 * Core.Status.Tier)
     end
-    if (text == 'room.info') then
-        res, gmcparg = CallPlugin('3e7dedbe37e44942dd46d264', 'gmcpval', 'room')
-        luastmt = 'gmcpdata = ' .. gmcparg
-        assert(loadstring(luastmt or ''))()
-        Pyre.SetMap(tonumber(gmcpval('info.num')), gmcpval('info.name') or '', gmcpval('info.zone') or '')
-    end
+
     if (text == 'group') then
         res, gmcparg = CallPlugin('3e7dedbe37e44942dd46d264', 'gmcpval', 'group')
         luastmt = 'gmcpdata = ' .. gmcparg
         assert(loadstring(luastmt or ''))()
         local leader = gmcpval('group.leader')
-        Pyre.Status.IsLeader = ((Pyre.Status.Name == leader) or (leader == ''))
+        Core.Status.IsLeader = ((Core.Status.Name == leader) or (leader == ''))
     end
+    --  end
 end
 
-function OnHelp(name, line, wildcards)
+function PHCommandHandler(name, line, wildcards)
+    local cmd =
+        Core.First(
+        PH.Config.Commands,
+        function(c)
+            return 'phc_' .. c.Name:gsub('%s+', '') == name
+        end
+    )
+
+    if (cmd ~= nil) then
+        cmd.Callback(line, wildcards)
+        return
+    end
+
+    Core.Each(
+        PH.Config.LoadedFeatures,
+        function(f)
+            if (f.Reference ~= nil and f.Reference.Config ~= nil and f.Reference.Config.Commands ~= nil) then
+                cmd =
+                    Core.First(
+                    f.Reference.Config.Commands,
+                    function(c)
+                        return 'phc_' .. f.Name .. '_' .. c.Name:gsub('%s+', '') == name
+                    end
+                )
+
+                if (cmd ~= nil) then
+                    cmd.Callback(line, wildcards)
+                end
+            end
+        end
+    )
+end
+
+function PHTriggerHandler(name, line, wildcards)
+    local trigger =
+        Core.First(
+        PH.Config.Triggers,
+        function(t)
+            local safename = name:gsub('%s+', '')
+            return 'phth_' .. t.Name:gsub('%s+', '') == safename
+        end
+    )
+
+    if (trigger ~= nil) then
+        trigger.Callback(line, wildcards)
+    end
+
+    Core.Each(
+        PH.Config.LoadedFeatures,
+        function(f)
+            if (f ~= nil and f.Reference ~= nil and f.Reference.Config ~= nil and f.Reference.Config.Triggers ~= nil) then
+                -- PHTriggerHandler
+                trigger =
+                    Core.Each(
+                    f.Reference.Config.Triggers,
+                    function(t)
+                        local shouldbe = 'pht_' .. f.Name .. '_' .. t.Name:gsub('%s+', '')
+                        if (shouldbe == name) then
+                            if (t.Callback ~= nil) then
+                                t.Callback(line, wildcards)
+                            end
+                        end
+                    end
+                )
+            end
+        end
+    )
+end
+
+function PH.ShowHelp(line, wildcards)
     local logTable = {}
     local topic = wildcards[1] or ''
 
@@ -316,21 +560,29 @@ function OnHelp(name, line, wildcards)
             }
         }
 
-        for _, feat in ipairs(Features) do
+        for _, feat in ipairs(PH.Config.LoadedFeatures) do
             table.insert(
                 logTable,
                 {
                     {
-                        Value = feat.name,
+                        Value = feat.Name,
                         Color = 'orange',
-                        Tooltip = 'click for ' .. feat.name .. ' specific help/settings',
-                        Action = 'pyre help ' .. feat.name
+                        Tooltip = 'click for ' .. feat.Name .. ' specific help/settings',
+                        Action = 'pyre help ' .. feat.Name
                     }
                 }
             )
         end
 
-        Pyre.LogTable('Pyre Help', 'teal', {'Topic'}, logTable, 3, true, 'usage: pyre help <topic> or pyre features')
+        Core.LogTable('Pyre Help', 'teal', {'Topic'}, logTable, 3, true, 'usage: pyre help <topic> or click topic')
+        return
+    end
+
+    for _, feat in ipairs(PH.Config.LoadedFeatures) do
+        if ((topic == feat.Name or ('pyre' .. topic == feat.Name)) and (feat.Reference ~= nil)) then
+            PH.BuildConfigHelp(feat.Name, feat.Reference.Config)
+            return
+        end
     end
 
     if (topic == 'reloader') then
@@ -354,7 +606,7 @@ function OnHelp(name, line, wildcards)
             }
         }
 
-        Pyre.LogTable(
+        Core.LogTable(
             'Plugin: Reloader ',
             'teal',
             {'Command', 'Description'},
@@ -366,88 +618,117 @@ function OnHelp(name, line, wildcards)
     end
 
     if (topic == 'core' or topic == 'pyrecore') then
-        Pyre.ShowSettings()
-    end
-
-    for _, feat in ipairs(Features) do
-        if
-            ((topic == feat.name or ('pyre' .. topic == feat.name)) and (feat.Feature ~= nil) and
-                (feat.Feature.FeatureHelp ~= nil))
-         then
-            feat.Feature.FeatureHelp()
+        if (Core.Config ~= nil) then
+            PH.BuildConfigHelp('core', Core.Config)
+            return
         end
     end
 end
 
-function all_trim(s)
-    return s:match '^%s*(.*)':match '(.-)%s*$'
-end
-
-function OnSetting(name, line, wildcards)
-    Pyre.Log('OnSetting', Pyre.LogLevel.DEBUG)
-
-    local setting = wildcards[1]
-
-    local p1 = wildcards[2]:gsub('%s+', '') or ''
-    local p2 = wildcards[3]:gsub('%s+', '') or ''
-    local p3 = wildcards[4]:gsub('%s+', '') or ''
-    local p4 = wildcards[5]:gsub('%s+', '') or ''
-
-    setting = all_trim(setting)
-    p1 = all_trim(p1)
-    p2 = all_trim(p2)
-    p3 = all_trim(p3)
-    p4 = all_trim(p4)
-
-    if (setting == nil or setting == '') then
-        return
-    end
-
-    for _, feat in ipairs(Features) do
-        if ((feat ~= nil) and (feat.Feature ~= nil) and feat.Feature.FeatureSettingHandle ~= nil) then
-            feat.Feature.FeatureSettingHandle(setting, p1, p2, p3, p4)
-        end
-    end
-
-    Pyre.ChangeSetting(setting, p1, p2, p3, p4)
-end
-
-function OnFeatures()
+function PH.BuildConfigHelp(name, config)
     local logTable = {}
 
-    Pyre.Each(
-        VersionData.features,
-        function(f)
+    table.insert(logTable, {{Value = 'Command'}, {Value = 'Description'}})
+
+    Core.Each(
+        config.Commands,
+        function(c)
+            local execute =
+                string.gsub(c.ExecuteWith, '[\\?\\(\\.\\*\\)]', ''):match '^%s*(.*)':match '(.-)%s*$':sub(1, -2)
+            table.insert(
+                logTable,
+                {
+                    {
+                        Value = c.Name,
+                        Color = 'orange',
+                        Tooltip = c.Description .. ' .. ' .. execute,
+                        Action = execute
+                    },
+                    {
+                        Value = c.Description,
+                        Tooltip = c.Description .. ' .. ' .. execute
+                    }
+                }
+            )
+        end
+    )
+
+    table.insert(logTable, {{Value = ''}, {Value = ''}})
+    table.insert(logTable, {{Value = 'Setting'}, {Value = 'Value'}})
+
+    Core.Each(
+        config.Settings,
+        function(s)
+            local execute = 'pyre set ' .. name .. ' ' .. s.Name
+            table.insert(
+                logTable,
+                {
+                    {
+                        Value = s.Name,
+                        Color = 'orange',
+                        Tooltip = s.Description .. '  (Default: ' .. s.Default .. ')',
+                        Action = execute
+                    },
+                    {
+                        Value = s.Value,
+                        Tooltip = s.Description
+                    }
+                }
+            )
+        end
+    )
+
+    Core.LogTable(
+        'Topic: ' .. string.upper(name:gsub('pyre', '')),
+        'teal',
+        {'', ''},
+        logTable,
+        1,
+        false,
+        'Interact with orange text, Mouseover for more information'
+    )
+end
+
+function PH.ShowFeatures()
+    local logTable = {}
+
+    Core.Each(
+        PH.Config.LatestVersions.Features,
+        function(latestFeature)
             local installed =
-                Pyre.Any(
-                Features,
+                Core.First(
+                PH.Config.Versions.Features,
                 function(feat)
-                    return (feat.name == f.name)
+                    return (feat.Name == latestFeature.Name)
                 end
             )
 
-            local versionColumn = f.version
-            if not (installed) then
+            local versionColumn = latestFeature.Version
+
+            if (installed == nil) then
                 versionColumn = 'Not Installed'
+            end
+            if (installed ~= nil and ((tonumber(installed.Version) or 0) < (tonumber(latestFeature.Version) or 0))) then
+                versionColumn = installed.Version .. ' -> ' .. latestFeature.Version
             end
 
             table.insert(
                 logTable,
                 {
                     {
-                        Value = f.name,
+                        Value = latestFeature.Name,
                         Color = 'orange',
-                        Tooltip = f.description,
-                        Action = 'pyre install ' .. f.name
+                        Tooltip = latestFeature.Description,
+                        Action = 'pyre install ' .. latestFeature.Name
                     },
-                    {Value = f.description},
+                    {Value = latestFeature.Description},
                     {Value = versionColumn}
                 }
             )
         end
     )
 
-    Pyre.LogTable(
+    Core.LogTable(
         'Features ',
         'teal',
         {'Name', 'Description', 'Status'},
@@ -458,149 +739,392 @@ function OnFeatures()
     )
 end
 
-function OnFeatureInstall(name, line, wildcards)
-    Pyre.Log('OnFeatureInstall', Pyre.LogLevel.DEBUG)
-
-    local featureParam = wildcards[1]
+function PH.InstallFeature(name)
     local feature =
-        Pyre.First(
-        VersionData.features,
+        Core.First(
+        PH.Config.LatestVersions.Features,
         function(f)
-            return (f.name == featureParam)
+            return (string.upper(f.Name) == string.upper(name))
         end
     )
 
     if (feature == nil) then
-        Pyre.Log('Feature not found')
+        Core.Log(name .. ' is not a valid feature. Use "pyre features" to get a list')
         return
     end
 
-    Helper.RemoveFeature(feature)
-    Helper.DownloadFeature(feature)
+    Core.Log('Installing ' .. feature.Name .. ' : ' .. feature.Version)
+    download(
+        'https://raw.githubusercontent.com/thesmallbang/ascripts/master/' .. feature.Filename,
+        function(retval, page, status, headers, full_status, request_url)
+            saveDownload(retval, page, status, headers, full_status, request_url)
+
+            -- update our Versions to include or replace the existing feature data
+            PH.Config.Versions.Features =
+                Core.Except(
+                PH.Config.Versions.Features,
+                function(f)
+                    return f.Name == feature.Name
+                end
+            )
+
+            table.insert(PH.Config.Versions.Features, feature)
+
+            local lf = PH.LoadFeature(feature)
+
+            if (Core.Status.Started == true and lf.Reference ~= nil and lf.Reference.Start ~= nil) then
+                lf.Reference.Start()
+            end
+            PH.Save()
+            Core.Log('Installed ' .. feature.Name .. ' : ' .. feature.Version)
+        end
+    )
 end
 
-function OnFeatureUninstall(name, line, wildcards)
-    Pyre.Log('OnFeatureUninstall', Pyre.LogLevel.DEBUG)
-
-    local featureParam = wildcards[1]
+function PH.UninstallFeature(name)
     local feature =
-        Pyre.First(
-        Features,
+        Core.First(
+        PH.Config.LoadedFeatures,
         function(f)
-            return (f.name == featureParam)
+            return (string.upper(f.Name) == string.upper(name))
         end
     )
 
     if (feature == nil) then
+        Core.Log(name .. ' is not a valid feature or is not installed. Use "pyre features" to get a list')
         return
     end
 
-    Helper.RemoveFeature(feature)
-end
-
-function OnEnemyDied()
-    Pyre.Log('Event enemydied', Pyre.LogLevel.DEBUG)
-    Pyre.ShareEvent(Pyre.Event.EnemyDied, {})
-end
-
-function CoreOnStateChange(stateObject)
-    if (stateObject.New ~= Pyre.States.COMBAT) then
-        Pyre.QueueReset()
+    if (feature.Reference ~= nil and feature.Reference.Stop ~= nil) then
+        feature.Reference.Stop()
     end
-    if (stateObject.Old == Pyre.States.REQUESTED) then
-    -- Helper.RestartFeatures()
-    end
+
+    PH.UnregisterFeature(feature)
+
+    PH.Config.Versions.Features =
+        Core.Except(
+        PH.Config.Versions.Features,
+        function(f)
+            return f.Name == feature.Name
+        end
+    )
+    PH.Config.LoadedFeatures =
+        Core.Except(
+        PH.Config.LoadedFeatures,
+        function(f)
+            return f.Name == feature.Name
+        end
+    )
+    os.execute('del /S ' .. feature.Name .. '.lua')
+    PH.Save()
+    Core.Log('Uninstalled ' .. feature.Name .. ' : ' .. feature.Version)
 end
 
-function CoreOnRoomChanged(changeInfo)
-    Pyre.QueueReset()
-end
-
-function Helper.Setup()
-    Helper.LoadFeatures()
-
-    table.insert(Pyre.Events[Pyre.Event.StateChanged], CoreOnStateChange)
-    table.insert(Pyre.Events[Pyre.Event.RoomChanged], CoreOnRoomChanged)
-
-    -- add help alias
-    AddAlias(
-        'ph_help',
-        '^pyre help\\s?(.*)?$',
-        '',
-        alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
-        'OnHelp'
-    )
-    -- add settings alias
-    AddAlias(
-        'ph_setting',
-        "^[pP]yre [sS]e?t?t?i?n?g?\\s([a-zA-Z0-9']+\\s?)?([\\(\\)\\#a-zA-Z0-9']+\\s?)?([\\(\\)\\#a-zA-Z0-9\\.']+\\s?)?([\\(\\)\\#a-zA-Z0-9\\.']+\\s?)?([\\(\\)\\#a-zA-Z0-9\\.']+\\s?)?([\\(\\)\\#a-zA-Z0-9\\.']+\\s?)?([\\(\\)\\#a-zA-Z0-9\\.']+\\s?)?([\\(\\)\\#a-zA-Z0-9\\.']+\\s?)?$",
-        '',
-        alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
-        'OnSetting'
-    )
-
-    -- install new features
-    AddAlias(
-        'ph_featureinstall',
-        '^pyre install (.*)$',
-        '',
-        alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
-        'OnFeatureInstall'
-    )
-
-    AddAlias(
-        'ph_featureuninstall',
-        '^pyre uninstall (.*)$',
-        '',
-        alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
-        'OnFeatureUninstall'
-    )
-
-    AddAlias(
-        'ph_featurelist',
-        '^pyre features$',
-        '',
-        alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary,
-        'OnFeatures'
-    )
-
-    -- enemy died trigger
-    AddTriggerEx(
-        'ph_enemydied',
-        '^(.+)(DEAD!|it!!|him!!|her!!|.+is slain by.+!!)$',
-        '',
-        trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace + trigger_flag.Temporary, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
-        -1,
-        0,
-        '',
-        'OnEnemyDied',
-        0
-    )
-end
-
-function Helper.Tick()
-    -- dont tick if we are not started
-    Pyre.Log('Tick', Pyre.LogLevel.VERBOSE)
-    if (Pyre.Status.Started == false) then
+function PH.RegisterFeature(feature)
+    if (feature == nil or feature.Reference == nil or feature.Reference.Config == nil) then
         return
     end
 
-    Pyre.QueueCleanExpired()
-    Pyre.QueueProcessNext()
+    -- register events
+    if (feature.Reference.Config.Events ~= nil) then
+        Core.Each(
+            feature.Reference.Config.Events,
+            function(evt)
+                evt.Source = feature.Name
+                table.insert(Core.Events[evt.Type], evt)
+            end
+        )
+    end
 
-    for _, feat in ipairs(Features) do
-        if ((feat ~= nil) and (feat.Feature ~= nil) and (feat.Feature.FeatureTick ~= nil)) then
-            feat.Feature.FeatureTick()
+    -- register commands and settings
+    if (feature.Reference.Config.Commands ~= nil) then
+        Core.Each(
+            feature.Reference.Config.Commands,
+            function(cmd)
+                local safename = cmd.Name:gsub('%s+', '')
+                if (cmd.ExecuteWith == nil or cmd.ExecuteWith == '') then
+                    cmd.ExecuteWith = 'pyre ' .. string.lower(safename) .. '\\s?(.*)?'
+                end
+                AddAlias(
+                    'phc_' .. feature.Name .. '_' .. safename,
+                    '^' .. cmd.ExecuteWith .. '$',
+                    '',
+                    alias_flag.Enabled + alias_flag.RegularExpression + alias_flag.Replace + alias_flag.Temporary +
+                        alias_flag.KeepEvaluating,
+                    'PHCommandHandler'
+                )
+            end
+        )
+    end
+
+    -- load settings
+    if (feature.Reference.Config.Settings ~= nil) then
+        Core.Each(
+            feature.Reference.Config.Settings,
+            function(s)
+                s.Value = GetVariable(feature.Name .. '_' .. s.Name)
+                if (s.Value == nil) then
+                    s.Value = (s.Default or 0)
+                end
+                if (s.Min ~= nil or s.Max ~= nil) then
+                    s.Value = tonumber(s.Value) or tonumber(s.Default)
+                    if (s.Min ~= nil and s.Value < s.Min) then
+                        s.Value = s.Min
+                    end
+                    if (s.Max ~= nil and s.Value > s.Max) then
+                        s.Value = s.Max
+                    end
+                end
+                Core.Log('setting loaded ' .. feature.Name .. '_' .. s.Name .. ' : ' .. s.Value, Core.LogLevel.VERBOSE)
+            end
+        )
+    end
+
+    -- register triggers
+    if (feature.Reference.Config.Triggers ~= nil) then
+        Core.Each(
+            feature.Reference.Config.Triggers,
+            function(trigger)
+                local safename = trigger.Name:gsub('%s+', '')
+                AddTriggerEx(
+                    'pht_' .. feature.Name .. '_' .. safename,
+                    '^' .. trigger.Match .. '$',
+                    '',
+                    trigger_flag.Enabled + trigger_flag.RegularExpression + trigger_flag.Replace +
+                        trigger_flag.Temporary +
+                        trigger_flag.KeepEvaluating, -- + trigger_flag.OmitFromOutput + trigger_flag.OmitFromLog,
+                    -1,
+                    0,
+                    '',
+                    'PHTriggerHandler',
+                    0
+                )
+            end
+        )
+    end
+end
+
+function PH.UnregisterFeature(feature)
+    if (feature == nil or feature.Reference == nil or feature.Reference.Config == nil) then
+        return
+    end
+
+    -- unregister commands
+    if (feature.Reference.Config.Commands ~= nil) then
+        Core.Each(
+            feature.Reference.Config.Commands,
+            function(cmd)
+                local safename = cmd.Name:gsub('%s+', '')
+                DeleteAlias('phc_' .. feature.Name .. '_' .. safename)
+            end
+        )
+    end
+
+    -- unregister events
+    if (feature.Reference.Config.Events ~= nil) then
+        Core.Each(
+            feature.Reference.Config.Events,
+            function(evt)
+                Core.Events[evt.Type] =
+                    Core.Except(
+                    Core.Events[evt.Type],
+                    function(e)
+                        return e.Source == feature.Name
+                    end
+                )
+            end
+        )
+    end
+
+    PH.Save()
+
+    -- unregister triggers
+    if (feature.Reference.Config.Triggers ~= nil) then
+        Core.Each(
+            feature.Reference.Config.Triggers,
+            function(trigger)
+                local safename = trigger.Name:gsub('%s+', '')
+                DeleteTrigger('pht_' .. feature.Name .. '_' .. safename)
+            end
+        )
+    end
+end
+
+function PH.StateChanged(state)
+    if (state.New == Core.States.IDLE and state.Old < Core.States.IDLE) then
+        PH.Start()
+    end
+
+    if (state.New < Core.States.IDLE and state.Old >= Core.States.IDLE) then
+        PH.Stop()
+    end
+end
+
+function PH.ChangeSetting(line, wildcards)
+    local p1 = (wildcards[1] or ''):match '^%s*(.*)':match '(.-)%s*$'
+    local p2 = (wildcards[2] or ''):match '^%s*(.*)':match '(.-)%s*$'
+    local p3 = (wildcards[3] or ''):match '^%s*(.*)':match '(.-)%s*$'
+    local p4 = (wildcards[4] or ''):match '^%s*(.*)':match '(.-)%s*$'
+
+    if (p1 == nil) then
+        Core.Log('settingname or feature + settingname is required', Core.LogLevel.ERROR)
+        return
+    end
+
+    -- see if p1 is a primary helper setting before going to features
+    local setting =
+        Core.First(
+        Core.Config.Settings,
+        function(s)
+            return (string.lower(s.Name) == string.lower(p1))
+        end
+    )
+
+    if (setting ~= nil) then
+        -- do we have a feature match, a setting match and no value passed in
+        if (p2 == '') then
+            p2 = Core.AskIfEmpty(p2, setting.Name, setting.Default)
+
+            if (p2 == nil or p2 == '') then
+                p2 = (setting.Default or 0)
+            end
+        end
+
+        local originalValue = setting.Value or ''
+        if (setting.OnBeforeSet ~= nil) then
+            local result = setting:OnBeforeSet(originalValue, p2)
+            if (result == false) then
+                return
+            end
+        end
+        if (setting.Min ~= nil or setting.Max ~= nil) then
+            setting.Value = tonumber(p2) or tonumber(setting.Default)
+            if (setting.Min ~= nil and setting.Value < setting.Min) then
+                setting.Value = setting.Min
+            end
+            if (setting.Max ~= nil and setting.Value > setting.Max) then
+                setting.Value = setting.Max
+            end
+        else
+            setting.Value = p2
+        end
+        if (setting.OnAfterSet ~= nil) then
+            setting:OnAfterSet(setting.Value, originalValue)
+        end
+        PH.Save()
+        Core.Log(setting.Name .. ' changed from ' .. originalValue .. ' to ' .. setting.Value)
+
+        return
+    end
+
+    if (p1 == 'core') then
+        local setting =
+            Core.First(
+            Core.Config.Settings,
+            function(s)
+                return (string.lower(s.Name) == string.lower(p2))
+            end
+        )
+
+        if (setting ~= nil) then
+            -- do we have a feature match, a setting match and no value passed in
+            if (p3 == '') then
+                p3 = Core.AskIfEmpty(p3, setting.Name, setting.Default)
+
+                if (p3 == nil or p3 == '') then
+                    p3 = (setting.Default or 0)
+                end
+            end
+
+            local originalValue = setting.Value or ''
+            local result = setting:OnBeforeSet(originalValue, p3)
+            if (result == false) then
+                return
+            end
+
+            if (setting.Min ~= nil or setting.Max ~= nil) then
+                setting.Value = tonumber(p3) or tonumber(setting.Default)
+                if (setting.Min ~= nil and setting.Value < setting.Min) then
+                    setting.Value = setting.Min
+                end
+                if (setting.Max ~= nil and setting.Value > setting.Max) then
+                    setting.Value = setting.Max
+                end
+            else
+                setting.Value = p3
+            end
+            if (setting.OnAfterSet ~= nil) then
+                setting:OnAfterSet(setting.Value, originalValue)
+            end
+            PH.Save()
+            Core.Log(setting.Name .. ' changed from ' .. originalValue .. ' to ' .. setting.Value)
+
+            return
         end
     end
 
-    -- ResetTimer('ph_tick')
+    -- is p1 a feature name instead?
+    local feature =
+        Core.First(
+        PH.Config.LoadedFeatures,
+        function(f)
+            return ((string.lower(f.Name) == string.lower(p1)) or (string.lower(f.Name) == string.lower('pyre' .. p1)))
+        end
+    )
+
+    if (feature == nil) then
+        Core.Log(p1 .. ' is not a setting or feature')
+        return
+    end
+
+    if (feature.Reference ~= nil and feature.Reference.Config ~= nil and feature.Reference.Config.Settings) then
+        local setting =
+            Core.First(
+            feature.Reference.Config.Settings,
+            function(s)
+                return (string.lower(s.Name) == string.lower(p2))
+            end
+        )
+        if (setting == nil) then
+            Core.Log(p2 .. ' is not a setting for feature ' .. feature.Name)
+            return
+        end
+
+        -- do we have a feature match, a setting match and no value passed in
+        if (p3 == '') then
+            p3 = Core.AskIfEmpty(p3, setting.Name, setting.Default)
+
+            if (p3 == nil or p3 == '') then
+                p3 = (setting.Default or 0)
+            end
+        end
+
+        local originalValue = setting.Value or ''
+
+        if (setting.OnBeforeSet ~= nil) then
+            local result = setting:OnBeforeSet(originalValue, p3)
+            if (result == false) then
+                return
+            end
+        end
+
+        if (setting.Min ~= nil or setting.Max ~= nil) then
+            setting.Value = tonumber(p3) or tonumber(setting.Default)
+            if (setting.Min ~= nil and setting.Value < setting.Min) then
+                setting.Value = setting.Min
+            end
+            if (setting.Max ~= nil and setting.Value > setting.Max) then
+                setting.Value = setting.Max
+            end
+        else
+            setting.Value = p3
+        end
+        if (setting.OnAfterSet ~= nil) then
+            setting:OnAfterSet(setting.Value, originalValue)
+        end
+        PH.Save()
+        Core.Log(feature.Name .. ' ' .. setting.Name .. ' changed from ' .. originalValue .. ' to ' .. setting.Value)
+    end
 end
-
---------------------------------------------------------------------------------------
-
---                  PLUGIN EXPORTS
-
---------------------------------------------------------------------------------------
-
-return Helper
+-- export our helper
+return PH

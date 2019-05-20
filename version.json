@@ -1,57 +1,55 @@
 {
-  "release": {
-    "version": "2.0",
-    "url": "https://raw.githubusercontent.com/thesmallbang/ascripts/master/Pyre_Helper.xml",
-    "note": "Something about release"
+  "Release": {
+    "Version": "2.4",
+    "Url": "https://raw.githubusercontent.com/thesmallbang/ascripts/master/Pyre_Helper.xml",
+    "Description": "Added pyre window"
   },
-  "dependencies": [
-    {
-      "name": "updaterplugin",
-      "url": "https://raw.githubusercontent.com/thesmallbang/ascripts/master/Pyre_Updater.xml",
-      "version": "1.1"
+  "Dependencies": [{
+      "Name": "Pyre_Updater",
+      "Url": "https://raw.githubusercontent.com/thesmallbang/ascripts/master/Pyre_Updater.xml",
+      "Version": "1.2"
     },
     {
-      "name": "pyrehelper",
-      "url": "https://raw.githubusercontent.com/thesmallbang/ascripts/master/pyrehelper.lua",
-      "version": "1.1",
-      "relay": "true"
+      "Name": "pyrehelper",
+      "Url": "https://raw.githubusercontent.com/thesmallbang/ascripts/master/pyrehelper.lua",
+      "Version": "1.2",
+      "Relay": "true"
     },
     {
-      "name": "pyrecore",
-      "url": "https://raw.githubusercontent.com/thesmallbang/ascripts/master/pyrecore.lua",
-      "version": "1.1"
+      "Name": "pyrecore",
+      "Url": "https://raw.githubusercontent.com/thesmallbang/ascripts/master/pyrecore.lua",
+      "Version": "1.2"
     }
   ],
-  "features": [
-    {
-      "name": "pyreskills",
-      "filename": "pyreskills.lua",
-      "description": "Track skill expirations + pyre attack command",
-      "version": "1.0"
+  "Features": [{
+      "Name": "pyreskills",
+      "Filename": "pyreskills.lua",
+      "Description": "Track skill expirations + pyre attack command",
+      "Version": "1.0"
     },
     {
-      "name": "pyrescanner",
-      "filename": "pyrescanner.lua",
-      "description": "automatically scan at an interval and report command with filtering",
-      "version": "1.0"
+      "Name": "pyrescanner",
+      "Filename": "pyrescanner.lua",
+      "Description": "automatically scan at an interval and report command with filtering",
+      "Version": "1.0"
     },
     {
-      "name": "pyrequaff",
-      "filename": "pyrequaff.lua",
-      "description": "Potion quaffing functionality",
-      "version": "1.1"
+      "Name": "pyrequaff",
+      "Filename": "pyrequaff.lua",
+      "Description": "Potion quaffing functionality",
+      "Version": "1.0"
     },
     {
-      "name": "pyretracker",
-      "filename": "pyretracker.lua",
-      "description": "Keep track of fights, dps, and exp",
-      "version": "1.0"
+      "Name": "pyretracker",
+      "Filename": "pyretracker.lua",
+      "Description": "Keep track of fights, dps, and exp",
+      "Version": "1.0"
     },
     {
-      "name": "pyretrackerwindow",
-      "filename": "pyretrackerwindow.lua",
-      "description": "Window to show pyretracker data (requires pyretracker install first)",
-      "version": "1.0"
+      "Name": "pyrewindow",
+      "Filename": "pyrewindow.lua",
+      "Description": "Window to show feature data if they support a window.",
+      "Version": "1.0"
     }
   ]
 }

@@ -192,7 +192,7 @@ function Quaff.QueuePotionIfNeeded()
                         function(executedAction)
                             -- get settings
                             if (s.Name == 'hp') then
-                                Core.addedWait = 3
+                                Core.addedWait = 4
                             end
 
                             local container = Core.GetSettingValue(Quaff, 'container')

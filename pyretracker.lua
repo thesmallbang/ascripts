@@ -694,7 +694,16 @@ function Tracker.Start()
                     duration = 'AFK'
                 end
 
-                addcontent('duration', {summary.Area, duration}, '', 'textcolor2')
+                addcontent(
+                    'duration',
+                    {summary.Area, duration},
+                    'How long in area. Click to reset current',
+                    'textcolor2',
+                    function()
+                        Tracker.ResetCurrentArea()
+                    end
+                )
+
                 addcontent(
                     'fighting',
                     {'Fighting', tostring(Tracker.EnemyCounter)},
@@ -787,7 +796,15 @@ function Tracker.Start()
                     duration = 'AFK'
                 end
 
-                addcontent('duration', {'Duration', duration}, '', 'textcolor2')
+                addcontent(
+                    'duration',
+                    {'Duration', duration},
+                    'How long in fight. Click to reset current',
+                    'textcolor2',
+                    function()
+                        Tracker.ResetCurrentFight()
+                    end
+                )
                 addcontent(
                     'fighting',
                     {'Fighting', tostring(Tracker.EnemyCounter)},

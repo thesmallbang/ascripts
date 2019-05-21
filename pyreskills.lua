@@ -169,6 +169,7 @@ Skills.Config = {
             Name = 'SkillsOnQuaffDetected',
             Match = '\\[.*\\] A warm feeling fills your body. \\[.*\\]',
             Callback = function(line, wildcards)
+                print('quaff adding wait')
                 if (Core.addedWait < 4) then
                     Core.addedWait = 4
                 end

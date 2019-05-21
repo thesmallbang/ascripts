@@ -523,7 +523,7 @@ function core_module.QueueProcessNext()
     -- reset it
     local newUniqueId = math.random(1, 1000000)
     item.uid = newUniqueId
-    item.Expiration = socket.gettime() + 10
+    item.Expiration = socket.gettime() + 20
     --  core_module.addedWait = 0
     item.Execute(item.Info, item)
 

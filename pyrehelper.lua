@@ -74,7 +74,6 @@ local afkcheckin = os.time()
 -- Plugin install. This really happens at plugin startup from a mush perspective.
 function PH.Install(remoteVersionData, featuresOnDisk)
     PH.Config.LatestVersions = remoteVersionData
-    Core.Log(Core.ToString(remoteVersionData))
     PH.Config.Versions = json.decode(GetVariable('ph_version') or '[]')
 
     -- remove any features no longer found on disk

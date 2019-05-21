@@ -74,27 +74,22 @@ local afkcheckin = os.time()
 -- Plugin install. This really happens at plugin startup from a mush perspective.
 function PH.Install(remoteVersionData, featuresOnDisk)
     PH.Config.LatestVersions = remoteVersionData
-    PH.Config.Versions = json.decode(GetVariable('ph_version2') or '[]')
+    Core.Log(Core.ToString(remoteVersionData))
+    PH.Config.Versions = json.decode(GetVariable('ph_version') or '[]')
 
-    if (PH.Config.Versions.Release == nil) then
-        PH.Config.Versions = remoteVersionData
-        --PH.Config.Versions.Dependencies = {}
-        PH.Config.Versions.Features = {}
-    else
-        -- remove any features no longer found on disk
-        PH.Config.Versions.Features =
-            Core.Filter(
-            PH.Config.Versions.Features or {},
-            function(vf)
-                return Core.Any(
-                    featuresOnDisk or {},
-                    function(df)
-                        return (df.Name == vf.Name and df.Version == vf.Version)
-                    end
-                )
-            end
-        ) or {}
-    end
+    -- remove any features no longer found on disk
+    PH.Config.Versions.Features =
+        Core.Filter(
+        PH.Config.Versions.Features or {},
+        function(vf)
+            return Core.Any(
+                featuresOnDisk or {},
+                function(df)
+                    return (df.Name == vf.Name and df.Version == vf.Version)
+                end
+            )
+        end
+    ) or {}
 
     Core.Each(
         PH.Config.Versions.Features,
@@ -292,7 +287,7 @@ end
 
 -- Save on all features
 function PH.Save()
-    SetVariable('ph_version2', json.encode(PH.Config.Versions))
+    SetVariable('ph_version', json.encode(PH.Config.Versions))
 
     Core.Each(
         Core.Config.Settings,

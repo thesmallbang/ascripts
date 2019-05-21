@@ -184,7 +184,7 @@ end
 function checkVersionFile()
 
     if  (remoteData == nil) then
-        download("https://raw.githubusercontent.com/thesmallbang/ascripts/master/version.json", 
+        download("https://raw.githubusercontent.com/thesmallbang/ascripts/RefactoringPluginEvents/version.json", 
         function(retval, page, status, headers, full_status, request_url) 
             saveDownload(retval, page, status, headers, full_status, request_url)
             checkVersionFile()
@@ -193,7 +193,7 @@ function checkVersionFile()
         return
     end
 
-    local localdata = GetVariable('ph_version2')
+    local localdata = GetVariable('ph_version')
 
     if  (localdata ~= nil) then
             localData = json.decode(localdata)
@@ -201,7 +201,7 @@ function checkVersionFile()
             local tempData = remoteData
             tempData.downloaded = os.date()
             tempData.Features = {}
-            SetVariable('ph_version2', json.encode(tempData))
+            SetVariable('ph_version', json.encode(tempData))
     end
 
 
@@ -213,7 +213,7 @@ function checkVersionFile()
         download(remoteData.Release.Url, function(retval, page, status, headers, full_status, request_url) 
                 saveDownload(retval, page, status, headers, full_status, request_url)
                 localData.Release = remoteData.Release
-                SetVariable('ph_version2', json.encode(localData))
+                SetVariable('ph_version', json.encode(localData))
                 print('Your main .xml was updated and requires you to "pyre reload" manually.')    
             end)
                 return
@@ -245,7 +245,7 @@ function checkVersionFile()
                             saveDownload(retval, page, status, headers, full_status, request_url)
                             localDep.Version = remoteDep.Version
                             localDep.Url = remoteDep.Url
-                              SetVariable('ph_version2', json.encode(localData))
+                              SetVariable('ph_version', json.encode(localData))
                             checkVersionFile()
                         end)
                         return
@@ -260,7 +260,7 @@ function checkVersionFile()
             saveDownload(retval, page, status, headers, full_status, request_url)
             
             table.insert(localData.Dependencies, remoteDep)
-            SetVariable('ph_version2', json.encode(localData))
+            SetVariable('ph_version', json.encode(localData))
             
             checkVersionFile()
         end)
@@ -284,26 +284,26 @@ function checkVersionFile()
 
                 if (endsWith(remoteDep.Filename,'.lua') and not (file_exists('lua//' .. remoteDep.Filename))) then
                     -- we have the local dep configured but it is not on disk
-                        download('https://raw.githubusercontent.com/thesmallbang/ascripts/master/' .. remoteDep.Filename, function(retval, page, status, headers, full_status, request_url) 
+                        download('https://raw.githubusercontent.com/thesmallbang/ascripts/RefactoringPluginEvents/' .. remoteDep.Filename, function(retval, page, status, headers, full_status, request_url) 
                             saveDownload(retval, page, status, headers, full_status, request_url)
                             localDep.Version = remoteDep.Version
                             localDep.Name = remoteDep.Name
                             localDep.Filename = remoteDep.Filename
-                            localDep.Description = (remoteDep.Description or '')
-                            SetVariable('ph_version2', json.encode(localData))
+                            localDep.Description = remoteDep.Description
+                            SetVariable('ph_version', json.encode(localData))
                             checkVersionFile()
                         end)
                         return
                 end
 
                 if (remoteDep.Version ~= localDep.Version) then
-                        download('https://raw.githubusercontent.com/thesmallbang/ascripts/master/' .. remoteDep.Filename, function(retval, page, status, headers, full_status, request_url) 
+                        download('https://raw.githubusercontent.com/thesmallbang/ascripts/RefactoringPluginEvents/' .. remoteDep.Filename, function(retval, page, status, headers, full_status, request_url) 
                             saveDownload(retval, page, status, headers, full_status, request_url)
                             localDep.Version = remoteDep.Version
                             localDep.Name = remoteDep.Name
                             localDep.Filename = remoteDep.Filename
-                            localDep.Description = (remoteDep.Description or '')
-                            SetVariable('ph_version2', json.encode(localData))
+                            localDep.Description = remoteDep.Description
+                            SetVariable('ph_version', json.encode(localData))
                             checkVersionFile()
                         end)
                         return

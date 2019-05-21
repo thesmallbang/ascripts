@@ -218,6 +218,7 @@ Window = {
             }
         }
     },
+    Overrides = {},
     Drawing = {
         DrawWindow = function()
             if (Window.LastDraw > socket.gettime() - Core.GetSettingValue(Window, 'refreshrate')) then
@@ -405,6 +406,7 @@ Window = {
             local columnWidth = Core.Round(windowWidth / (totalColumns), 0) + (totalColumns + columnSpacer)
 
             local column = 0
+
             Core.Each(
                 view.Cache,
                 function(content)
@@ -414,12 +416,12 @@ Window = {
                     local xoffset = 0
                     Core.Each(
                         content.Display,
-                        function(d)
+                        function(d, i)
                             local subwidth = Core.Round((columnWidth / (#content.Display)), 0)
                             local charwidth = WindowTextWidth(windowId, 's', 'a', false)
                             local maxwidth = Core.Round((subwidth / charwidth), 0)
-
                             d = string.sub(d, 1, maxwidth)
+                            local msgWidth = string.len(d)
                             -- is the text bigger than our subset
                             WindowText(
                                 windowId,
@@ -435,6 +437,29 @@ Window = {
                             xoffset = xoffset + subwidth
                         end
                     )
+
+                    if ((content.Tooltip ~= nil and content.Tooltip ~= '') or content.OnClick ~= nil) then
+                        local cursor = 0
+                        if (content.OnClick ~= nil) then
+                            cursor = 1
+                        end
+                        WindowAddHotspot(
+                            windowId,
+                            content.Id,
+                            leftpos,
+                            toppos,
+                            leftpos + (columnWidth - 10),
+                            toppos + lineHeight,
+                            '',
+                            '',
+                            'OnWindowContentClick',
+                            '',
+                            '',
+                            content.Tooltip or '',
+                            cursor, -- hand cursor
+                            0
+                        )
+                    end
 
                     column = column + 1
                     if (column >= totalColumns) then
@@ -625,6 +650,12 @@ Window = {
                     end
                 end
             end
+        end,
+        CreateContent = function(uid, msgs, tooltip, color, action)
+            if (color == nil) then
+                color = 'textcolor1'
+            end
+            return {Id = uid, Display = msgs, ColorSetting = color, Tooltip = tooltip, OnClick = action}
         end
     }
 }
@@ -661,6 +692,29 @@ function OnWindowPagerHandler(a, name)
             view.Pager.Set()
         end
     end
+end
+
+function OnWindowContentClick(a, name)
+    -- find content
+
+    local view = Views[Core.GetSettingValue(Window, 'view') + 1]
+    if (view == nil) then
+        return
+    end
+
+    local content =
+        Core.First(
+        view.Cache,
+        function(c)
+            return c.Id == name
+        end
+    )
+
+    if (content == nil or content.OnClick == nil) then
+        return
+    end
+
+    content.OnClick()
 end
 
 function OnWindowMouseDown()
@@ -767,6 +821,9 @@ function Window.UnregisterView(name)
             return v.Name == name
         end
     )
+end
+
+function Window.RegisterGlobal()
 end
 
 function Window.SetVisible(visible)

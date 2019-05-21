@@ -584,11 +584,9 @@ function Tracker.Start()
             'Session',
             function()
                 local content = {}
-                local addcontent = function(msgs, tooltip, color)
-                    if (color == nil) then
-                        color = 'textcolor1'
-                    end
-                    table.insert(content, {Display = msgs, ColorSetting = color, Tooltip = tooltip})
+
+                local addcontent = function(uid, msgs, tooltip, color, action)
+                    table.insert(content, Window.Drawing.CreateContent('session_' .. uid, msgs, tooltip, color, action))
                 end
 
                 local summary = Tracker.Factory.CreateSessionSummary(Tracker.Session)
@@ -598,28 +596,53 @@ function Tracker.Start()
                     duration = 'AFK'
                 end
 
-                addcontent({'Session', duration}, '', 'textcolor2')
-                addcontent({'Fighting', tostring(Tracker.EnemyCounter)}, '', 'textcolor3')
-                addcontent({'Queue', tostring(#Core.ActionQueue)}, '', 'textcolor3')
+                addcontent(
+                    'duration',
+                    {'Session', duration},
+                    'Click to reset session',
+                    'textcolor2',
+                    function()
+                        Tracker.ResetSession()
+                    end
+                )
+                addcontent(
+                    'fighting',
+                    {'Fighting', tostring(Tracker.EnemyCounter)},
+                    'How many enemies are actively being fought',
+                    'textcolor3'
+                )
+                addcontent(
+                    'queue',
+                    {'Queue', tostring(#Core.ActionQueue)},
+                    'How many commands are in the queue. Click to reset.',
+                    'textcolor3',
+                    function()
+                        Core.QueueReset()
+                    end
+                )
 
-                addcontent({'Exp', tostring(summary.Experience)})
-                addcontent({'Normal', tostring(summary.NormalExperience)})
-                addcontent({'Rare', tostring(summary.RareExperience)})
-                addcontent({'Bonus', tostring(summary.BonusExperience)})
+                addcontent('exp', {'Exp', tostring(summary.Experience)}, 'How much experience has been gained')
+                addcontent('normal', {'Normal', tostring(summary.NormalExperience)})
+                addcontent('rare', {'Rare', tostring(summary.RareExperience)})
+                addcontent(
+                    'bonus',
+                    {'Bonus', tostring(summary.BonusExperience)},
+                    'Any double or daily prayer type bonus'
+                )
 
-                addcontent({'Fights', tostring(summary.Fights)})
-                addcontent({'Souls', tostring(summary.Souls)})
-                addcontent({'SPF', tostring(summary.AverageSoulsPerFight)})
+                addcontent('fights', {'Fights', tostring(summary.Fights)})
+                addcontent('souls', {'Souls', tostring(summary.Souls)})
+                addcontent('sfp', {'SPF', tostring(summary.AverageSoulsPerFight)})
 
-                addcontent({'XPM', tostring(summary.Normal.ExpPerMinute)})
-                addcontent({'XPCM', tostring(summary.Combat.ExpPerMinute)})
-                addcontent({'Dmg', tostring(summary.PlayerDamage)})
-                addcontent({'DPS', tostring(summary.Normal.PlayerDps)})
-                addcontent({'DPCS', tostring(summary.Combat.PlayerDps)})
+                addcontent('xpm', {'XPM', tostring(summary.Normal.ExpPerMinute)})
+                addcontent('xpcm', {'XPCM', tostring(summary.Combat.ExpPerMinute)})
+                addcontent('dmg', {'Dmg', tostring(summary.PlayerDamage)})
+                addcontent('dps', {'DPS', tostring(summary.Normal.PlayerDps)})
+                addcontent('dpcs', {'DPCS', tostring(summary.Combat.PlayerDps)})
 
-                addcontent({'EDmg', tostring(summary.EnemyDamage)})
-                addcontent({'EDPS', tostring(summary.Normal.EnemyDps)})
-                addcontent({'EDPCS', tostring(summary.Combat.EnemyDps)})
+                addcontent('edmg', {'EDmg', tostring(summary.EnemyDamage)})
+                addcontent('edps', {'EDPS', tostring(summary.Normal.EnemyDps)})
+                addcontent('edpcs', {'EDPCS', tostring(summary.Combat.EnemyDps)})
 
                 return content
             end
@@ -656,8 +679,8 @@ function Tracker.Start()
             'Areas',
             function()
                 local content = {}
-                local addcontent = function(msgs, tooltip, color, callback)
-                    table.insert(content, {Display = msgs, ColorSetting = (color or 'textcolor1'), Tooltip = tooltip})
+                local addcontent = function(uid, msgs, tooltip, color, action)
+                    table.insert(content, Window.Drawing.CreateContent('areas_' .. uid, msgs, tooltip, color, action))
                 end
 
                 local area = Tracker.GetAreaByIndex(Tracker.AreaIndex)
@@ -671,28 +694,41 @@ function Tracker.Start()
                     duration = 'AFK'
                 end
 
-                addcontent({summary.Area, duration}, '', 'textcolor2')
-                addcontent({'Fighting', tostring(Tracker.EnemyCounter)}, '', 'textcolor3')
-                addcontent({'Queue', tostring(#Core.ActionQueue)}, '', 'textcolor3')
+                addcontent('duration', {summary.Area, duration}, '', 'textcolor2')
+                addcontent(
+                    'fighting',
+                    {'Fighting', tostring(Tracker.EnemyCounter)},
+                    'How many enemies are actively being fought',
+                    'textcolor3'
+                )
+                addcontent(
+                    'queue',
+                    {'Queue', tostring(#Core.ActionQueue)},
+                    'How many commands are in the queue. Click to reset.',
+                    'textcolor3',
+                    function()
+                        Core.QueueReset()
+                    end
+                )
 
-                addcontent({'Exp', tostring(summary.Experience)})
-                addcontent({'Normal', tostring(summary.NormalExperience)})
-                addcontent({'Rare', tostring(summary.RareExperience)})
-                addcontent({'Bonus', tostring(summary.BonusExperience)})
+                addcontent('exp', {'Exp', tostring(summary.Experience)})
+                addcontent('normal', {'Normal', tostring(summary.NormalExperience)})
+                addcontent('rare', {'Rare', tostring(summary.RareExperience)})
+                addcontent('bonus', {'Bonus', tostring(summary.BonusExperience)})
 
-                addcontent({'Fights', tostring(summary.Fights)})
-                addcontent({'Souls', tostring(summary.Souls)})
-                addcontent({'SPF', tostring(summary.AverageSoulsPerFight)})
+                addcontent('fights', {'Fights', tostring(summary.Fights)})
+                addcontent('souls', {'Souls', tostring(summary.Souls)})
+                addcontent('spf', {'SPF', tostring(summary.AverageSoulsPerFight)})
 
-                addcontent({'XPM', tostring(summary.Normal.ExpPerMinute)})
-                addcontent({'XPCM', tostring(summary.Combat.ExpPerMinute)})
-                addcontent({'Dmg', tostring(summary.PlayerDamage)})
-                addcontent({'DPS', tostring(summary.Normal.PlayerDps)})
-                addcontent({'DPCS', tostring(summary.Combat.PlayerDps)})
+                addcontent('xpm', {'XPM', tostring(summary.Normal.ExpPerMinute)})
+                addcontent('xpcm', {'XPCM', tostring(summary.Combat.ExpPerMinute)})
+                addcontent('dmg', {'Dmg', tostring(summary.PlayerDamage)})
+                addcontent('dps', {'DPS', tostring(summary.Normal.PlayerDps)})
+                addcontent('dpcs', {'DPCS', tostring(summary.Combat.PlayerDps)})
 
-                addcontent({'EDmg', tostring(summary.EnemyDamage)})
-                addcontent({'EDPS', tostring(summary.Normal.EnemyDps)})
-                addcontent({'EDPCS', tostring(summary.Combat.EnemyDps)})
+                addcontent('edmg', {'EDmg', tostring(summary.EnemyDamage)})
+                addcontent('edps', {'EDPS', tostring(summary.Normal.EnemyDps)})
+                addcontent('edpcs', {'EDPCS', tostring(summary.Combat.EnemyDps)})
 
                 return content
             end,
@@ -729,8 +765,8 @@ function Tracker.Start()
             'Fights',
             function()
                 local content = {}
-                local addcontent = function(msgs, tooltip, color)
-                    table.insert(content, {Display = msgs, ColorSetting = (color or 'textcolor1'), Tooltip = tooltip})
+                local addcontent = function(uid, msgs, tooltip, color, action)
+                    table.insert(content, Window.Drawing.CreateContent('fights_' .. uid, msgs, tooltip, color, action))
                 end
 
                 local fight = Tracker.GetFightByIndex(Tracker.FightIndex)
@@ -742,7 +778,7 @@ function Tracker.Start()
                 end
 
                 if (summary == nil) then
-                    addcontent({'Waiting on data'}, '', 'textcolor3')
+                    addcontent('waiting', {'Waiting on data'}, '', 'textcolor3')
                     return content
                 end
 
@@ -751,23 +787,35 @@ function Tracker.Start()
                     duration = 'AFK'
                 end
 
-                addcontent({'Duration', duration}, '', 'textcolor2')
-                addcontent({'Enemies', tostring(Tracker.EnemyCounter)}, '', 'textcolor3')
-                addcontent({'Queue', tostring(#Core.ActionQueue)}, '', 'textcolor3')
+                addcontent('duration', {'Duration', duration}, '', 'textcolor2')
+                addcontent(
+                    'fighting',
+                    {'Fighting', tostring(Tracker.EnemyCounter)},
+                    'How many enemies are actively being fought',
+                    'textcolor3'
+                )
+                addcontent(
+                    'queue',
+                    {'Queue', tostring(#Core.ActionQueue)},
+                    'How many commands are in the queue. Click to reset.',
+                    'textcolor3',
+                    function()
+                        Core.QueueReset()
+                    end
+                )
+                addcontent('exp', {'Exp', tostring(summary.Experience)})
+                addcontent('normal', {'Normal', tostring(summary.NormalExperience)})
+                addcontent('rare', {'Rare', tostring(summary.RareExperience)})
+                addcontent('bonus', {'Bonus', tostring(summary.BonusExperience)})
 
-                addcontent({'Exp', tostring(summary.Experience)})
-                addcontent({'Normal', tostring(summary.NormalExperience)})
-                addcontent({'Rare', tostring(summary.RareExperience)})
-                addcontent({'Bonus', tostring(summary.BonusExperience)})
+                addcontent('souls', {'Souls', tostring(summary.Souls)})
 
-                addcontent({'Souls', tostring(summary.Souls)})
+                addcontent('xps', {'XPS', tostring(summary.Normal.ExpPerSecond)})
+                addcontent('dmg', {'Dmg', tostring(summary.PlayerDamage)})
+                addcontent('dps', {'DPS', tostring(summary.Normal.PlayerDps)})
 
-                addcontent({'XPS', tostring(summary.Normal.ExpPerSecond)})
-                addcontent({'Dmg', tostring(summary.PlayerDamage)})
-                addcontent({'DPS', tostring(summary.Normal.PlayerDps)})
-
-                addcontent({'EDmg', tostring(summary.EnemyDamage)})
-                addcontent({'EDPS', tostring(summary.Normal.EnemyDps)})
+                addcontent('edmg', {'EDmg', tostring(summary.EnemyDamage)})
+                addcontent('edps', {'EDPS', tostring(summary.Normal.EnemyDps)})
 
                 return content
             end,

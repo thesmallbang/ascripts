@@ -169,8 +169,8 @@ Skills.Config = {
             Name = 'SkillsOnQuaffDetected',
             Match = '\\[.*\\] A warm feeling fills your body. \\[.*\\]',
             Callback = function(line, wildcards)
-                if (Core.addedWait < 4) then
-                    Core.addedWait = 4
+                if (Core.addedWait < 3) then
+                    Core.addedWait = 3
                 end
             end
         }

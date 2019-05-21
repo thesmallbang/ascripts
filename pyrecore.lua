@@ -1043,7 +1043,7 @@ core_module.Classes = {
             {
                 ActionType = core_module.ActionType.CombatMove,
                 Name = 'Bash',
-                AddDelay = 2,
+                AddDelay = 1,
                 Level = 11,
                 AutoSend = true,
                 Alias = 'bash',
@@ -1052,7 +1052,7 @@ core_module.Classes = {
             {
                 ActionType = core_module.ActionType.CombatMove,
                 Name = 'Sap',
-                AddDelay = 2,
+                AddDelay = 1,
                 Level = 50,
                 AutoSend = true,
                 Alias = 'sap',
@@ -1061,7 +1061,7 @@ core_module.Classes = {
             {
                 ActionType = core_module.ActionType.CombatMove,
                 Name = 'Scalp',
-                AddDelay = 2,
+                AddDelay = 1,
                 Level = 60,
                 AutoSend = true,
                 Alias = 'scalp',
@@ -1070,7 +1070,7 @@ core_module.Classes = {
             {
                 ActionType = core_module.ActionType.CombatMove,
                 Name = 'Assault',
-                AddDelay = 2,
+                AddDelay = 1,
                 Level = 88,
                 AutoSend = true,
                 Alias = 'mighty',
@@ -1079,7 +1079,7 @@ core_module.Classes = {
             {
                 ActionType = core_module.ActionType.CombatMove,
                 Name = 'Uppercut',
-                AddDelay = 2,
+                AddDelay = 1,
                 Level = 101,
                 AutoSend = true,
                 Alias = 'uppercut',
@@ -1088,7 +1088,7 @@ core_module.Classes = {
             {
                 ActionType = core_module.ActionType.CombatMove,
                 Name = 'Stomp',
-                AddDelay = 2,
+                AddDelay = 1,
                 Level = 137,
                 AutoSend = true,
                 Alias = 'stomp',
@@ -1097,7 +1097,7 @@ core_module.Classes = {
             {
                 ActionType = core_module.ActionType.CombatMove,
                 Name = 'Bodycheck',
-                AddDelay = 2,
+                AddDelay = 1,
                 Level = 151,
                 AutoSend = true,
                 Alias = 'bodycheck',
@@ -1106,7 +1106,7 @@ core_module.Classes = {
             {
                 ActionType = core_module.ActionType.CombatMove,
                 Name = 'Cleave',
-                AddDelay = 2,
+                AddDelay = 1,
                 Level = 165,
                 AutoSend = true,
                 Alias = 'cleave',
@@ -1115,7 +1115,7 @@ core_module.Classes = {
             {
                 ActionType = core_module.ActionType.CombatMove,
                 Name = 'Hammering',
-                AddDelay = 2,
+                AddDelay = 1,
                 Level = 178,
                 AutoSend = true,
                 Alias = 'hammering blow',

@@ -202,6 +202,7 @@ function checkVersionFile()
             tempData.downloaded = os.date()
             tempData.Features = {}
             SetVariable('ph_version', json.encode(tempData))
+            localData = tempData
     end
 
 

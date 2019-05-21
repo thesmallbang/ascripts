@@ -74,10 +74,11 @@ local afkcheckin = os.time()
 -- Plugin install. This really happens at plugin startup from a mush perspective.
 function PH.Install(remoteVersionData, featuresOnDisk)
     PH.Config.LatestVersions = remoteVersionData
-    PH.Config.Versions = json.decode(GetVariable('ph_version') or '[]')
+    PH.Config.Versions = json.decode(GetVariable('ph_version2') or '[]')
 
-    if (PH.Config.Versions.Release == nil) then
+    if (PH.Config.Versions.Release == nil or PH.Config.Versions.Release.Description == nil) then
         PH.Config.Versions = remoteVersionData
+        PH.Config.Versions.Dependencies = {}
         PH.Config.Versions.Features = {}
     else
         -- remove any features no longer found on disk
@@ -289,7 +290,7 @@ end
 
 -- Save on all features
 function PH.Save()
-    SetVariable('ph_version', json.encode(PH.Config.Versions))
+    SetVariable('ph_version2', json.encode(PH.Config.Versions))
 
     Core.Each(
         Core.Config.Settings,

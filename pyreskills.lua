@@ -169,9 +169,9 @@ Skills.Config = {
             Name = 'SkillsOnQuaffDetected',
             Match = '\\[.*\\] A warm feeling fills your body. \\[.*\\]',
             Callback = function(line, wildcards)
-                print('quaff adding wait')
-                if (Core.addedWait < 4) then
-                    Core.addedWait = 4
+                if (Core.addedWait < 3) then
+                    Core.LastSkillExecute = os.time()
+                    Core.addedWait = 3
                 end
             end
         }
@@ -498,7 +498,8 @@ function Skills.CheckOnSkills()
                                     end
                                 ))
                              then
-                                Core.addedWait = 4
+                                Core.LastSkillExecute = os.time()
+                                Core.addedWait = 3
                                 Core.RemoveAction(spell.Name)
                                 return
                             end

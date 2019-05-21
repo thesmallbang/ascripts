@@ -29,7 +29,7 @@
 
 function OnUpdate()
    os.execute('del /S pyre*.lua')
-   SetVariable('ph_version', '')
+   SetVariable('ph_version2', '')
    OnReload()
 end
 

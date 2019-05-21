@@ -76,9 +76,9 @@ function PH.Install(remoteVersionData, featuresOnDisk)
     PH.Config.LatestVersions = remoteVersionData
     PH.Config.Versions = json.decode(GetVariable('ph_version2') or '[]')
 
-    if (PH.Config.Versions.Release == nil or PH.Config.Versions.Release.Description == nil) then
+    if (PH.Config.Versions.Release == nil) then
         PH.Config.Versions = remoteVersionData
-        PH.Config.Versions.Dependencies = {}
+        --PH.Config.Versions.Dependencies = {}
         PH.Config.Versions.Features = {}
     else
         -- remove any features no longer found on disk
@@ -175,7 +175,9 @@ function PH.Install(remoteVersionData, featuresOnDisk)
         )
     end
 
-    Core.Log('PH Version ' .. PH.Config.Versions.Release.Version .. ' - ' .. PH.Config.Versions.Release.Description)
+    Core.Log(
+        'PH Version ' .. PH.Config.Versions.Release.Version .. ' - ' .. (PH.Config.Versions.Release.Description or '')
+    )
 end
 
 function PH.LoadFeature(feature)

@@ -331,6 +331,9 @@ function Skills.Stop()
     Skills.RemoveCustomSkills()
 
     local custom = Core.GetClassByName(Core.Status.Subclass)
+    if (custom == nil) then
+        return
+    end
     Core.Each(
         custom.Skills or custom.Spells,
         function(s)
